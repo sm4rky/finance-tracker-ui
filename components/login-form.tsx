@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Lock, User } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
@@ -21,10 +22,22 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type LoginFormValues, loginSchema } from "@/schema/login";
+import { type LoginFormValues, loginSchema } from "@/schema/login.schema";
+import { signInWithGoogle } from "@/lib/supabase/client";
+
+function oauthReturnPath(nextParam: string | null): string {
+  if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
+    return nextParam;
+  }
+  return "/dashboard";
+}
 
 export function LoginForm() {
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const oauthError = searchParams.get("error") === "oauth";
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -41,6 +54,24 @@ export function LoginForm() {
     // Wire Supabase / API next
   }
 
+  async function handleContinueWithGoogle() {
+    setGoogleError(null);
+    setGoogleLoading(true);
+    const { data, error } = await signInWithGoogle({
+      next: oauthReturnPath(searchParams.get("next")),
+    });
+    if (error) {
+      setGoogleError(error.message);
+      setGoogleLoading(false);
+      return;
+    }
+    if (data?.url) {
+      window.location.assign(data.url);
+      return;
+    }
+    setGoogleLoading(false);
+  }
+
   return (
     <div className="flex min-h-[100dvh] w-full flex-1 flex-col bg-background px-4 py-10 md:min-h-screen md:py-12">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
@@ -54,6 +85,16 @@ export function LoginForm() {
           </p>
         </CardHeader>
         <CardContent>
+          {oauthError ? (
+            <p className="mb-4 text-sm text-destructive" role="alert">
+              Could not sign in with Google. Please try again.
+            </p>
+          ) : null}
+          {googleError ? (
+            <p className="mb-4 text-sm text-destructive" role="alert">
+              {googleError}
+            </p>
+          ) : null}
           <form
             className="space-y-4"
             noValidate
@@ -176,6 +217,8 @@ export function LoginForm() {
             type="button"
             variant="outline"
             className="h-10 w-full gap-2"
+            disabled={googleLoading}
+            onClick={handleContinueWithGoogle}
           >
             <GoogleIcon className="size-4" />
             Continue with Google
