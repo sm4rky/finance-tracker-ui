@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 
+import { AppSidebarShell } from "@/components/app-sidebar-shell";
 import { createClient } from "@/lib/supabase/server";
 
-/** Authenticated shell: `/` redirects to `/dashboard`; other routes can live here later. */
+/** Authenticated layout with sidebar: `/` redirects to `/dashboard`; add routes under `(app)` to reuse it. */
 export default async function AppLayout({
   children,
 }: {
@@ -17,5 +18,5 @@ export default async function AppLayout({
     redirect("/login?next=/");
   }
 
-  return <>{children}</>;
+  return <AppSidebarShell>{children}</AppSidebarShell>;
 }

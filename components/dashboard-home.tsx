@@ -23,7 +23,7 @@ export function DashboardHome() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl p-6 md:p-10">
+    <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col p-6 md:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">
@@ -73,6 +73,6 @@ export function DashboardHome() {
           </dl>
         </section>
       )}
-    </main>
+    </div>
   );
 }

@@ -35,7 +35,10 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = pathname === "/login" || pathname === "/forgot-password";
 
   const needsAuth =
-    pathname === "/" || pathname.startsWith("/dashboard");
+    pathname === "/" ||
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/transactions") ||
+    pathname.startsWith("/subscriptions");
 
   if (needsAuth && !user) {
     const loginUrl = new URL("/login", request.url);
