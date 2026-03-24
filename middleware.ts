@@ -38,7 +38,8 @@ export async function middleware(request: NextRequest) {
     pathname === "/" ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/transactions") ||
-    pathname.startsWith("/subscriptions");
+    pathname.startsWith("/subscriptions") ||
+    pathname.startsWith("/profile");
 
   if (needsAuth && !user) {
     const loginUrl = new URL("/login", request.url);
