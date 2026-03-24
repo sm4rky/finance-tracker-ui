@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CreditCard, LogOut, Settings, Wallet } from "lucide-react";
+import { CreditCard, LogOut, Moon, Settings, Sun, Wallet } from "lucide-react";
 
 import {
   Avatar,
@@ -19,8 +19,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Switch } from "@/components/ui/switch";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-session";
+import { useUserPreferenceStore } from "@/stores/user-preference";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -60,6 +62,8 @@ export function AppInsetHeader() {
 
   const email = user?.email ?? "";
   const displayLine = profile?.fullName?.trim() || "Account";
+  const colorMode = useUserPreferenceStore((s) => s.theme);
+  const setThemeColorMode = useUserPreferenceStore((s) => s.setThemeColorMode);
 
   useEffect(() => {
     setDateLabel(formatHeaderDate(new Date()));
@@ -94,7 +98,7 @@ export function AppInsetHeader() {
             </AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-48" sideOffset={6}>
+        <DropdownMenuContent align="end" className="min-w-60" sideOffset={6}>
           <DropdownMenuGroup>
             <DropdownMenuLabel className="font-normal">
               <div className="flex items-center gap-2 py-0.5">
@@ -120,20 +124,46 @@ export function AppInsetHeader() {
             </DropdownMenuLabel>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push("/profile#settings")}>
-            <Settings />
-            Settings
-          </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => router.push("/profile#planbilling")}
+            closeOnClick={false}
+            className="flex cursor-default items-center justify-between gap-3 py-2"
           >
-            <CreditCard />
-            Plan & Billing
+            <span className="flex min-w-0 flex-1 items-center gap-2">
+              {colorMode === "dark" ? (
+                <Moon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              ) : (
+                <Sun className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              )}
+              <span className="leading-tight">
+                {colorMode === "dark" ? "Dark mode" : "Light mode"}
+              </span>
+            </span>
+            <Switch
+              checked={colorMode === "dark"}
+              onCheckedChange={(checked) =>
+                setThemeColorMode(checked ? "dark" : "light")
+              }
+              aria-label={colorMode === "dark" ? "Use light mode" : "Use dark mode"}
+            />
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push("/profile#accounts")}>
-            <Wallet />
-            Accounts
-          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Profile</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => router.push("/profile#settings")}>
+              <Settings />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.push("/profile#planbilling")}
+            >
+              <CreditCard />
+              Plan & Billing
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/profile#accounts")}>
+              <Wallet />
+              Accounts
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={signingOut}

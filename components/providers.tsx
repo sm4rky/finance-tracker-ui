@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
 
+import { ThemePreferenceSync } from "@/components/theme-preference-sync";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ensureUserProfile } from "@/lib/api/users";
@@ -80,10 +81,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider
         attribute="class"
-        defaultTheme="system"
-        enableSystem
+        defaultTheme="light"
+        enableSystem={false}
         disableTransitionOnChange
       >
+        <ThemePreferenceSync />
         <TooltipProvider>{children}</TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

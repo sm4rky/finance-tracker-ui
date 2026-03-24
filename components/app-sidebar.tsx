@@ -36,7 +36,7 @@ export function AppSidebar() {
             className="inline-flex shrink-0 rounded-xl outline-none ring-sidebar-ring focus-visible:ring-2"
             aria-label="MoneyInsight home"
           >
-            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary-foreground/15 p-2.5 ring-1 ring-primary-foreground/20 group-data-[collapsible=icon]:size-10 dark:bg-foreground/10 dark:ring-foreground/15">
+            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-background p-2.5 shadow-sm ring-1 ring-foreground/15 group-data-[collapsible=icon]:size-10 dark:bg-foreground/10 dark:shadow-none dark:ring-foreground/15">
               <Image
                 src="/money-insight-logo.svg"
                 alt=""
