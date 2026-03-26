@@ -6,9 +6,9 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export function AppSidebarShell({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh min-h-0 overflow-hidden">
       <AppSidebar />
-      <SidebarInset className="min-h-0">
+      <SidebarInset className="min-h-0 overflow-hidden">
         <AppInsetHeader />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto">
           {children}

@@ -79,7 +79,7 @@ export function AppInsetHeader() {
   }
 
   return (
-    <header className="flex min-h-14 shrink-0 items-center gap-3 border-b px-4 py-2">
+    <header className="sticky top-0 z-10 flex min-h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4 py-2">
       <SidebarTrigger />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <h1 className="font-heading text-sm font-semibold leading-tight tracking-tight">
