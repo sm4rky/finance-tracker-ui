@@ -78,6 +78,14 @@ export function AppInsetHeader() {
     router.refresh();
   }
 
+  function navigateToProfileSection(value: string) {
+    if (pathname === "/profile") {
+      window.location.hash = value;
+      return;
+    }
+    router.push(`/profile#${value}`);
+  }
+
   return (
     <header className="sticky top-0 z-10 flex min-h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4 py-2">
       <SidebarTrigger />
@@ -149,17 +157,17 @@ export function AppInsetHeader() {
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuLabel>Profile</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => router.push("/profile#settings")}>
+            <DropdownMenuItem onClick={() => navigateToProfileSection("settings")}>
               <Settings />
               Settings
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => router.push("/profile#planbilling")}
+              onClick={() => navigateToProfileSection("planbilling")}
             >
               <CreditCard />
               Plan & Billing
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push("/profile#accounts")}>
+            <DropdownMenuItem onClick={() => navigateToProfileSection("accounts")}>
               <Wallet />
               Accounts
             </DropdownMenuItem>

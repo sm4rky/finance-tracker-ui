@@ -63,7 +63,7 @@ export function ProfileView() {
   useEffect(() => {
     if (pathname !== "/profile") return;
 
-    const syncFromHash = () => {
+    function syncFromHash() {
       const raw = window.location.hash.slice(1);
 
       if (!raw || !isProfileSection(raw)) {
@@ -92,7 +92,7 @@ export function ProfileView() {
     };
   }, [pathname]);
 
-  const handleTabChange = (value: string) => {
+  function handleTabChange(value: string) {
     if (!isProfileSection(value)) return;
     if (value === tabValue) return;
 
