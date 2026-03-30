@@ -1,9 +1,31 @@
-import type { SortingState } from "@tanstack/react-table";
+export type TransactionsFilterState = {
+  accountIds?: string[];
+  pfcPrimaryList?: string[];
+  paymentChannels?: string[];
+  pending?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+  amountMin?: number;
+  amountMax?: number;
+  amountFlow?: string | null;
+};
 
-export type QueryTransactionsRequest = {
-  page: number;
-  limit: number;
-  sortBy?: TransactionSortByField;
+export type SortDirection = "asc" | "desc";
+
+export type TransactionSortField =
+  | "merchantName"
+  | "linkedBankAccountId"
+  | "pfcPrimary"
+  | "pfcDetailed"
+  | "date"
+  | "amount"
+  | "paymentChannel"
+  | "pending";
+
+export type QueryTransactionsRequest = TransactionsFilterState & {
+  page?: number;
+  limit?: number;
+  sortBy?: TransactionSortField;
   sortDirection?: SortDirection;
 };
 
@@ -27,43 +49,4 @@ export interface TransactionResponse {
   removedAt: string | null;
   createdAt: string;
   updatedAt: string;
-}
-
-export type SortDirection = "asc" | "desc";
-
-export type TransactionSortByField =
-  | "merchantName"
-  | "linkedBankAccountId"
-  | "pfcPrimary"
-  | "pfcDetailed"
-  | "date"
-  | "amount"
-  | "paymentChannel"
-  | "pending";
-
-export const TRANSACTION_SORT_COLUMN_TO_API: Record<
-  string,
-  TransactionSortByField
-> = {
-  merchant: "merchantName",
-  account: "linkedBankAccountId",
-  category: "pfcPrimary",
-  detailCategory: "pfcDetailed",
-  date: "date",
-  amount: "amount",
-  paymentChannel: "paymentChannel",
-  pending: "pending",
-};
-
-export function transactionSortFromTableState(
-  sorting: SortingState,
-): Pick<QueryTransactionsRequest, "sortBy" | "sortDirection"> {
-  const first = sorting[0];
-  if (!first) return {};
-  const sortBy = TRANSACTION_SORT_COLUMN_TO_API[first.id];
-  if (!sortBy) return {};
-  return {
-    sortBy,
-    sortDirection: first.desc ? "desc" : "asc",
-  };
 }

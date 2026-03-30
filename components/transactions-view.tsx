@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type {
   ColumnFiltersState,
@@ -9,21 +9,111 @@ import type {
   SortingState,
   Updater,
 } from "@tanstack/react-table";
-import { DataTable } from "@/components/table";
-import { createTransactionColumns } from "@/components/transactions-columns";
-import { Button } from "@/components/ui/button";
-import { listPlaidConnections } from "@/lib/api/plaid";
-import { transactionSortFromTableState } from "@/interface/transaction";
-import { queryTransactions } from "@/lib/api/transactions";
 
-function applyUpdater<T>(updater: Updater<T>, prev: T): T {
-  if (typeof updater === "function") {
-    return (updater as (old: T) => T)(prev);
-  }
-  return updater;
+import { createTransactionColumns } from "@/components/transactions-columns";
+import {
+  getDefaultTransactionsFilter,
+  sanitizeTransactionsFilter,
+  TransactionsFilter,
+} from "@/components/transactions-filter";
+import { DataTable } from "@/components/table";
+import { Button } from "@/components/ui/button";
+import type {
+  QueryTransactionsRequest,
+  TransactionSortField,
+  TransactionsFilterState,
+} from "@/interface/transaction";
+import { listPlaidConnections } from "@/lib/api/plaid";
+import { queryTransactions } from "@/lib/api/transactions";
+import { useTransactionsFilterStore } from "@/stores/transactions-filter";
+
+const TRANSACTION_SORT_COLUMN_TO_API: Record<string, TransactionSortField> = {
+  merchant: "merchantName",
+  account: "linkedBankAccountId",
+  category: "pfcPrimary",
+  detailCategory: "pfcDetailed",
+  date: "date",
+  amount: "amount",
+  paymentChannel: "paymentChannel",
+  pending: "pending",
+};
+
+function getApiSortParams(
+  sorting: SortingState,
+): Pick<QueryTransactionsRequest, "sortBy" | "sortDirection"> {
+  const firstSort = sorting[0];
+  if (!firstSort) return {};
+
+  const sortBy = TRANSACTION_SORT_COLUMN_TO_API[firstSort.id];
+  if (!sortBy) return {};
+
+  return {
+    sortBy,
+    sortDirection: firstSort.desc ? "desc" : "asc",
+  };
+}
+
+function resolveUpdater<T>(updater: Updater<T>, previousValue: T): T {
+  return typeof updater === "function"
+    ? (updater as (old: T) => T)(previousValue)
+    : updater;
 }
 
 export function TransactionsView() {
+  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(false);
+
+  useEffect(() => {
+    const store = useTransactionsFilterStore;
+
+    if (store.persist.hasHydrated()) {
+      setIsFilterStoreHydrated(true);
+      return;
+    }
+
+    const unsubscribe = store.persist.onFinishHydration(() => {
+      setIsFilterStoreHydrated(true);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const plaidConnectionsQuery = useQuery({
+    queryKey: ["list-plaid-connections"],
+    queryFn: listPlaidConnections,
+  });
+
+  const allBanks = plaidConnectionsQuery.data ?? [];
+
+  const activeBanks = useMemo(
+    () => allBanks.filter((bank) => bank.status === "active"),
+    [allBanks],
+  );
+
+  const storedAppliedFilter = useTransactionsFilterStore(
+    (state) => state.appliedFilter,
+  );
+  const setAppliedFilter = useTransactionsFilterStore(
+    (state) => state.setAppliedFilter,
+  );
+
+  const appliedFilter = useMemo<TransactionsFilterState>(() => {
+    if (!isFilterStoreHydrated) {
+      return getDefaultTransactionsFilter(undefined);
+    }
+
+    return sanitizeTransactionsFilter(
+      storedAppliedFilter ?? getDefaultTransactionsFilter(activeBanks),
+      activeBanks,
+    );
+  }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
+
+  const handleApplyFilter = useCallback(
+    (draftFilter: TransactionsFilterState) => {
+      setAppliedFilter(draftFilter, activeBanks);
+    },
+    [setAppliedFilter, activeBanks],
+  );
+
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -33,34 +123,38 @@ export function TransactionsView() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-  const page = pagination.pageIndex + 1;
-  const limit = pagination.pageSize;
+  const currentPage = pagination.pageIndex + 1;
+  const pageSize = pagination.pageSize;
 
   const sortKey = sorting[0]
     ? `${sorting[0].id}:${sorting[0].desc ? "desc" : "asc"}`
     : "default";
 
+  const appliedFilterKey = JSON.stringify(appliedFilter);
+
   useEffect(() => {
     setRowSelection({});
-  }, [page, limit, sortKey]);
+  }, [currentPage, pageSize, sortKey, appliedFilterKey]);
 
-  const selectedCount = useMemo(
+  useEffect(() => {
+    setPagination((previous) => ({ ...previous, pageIndex: 0 }));
+  }, [appliedFilterKey]);
+
+  const selectedRowCount = useMemo(
     () => Object.values(rowSelection).filter(Boolean).length,
     [rowSelection],
   );
 
-  const connectionsQuery = useQuery({
-    queryKey: ["list-plaid-connections"],
-    queryFn: listPlaidConnections,
-  });
-
-  const accountLabelMap = useMemo(() => {
+  const accountLabelById = useMemo(() => {
     const map = new Map<string, string>();
 
-    for (const bank of connectionsQuery.data ?? []) {
+    for (const bank of allBanks) {
       for (const account of bank.accounts) {
         const baseLabel =
-          account.officialName?.trim() || account.accountName.trim() || "Account";
+          account.officialName?.trim() ||
+          account.accountName.trim() ||
+          "Account";
+
         const label = account.mask
           ? `${baseLabel} ·•••${account.mask}`
           : baseLabel;
@@ -70,53 +164,58 @@ export function TransactionsView() {
     }
 
     return map;
-  }, [connectionsQuery.data]);
+  }, [allBanks]);
 
   const columns = useMemo(
-    () => createTransactionColumns(accountLabelMap),
-    [accountLabelMap],
+    () => createTransactionColumns(accountLabelById),
+    [accountLabelById],
   );
 
   const transactionsQuery = useQuery({
-    queryKey: ["query-transaction-list", page, limit, sortKey],
+    queryKey: [
+      "query-transaction-list",
+      currentPage,
+      pageSize,
+      sortKey,
+      appliedFilterKey,
+    ],
     queryFn: () =>
       queryTransactions({
-        page,
-        limit,
-        ...transactionSortFromTableState(sorting),
+        page: currentPage,
+        limit: pageSize,
+        ...getApiSortParams(sorting),
+        ...appliedFilter,
       }),
+    enabled: isFilterStoreHydrated,
   });
 
-  const paged = transactionsQuery.data;
-  const items = paged?.items ?? [];
-  const pageCount = Math.max(1, paged?.totalPages ?? 1);
-  const totalRows = paged?.totalCount;
+  const pagedResponse = transactionsQuery.data;
+  const transactions = pagedResponse?.items ?? [];
+  const totalRows = pagedResponse?.totalCount;
+  const pageCount = Math.max(1, pagedResponse?.totalPages ?? 1);
 
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6 p-6 md:p-8">
-      <div className="flex min-w-0 flex-col gap-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-          Transactions
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Transactions from your linked accounts, with server-side pagination.
-        </p>
-      </div>
+      <TransactionsFilter
+        banks={activeBanks}
+        applied={appliedFilter}
+        onApply={handleApplyFilter}
+      />
 
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
-            {selectedCount === 0
+            {selectedRowCount === 0
               ? "No transactions selected"
-              : `${selectedCount} transaction${selectedCount === 1 ? "" : "s"} selected`}
+              : `${selectedRowCount} transaction${selectedRowCount === 1 ? "" : "s"} selected`}
           </p>
 
           <Button
             type="button"
             variant="destructive"
             size="sm"
-            disabled={selectedCount === 0}
-            onClick={() => { }}
+            disabled={selectedRowCount === 0}
+            onClick={() => {}}
           >
             Delete
           </Button>
@@ -124,15 +223,15 @@ export function TransactionsView() {
 
         <DataTable
           columns={columns}
-          data={items}
+          data={transactions}
           getRowId={(row) => row.id}
           pageCount={pageCount}
           pagination={pagination}
           onPaginationChange={setPagination}
           sorting={sorting}
           onSortingChange={(updater) => {
-            setSorting((prev) => applyUpdater(updater, prev));
-            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+            setSorting((previous) => resolveUpdater(updater, previous));
+            setPagination((previous) => ({ ...previous, pageIndex: 0 }));
           }}
           columnFilters={columnFilters}
           onColumnFiltersChange={setColumnFilters}
@@ -140,7 +239,7 @@ export function TransactionsView() {
           onGlobalFilterChange={setGlobalFilter}
           rowSelection={rowSelection}
           onRowSelectionChange={setRowSelection}
-          isLoading={transactionsQuery.isPending}
+          isLoading={!isFilterStoreHydrated || transactionsQuery.isPending}
           emptyMessage={
             transactionsQuery.isError
               ? "Could not load transactions."

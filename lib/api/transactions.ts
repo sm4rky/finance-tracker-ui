@@ -7,23 +7,48 @@ import type {
 import { apiFetch, parseApiErrorMessage } from "./client";
 
 const BASE_URL = "/api/Transactions" as const;
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
+
+function buildTransactionsQuery(request: QueryTransactionsRequest = {}): string {
+  const params = new URLSearchParams();
+
+  params.set("page", String(Math.max(1, request.page ?? DEFAULT_PAGE)));
+  params.set(
+    "limit",
+    String(Math.min(MAX_LIMIT, Math.max(1, request.limit ?? DEFAULT_LIMIT))),
+  );
+
+  for (const [key, value] of Object.entries(request)) {
+    if (key === "page" || key === "limit") continue;
+    if (value == null) continue;
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const s = String(item);
+        if (s !== "") params.append(key, s);
+      }
+      continue;
+    }
+
+    const s = String(value);
+    if (s !== "") params.set(key, s);
+  }
+
+  return params.toString();
+}
 
 export async function queryTransactions(
-  request: QueryTransactionsRequest,
+  request: QueryTransactionsRequest = {},
 ): Promise<PagedResponse<TransactionResponse>> {
-  const page = Math.max(1, request.page);
-  const limit = Math.min(100, Math.max(1, request.limit));
-  const q = new URLSearchParams({
-    page: String(page),
-    limit: String(limit),
+  const res = await apiFetch(`${BASE_URL}?${buildTransactionsQuery(request)}`, {
+    method: "GET",
   });
-  if (request.sortBy) {
-    q.set("sortBy", request.sortBy);
-    if (request.sortDirection === "asc" || request.sortDirection === "desc") {
-      q.set("sortDirection", request.sortDirection);
-    }
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res));
   }
-  const res = await apiFetch(`${BASE_URL}?${q.toString()}`, { method: "GET" });
-  if (!res.ok) throw new Error(await parseApiErrorMessage(res));
+
   return (await res.json()) as PagedResponse<TransactionResponse>;
 }
