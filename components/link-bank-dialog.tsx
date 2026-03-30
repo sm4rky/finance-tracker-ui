@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Banknote,
   Building2,
@@ -21,7 +21,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createPlaidLinkToken, exchangePlaidPublicToken } from "@/lib/api/plaid";
+import {
+  createPlaidLinkToken,
+  exchangePlaidPublicToken,
+} from "@/lib/api/plaid";
 
 const PLAID_TERMS_HREF =
   "https://plaid.com/legal/#end-user-terms-of-service";
@@ -41,11 +44,6 @@ export type PlaidLinkSessionProps = {
   onOpened: () => void;
 };
 
-/**
- * Plaid recommends mounting `usePlaidLink` only once a non-null `link_token` exists.
- * If the hook runs while `token` is still null and then updates, `ready` may never
- * become true again in the same tree — so Link only works once per page load.
- */
 function PlaidLinkSession({
   token,
   linkSessionId,
@@ -85,6 +83,8 @@ export function LinkBankDialog({
   onOpenChange,
   onLinked,
 }: LinkBankDialogProps) {
+  const queryClient = useQueryClient();
+
   const [plaidSession, setPlaidSession] = useState<PlaidSession | null>(null);
   const [awaitingPlaidOpen, setAwaitingPlaidOpen] = useState(false);
 
@@ -93,22 +93,14 @@ export function LinkBankDialog({
     setAwaitingPlaidOpen(false);
   };
 
-  const exchangeMutation = useMutation({
-    mutationFn: (input: { publicToken: string; linkSessionId: string }) =>
-      exchangePlaidPublicToken(input),
-    onSuccess: () => {
-      toast.success("Bank linked.");
-      onOpenChange(false);
-      onLinked?.();
-      resetPlaidState();
-    },
-    onError: (e) => {
-      toast.error(
-        e instanceof Error ? e.message : "Could not finish linking.",
-      );
-      resetPlaidState();
-    },
-  });
+  const invalidateLinkedData = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ["query-transaction-list"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["list-plaid-connections"],
+    });
+  };
 
   const linkTokenMutation = useMutation({
     mutationFn: () => createPlaidLinkToken({ intent: "connect" }),
@@ -127,12 +119,37 @@ export function LinkBankDialog({
     },
   });
 
-  useEffect(() => {
-    if (open) return;
+  const exchangeMutation = useMutation({
+    mutationFn: exchangePlaidPublicToken,
+    onSuccess: async () => {
+      await invalidateLinkedData();
+      toast.success(
+        "Bank linked. Your transactions were synced when you connected.",
+      );
+      onOpenChange(false);
+      resetPlaidState();
+      linkTokenMutation.reset();
+      exchangeMutation.reset();
+      onLinked?.();
+    },
+    onError: (e) => {
+      toast.error(
+        e instanceof Error ? e.message : "Could not finish linking.",
+      );
+      resetPlaidState();
+      linkTokenMutation.reset();
+    },
+  });
 
+  const resetAll = () => {
     resetPlaidState();
     linkTokenMutation.reset();
     exchangeMutation.reset();
+  };
+
+  useEffect(() => {
+    if (open) return;
+    resetAll();
   }, [open]);
 
   const handlePlaidExit = () => {
@@ -144,23 +161,24 @@ export function LinkBankDialog({
     publicToken: string,
     linkSessionId: string,
   ) => {
+    setPlaidSession(null);
+    setAwaitingPlaidOpen(false);
     exchangeMutation.mutate({ publicToken, linkSessionId });
   };
 
-  const isExchangingCurrentSession =
-    exchangeMutation.isPending &&
-    plaidSession != null &&
-    exchangeMutation.variables?.linkSessionId === plaidSession.linkSessionId;
+  const handleOpenPlaid = () => {
+    if (busy) return;
+    linkTokenMutation.mutate();
+  };
 
   const busy =
     linkTokenMutation.isPending ||
     exchangeMutation.isPending ||
     awaitingPlaidOpen;
 
-  const handleOpenPlaid = () => {
-    if (busy) return;
-    linkTokenMutation.mutate();
-  };
+  const statusLine = exchangeMutation.isPending
+    ? "Finishing bank link…"
+    : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -168,7 +186,7 @@ export function LinkBankDialog({
         className="gap-0 overflow-hidden p-0 sm:max-w-md"
         showCloseButton={!busy}
       >
-        {plaidSession && !isExchangingCurrentSession ? (
+        {plaidSession ? (
           <PlaidLinkSession
             key={plaidSession.linkSessionId}
             token={plaidSession.linkToken}
@@ -199,6 +217,20 @@ export function LinkBankDialog({
             </div>
           </DialogHeader>
 
+          {statusLine ? (
+            <div
+              className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm text-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              <Loader2Icon
+                className="size-5 shrink-0 animate-spin text-muted-foreground"
+                aria-hidden
+              />
+              <span>{statusLine}</span>
+            </div>
+          ) : null}
+
           <ul className="flex flex-col gap-2" role="list">
             <FeatureRow
               icon={Lock}
@@ -228,7 +260,7 @@ export function LinkBankDialog({
             {busy ? (
               <>
                 <Loader2Icon className="size-4 animate-spin" aria-hidden />
-                Please wait…
+                {exchangeMutation.isPending ? "Working…" : "Please wait…"}
               </>
             ) : (
               <>

@@ -1,5 +1,5 @@
+import { TransactionsView } from "@/components/transactions-view";
+
 export default function TransactionsPage() {
-  return (
-    <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col p-6 md:p-8" />
-  );
+  return <TransactionsView />;
 }

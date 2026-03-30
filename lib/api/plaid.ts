@@ -51,6 +51,14 @@ export async function exchangePlaidPublicToken(
   return (await res.json()) as ExchangePlaidPublicTokenResponse;
 }
 
+export async function syncPlaidTransactions(linkedBankId: string): Promise<void> {
+  const res = await apiFetch(
+    `${BASE_URL}/connections/${encodeURIComponent(linkedBankId)}/transactions/sync`,
+    { method: "POST" },
+  );
+  if (!res.ok) throw new Error(await parseApiErrorMessage(res));
+}
+
 export async function listPlaidConnections(): Promise<LinkedBankResponse[]> {
   const res = await apiFetch(`${BASE_URL}/connections`, { method: "GET" });
   if (!res.ok) throw new Error(await parseApiErrorMessage(res));
