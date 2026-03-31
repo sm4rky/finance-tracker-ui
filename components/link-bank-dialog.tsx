@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Banknote,
@@ -10,9 +10,9 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
-import { usePlaidLink } from "react-plaid-link";
 import { toast } from "sonner";
 
+import { PlaidLinkSession } from "@/components/plaid-link-session";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,42 +35,6 @@ type PlaidSession = {
   linkToken: string;
   linkSessionId: string;
 };
-
-export type PlaidLinkSessionProps = {
-  token: string;
-  linkSessionId: string;
-  onPublicToken: (publicToken: string, linkSessionId: string) => void;
-  onExit: () => void;
-  onOpened: () => void;
-};
-
-function PlaidLinkSession({
-  token,
-  linkSessionId,
-  onPublicToken,
-  onExit,
-  onOpened,
-}: PlaidLinkSessionProps) {
-  const openedRef = useRef(false);
-
-  const { open, ready } = usePlaidLink({
-    token,
-    onSuccess: (publicToken) => {
-      onPublicToken(publicToken, linkSessionId);
-    },
-    onExit,
-  });
-
-  useEffect(() => {
-    if (!ready || openedRef.current) return;
-
-    openedRef.current = true;
-    onOpened();
-    open();
-  }, [ready, open, onOpened]);
-
-  return null;
-}
 
 export type LinkBankDialogProps = {
   open: boolean;

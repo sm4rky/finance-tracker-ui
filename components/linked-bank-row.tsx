@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Building2,
   Check,
   ChevronDown,
+  Link2,
   Loader2,
   MoreVertical,
   RefreshCw,
@@ -29,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LinkedBankAccountRow } from "@/components/linked-bank-account-row";
+import { RelinkInstitutionDialog } from "@/components/relink-institution-dialog";
 import type { LinkedBankResponse, LinkedBankStatus } from "@/interface/plaid";
 import { syncPlaidTransactions } from "@/lib/api/plaid";
 import { cn } from "@/lib/utils";
@@ -135,6 +138,7 @@ export type LinkedBankRowProps = {
 
 export function LinkedBankRow({ bank }: LinkedBankRowProps) {
   const queryClient = useQueryClient();
+  const [relinkOpen, setRelinkOpen] = useState(false);
 
   const syncMutation = useMutation({
     mutationFn: syncPlaidTransactions,
@@ -153,6 +157,7 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
   const syncing =
     syncMutation.isPending && syncMutation.variables === bank.id;
   const syncOnCooldown = isSyncedWithin30Minutes(bank.lastSyncedAt);
+  const needsRelink = bank.status === "relink_required";
 
   const statusConfig = LINKED_BANK_STATUS_BADGE[bank.status];
   const StatusIcon = statusConfig.Icon;
@@ -239,6 +244,13 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
               </DropdownMenuTrigger>
 
               <DropdownMenuContent align="end" className="min-w-44">
+                {needsRelink ? (
+                  <DropdownMenuItem onClick={() => setRelinkOpen(true)}>
+                    <Link2 className="size-4 text-muted-foreground" />
+                    Reconnect
+                  </DropdownMenuItem>
+                ) : null}
+
                 <DropdownMenuItem
                   disabled={syncOnCooldown || syncing}
                   closeOnClick={false}
@@ -269,6 +281,12 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
           ))}
         </ul>
       </AccordionContent>
+
+      <RelinkInstitutionDialog
+        bank={bank}
+        open={relinkOpen}
+        onOpenChange={setRelinkOpen}
+      />
     </AccordionItem>
   );
 }
