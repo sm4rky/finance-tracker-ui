@@ -1,16 +1,19 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Building2,
   Check,
   ChevronDown,
+  Loader2,
   MoreVertical,
   RefreshCw,
   Unlink,
   WifiOff,
   type LucideIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   AccordionContent,
@@ -27,7 +30,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LinkedBankAccountRow } from "@/components/linked-bank-account-row";
 import type { LinkedBankResponse, LinkedBankStatus } from "@/interface/plaid";
+import { syncPlaidTransactions } from "@/lib/api/plaid";
 import { cn } from "@/lib/utils";
+
+const SYNC_COOLDOWN_MS = 30 * 60 * 1000;
+
+function isSyncedWithin30Minutes(iso: string | null | undefined): boolean {
+  if (iso == null || iso === "") return false;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return false;
+  const ageMs = Date.now() - d.getTime();
+  return ageMs >= 0 && ageMs < SYNC_COOLDOWN_MS;
+}
 
 function formatMoney(
   amount: number | null,
@@ -120,6 +134,26 @@ export type LinkedBankRowProps = {
 };
 
 export function LinkedBankRow({ bank }: LinkedBankRowProps) {
+  const queryClient = useQueryClient();
+
+  const syncMutation = useMutation({
+    mutationFn: syncPlaidTransactions,
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["list-plaid-connections"] });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] });
+      toast.success("Transactions synced");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Sync failed");
+    },
+  });
+
+  const syncing =
+    syncMutation.isPending && syncMutation.variables === bank.id;
+  const syncOnCooldown = isSyncedWithin30Minutes(bank.lastSyncedAt);
+
   const statusConfig = LINKED_BANK_STATUS_BADGE[bank.status];
   const StatusIcon = statusConfig.Icon;
 
@@ -167,16 +201,7 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
           </div>
 
           <div className="flex w-full items-center justify-between gap-2 pl-[3.25rem] sm:w-auto sm:flex-1 sm:justify-end sm:pl-0">
-            <div className="text-left sm:text-right">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Total Balance
-              </p>
-              <p className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
-                {formatMoney(totalBalance, currencyCode)}
-              </p>
-            </div>
-
-            <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex shrink-0 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-3">
               <Badge
                 variant={statusConfig.variant}
                 className={cn("gap-1", statusConfig.className)}
@@ -184,6 +209,15 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
                 <StatusIcon className="size-3.5 shrink-0" aria-hidden />
                 {statusConfig.label}
               </Badge>
+            </div>
+
+            <div className="min-w-0 shrink text-right">
+              <p className="whitespace-nowrap text-[10px] uppercase leading-tight tracking-wide text-muted-foreground sm:text-[11px]">
+                Total Balance
+              </p>
+              <p className="whitespace-nowrap text-xs font-semibold tabular-nums text-emerald-600 sm:text-sm dark:text-emerald-400">
+                {formatMoney(totalBalance, currencyCode)}
+              </p>
             </div>
           </div>
 
@@ -205,8 +239,16 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
               </DropdownMenuTrigger>
 
               <DropdownMenuContent align="end" className="min-w-44">
-                <DropdownMenuItem onClick={() => {}}>
-                  <RefreshCw className="size-4 text-muted-foreground" />
+                <DropdownMenuItem
+                  disabled={syncOnCooldown || syncing}
+                  closeOnClick={false}
+                  onClick={() => syncMutation.mutate(bank.id)}
+                >
+                  {syncing ? (
+                    <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                  ) : (
+                    <RefreshCw className="size-4 text-muted-foreground" />
+                  )}
                   Sync Now
                 </DropdownMenuItem>
 

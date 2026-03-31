@@ -4,8 +4,9 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
+  type Dispatch,
+  type SetStateAction,
 } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -21,10 +22,10 @@ import {
   HeartPulse,
   Home,
   Landmark,
-  SlidersHorizontal,
   Plane,
   Receipt,
   ShoppingBag,
+  SlidersHorizontal,
   Sparkles,
   Tag,
   UtensilsCrossed,
@@ -40,9 +41,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { LinkedBankResponse } from "@/interface/plaid";
 import type { TransactionsFilterState } from "@/interface/transaction";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 import { TransactionsFilterForm } from "./transactions-filter-form";
@@ -239,19 +240,10 @@ export const PAYMENT_CHANNEL_FILTER_IDS = [
 
 export type ChannelFilterId = (typeof PAYMENT_CHANNEL_FILTER_IDS)[number];
 
-function getTodayISODate(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 export function getPfcCategoryMeta(code: string): PfcPrimaryMeta {
-  if (code === PFC_PRIMARY_UNCATEGORIZED_FILTER_CODE) {
-    return PFC_PRIMARY_FALLBACK;
-  }
-  return PFC_PRIMARY_BY_CODE[code] ?? PFC_PRIMARY_FALLBACK;
+  return code === PFC_PRIMARY_UNCATEGORIZED_FILTER_CODE
+    ? PFC_PRIMARY_FALLBACK
+    : PFC_PRIMARY_BY_CODE[code] ?? PFC_PRIMARY_FALLBACK;
 }
 
 export function getPaymentChannelMeta(id: ChannelFilterId): PaymentChannelMeta {
@@ -261,7 +253,9 @@ export function getPaymentChannelMeta(id: ChannelFilterId): PaymentChannelMeta {
 export function getAllAccountIds(
   banks: LinkedBankResponse[] | undefined,
 ): string[] {
-  return (banks ?? []).flatMap((bank) => bank.accounts.map((account) => account.id));
+  return (banks ?? []).flatMap((bank) =>
+    bank.accounts.map((account) => account.id),
+  );
 }
 
 export function getDefaultTransactionsFilter(
@@ -281,20 +275,20 @@ export function getDefaultTransactionsFilter(
 }
 
 export function sanitizeTransactionsFilter(
-  filterState: TransactionsFilterState,
-  linkedBanks: LinkedBankResponse[] | undefined,
+  filter: TransactionsFilterState,
+  banks: LinkedBankResponse[] | undefined,
 ): TransactionsFilterState {
-  const validAccountIds = new Set(getAllAccountIds(linkedBanks));
+  const validAccountIds = new Set(getAllAccountIds(banks));
   const validCategoryCodes = new Set(PFC_PRIMARY_CATEGORY_CODES);
   const validChannelIds = new Set<string>(PAYMENT_CHANNEL_FILTER_IDS);
 
-  let accountIds = (filterState.accountIds ?? []).filter((id) =>
+  let accountIds = (filter.accountIds ?? []).filter((id) =>
     validAccountIds.has(id),
   );
-  let pfcPrimaryList = (filterState.pfcPrimaryList ?? []).filter((code) =>
+  let pfcPrimaryList = (filter.pfcPrimaryList ?? []).filter((code) =>
     validCategoryCodes.has(code),
   );
-  let paymentChannels = (filterState.paymentChannels ?? []).filter((channel) =>
+  let paymentChannels = (filter.paymentChannels ?? []).filter((channel) =>
     validChannelIds.has(channel),
   );
 
@@ -311,12 +305,54 @@ export function sanitizeTransactionsFilter(
   }
 
   return {
-    ...filterState,
+    ...filter,
     accountIds,
     pfcPrimaryList,
     paymentChannels,
   };
 }
+
+function getTodayISODate(): string {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function areTransactionsFiltersEqual(
+  a: TransactionsFilterState,
+  b: TransactionsFilterState,
+): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+type UseTransactionsFilterOptions = {
+  banks: LinkedBankResponse[] | undefined;
+  applied: TransactionsFilterState;
+  onApply: (filter: TransactionsFilterState) => void;
+};
+
+export type TransactionsFilterTriggerProps = {
+  isMobile: boolean;
+  isDesktopOpen: boolean;
+  isMobileOpen: boolean;
+  onOpen: () => void;
+  className?: string;
+};
+
+export type TransactionsFilterPanelsProps = {
+  banks: LinkedBankResponse[] | undefined;
+  draftFilter: TransactionsFilterState;
+  setDraftFilter: Dispatch<SetStateAction<TransactionsFilterState>>;
+  maxDate: string;
+  isMobile: boolean;
+  isDesktopOpen: boolean;
+  isMobileOpen: boolean;
+  onMobileOpenChange: (open: boolean) => void;
+  onCancel: () => void;
+  onApply: () => void;
+};
 
 type FilterActionsProps = {
   onCancel: () => void;
@@ -341,106 +377,135 @@ function FilterActions({
   );
 }
 
-export type TransactionsFilterProps = {
-  banks: LinkedBankResponse[] | undefined;
-  applied: TransactionsFilterState;
-  onApply: (filter: TransactionsFilterState) => void;
-};
-
-export function TransactionsFilter({
+export function useTransactionsFilter({
   banks,
   applied,
   onApply,
-}: TransactionsFilterProps) {
+}: UseTransactionsFilterOptions) {
   const isMobile = useIsMobile();
-  const [isDesktopPanelOpen, setIsDesktopPanelOpen] = useState(false);
-  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
-  const [workingFilter, setWorkingFilter] =
+  const [isDesktopOpen, setIsDesktopOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [draftFilter, setDraftFilter] =
     useState<TransactionsFilterState>(applied);
-  const justAppliedRef = useRef(false);
 
   useEffect(() => {
-    const isPanelClosed = !isDesktopPanelOpen && !isMobileSheetOpen;
+    if (isDesktopOpen || isMobileOpen) return;
 
-    if (isPanelClosed) {
-      setWorkingFilter(applied);
-      return;
-    }
-
-    if (justAppliedRef.current) {
-      setWorkingFilter(applied);
-      justAppliedRef.current = false;
-    }
-  }, [applied, isDesktopPanelOpen, isMobileSheetOpen]);
+    setDraftFilter((current) =>
+      areTransactionsFiltersEqual(current, applied) ? current : applied,
+    );
+  }, [applied, isDesktopOpen, isMobileOpen]);
 
   const maxDate = useMemo(() => getTodayISODate(), []);
 
   const closeAllPanels = useCallback(() => {
-    setIsDesktopPanelOpen(false);
-    setIsMobileSheetOpen(false);
+    setIsDesktopOpen(false);
+    setIsMobileOpen(false);
   }, []);
 
   const handleCancel = useCallback(() => {
-    setWorkingFilter(applied);
+    setDraftFilter(applied);
     closeAllPanels();
   }, [applied, closeAllPanels]);
 
   const handleApply = useCallback(() => {
-    justAppliedRef.current = true;
-    onApply(workingFilter);
-  }, [workingFilter, onApply]);
+    onApply(draftFilter);
+  }, [draftFilter, onApply]);
 
-  const handleOpenFilters = useCallback(() => {
-    if (!isMobile) {
-      setIsDesktopPanelOpen((open) => !open);
+  const handleOpen = useCallback(() => {
+    if (isMobile) {
+      setIsMobileOpen(true);
       return;
     }
 
-    setIsMobileSheetOpen(true);
+    setIsDesktopOpen((open) => !open);
   }, [isMobile]);
 
-  return (
-    <div className="flex w-full flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          variant={isDesktopPanelOpen && !isMobile ? "secondary" : "outline"}
-          onClick={handleOpenFilters}
-          aria-expanded={!isMobile ? isDesktopPanelOpen : isMobileSheetOpen}
-        >
-          <SlidersHorizontal className="size-4" aria-hidden />
-          Filters
-          {!isMobile ? (
-            <ChevronDown
-              className={cn(
-                "size-4 transition-transform",
-                isDesktopPanelOpen && "rotate-180",
-              )}
-              aria-hidden
-            />
-          ) : null}
-        </Button>
-      </div>
+  return {
+    triggerProps: {
+      isMobile,
+      isDesktopOpen,
+      isMobileOpen,
+      onOpen: handleOpen,
+    } satisfies TransactionsFilterTriggerProps,
+    panelsProps: {
+      banks,
+      draftFilter,
+      setDraftFilter,
+      maxDate,
+      isMobile,
+      isDesktopOpen,
+      isMobileOpen,
+      onMobileOpenChange: setIsMobileOpen,
+      onCancel: handleCancel,
+      onApply: handleApply,
+    } satisfies TransactionsFilterPanelsProps,
+  };
+}
 
-      {!isMobile && isDesktopPanelOpen ? (
+export function TransactionsFilterTrigger({
+  isMobile,
+  isDesktopOpen,
+  isMobileOpen,
+  onOpen,
+  className,
+}: TransactionsFilterTriggerProps) {
+  return (
+    <Button
+      type="button"
+      variant={isDesktopOpen && !isMobile ? "secondary" : "outline"}
+      className={className}
+      onClick={onOpen}
+      aria-expanded={isMobile ? isMobileOpen : isDesktopOpen}
+    >
+      <SlidersHorizontal className="size-4" aria-hidden />
+      Filters
+      {!isMobile ? (
+        <ChevronDown
+          className={cn(
+            "size-4 transition-transform",
+            isDesktopOpen && "rotate-180",
+          )}
+          aria-hidden
+        />
+      ) : null}
+    </Button>
+  );
+}
+
+export function TransactionsFilterPanels({
+  banks,
+  draftFilter,
+  setDraftFilter,
+  maxDate,
+  isMobile,
+  isDesktopOpen,
+  isMobileOpen,
+  onMobileOpenChange,
+  onCancel,
+  onApply,
+}: TransactionsFilterPanelsProps) {
+  return (
+    <>
+      {!isMobile && isDesktopOpen ? (
         <div
           className="rounded-xl border border-border bg-card p-4 shadow-sm"
           id="transactions-filters-panel"
         >
           <TransactionsFilterForm
-            filter={workingFilter}
-            onChange={setWorkingFilter}
+            filter={draftFilter}
+            onChange={setDraftFilter}
             banks={banks}
             maxDate={maxDate}
             variant="default"
           />
           <div className="mt-4 border-t border-border pt-4">
-            <FilterActions onCancel={handleCancel} onApply={handleApply} />
+            <FilterActions onCancel={onCancel} onApply={onApply} />
           </div>
         </div>
       ) : null}
 
-      <Sheet open={isMobile && isMobileSheetOpen} onOpenChange={setIsMobileSheetOpen}>
+      <Sheet open={isMobile && isMobileOpen} onOpenChange={onMobileOpenChange}>
         <SheetContent
           side="bottom"
           className="max-h-[85vh] gap-0 overflow-hidden p-0"
@@ -452,8 +517,8 @@ export function TransactionsFilter({
 
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
             <TransactionsFilterForm
-              filter={workingFilter}
-              onChange={setWorkingFilter}
+              filter={draftFilter}
+              onChange={setDraftFilter}
               banks={banks}
               maxDate={maxDate}
               variant="sheet"
@@ -463,12 +528,12 @@ export function TransactionsFilter({
           <SheetFooter className="border-t border-border px-5 py-4">
             <FilterActions
               className="gap-4"
-              onCancel={handleCancel}
-              onApply={handleApply}
+              onCancel={onCancel}
+              onApply={onApply}
             />
           </SheetFooter>
         </SheetContent>
       </Sheet>
-    </div>
+    </>
   );
 }

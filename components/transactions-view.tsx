@@ -14,10 +14,14 @@ import { createTransactionColumns } from "@/components/transactions-columns";
 import {
   getDefaultTransactionsFilter,
   sanitizeTransactionsFilter,
-  TransactionsFilter,
+  TransactionsFilterPanels,
+  TransactionsFilterTrigger,
+  useTransactionsFilter,
 } from "@/components/transactions-filter";
+import { TransactionsSyncMenu } from "@/components/transactions-sync-menu";
 import { DataTable } from "@/components/table";
 import { Button } from "@/components/ui/button";
+import type { LinkedBankResponse } from "@/interface/plaid";
 import type {
   QueryTransactionsRequest,
   TransactionSortField,
@@ -53,9 +57,9 @@ function getApiSortParams(
   };
 }
 
-function resolveUpdater<T>(updater: Updater<T>, previousValue: T): T {
+function applyTableUpdater<T>(updater: Updater<T>, previous: T): T {
   return typeof updater === "function"
-    ? (updater as (old: T) => T)(previousValue)
+    ? (updater as (old: T) => T)(previous)
     : updater;
 }
 
@@ -77,6 +81,13 @@ export function TransactionsView() {
     return unsubscribe;
   }, []);
 
+  const storedAppliedFilter = useTransactionsFilterStore(
+    (state) => state.appliedFilter,
+  );
+  const setAppliedFilter = useTransactionsFilterStore(
+    (state) => state.setAppliedFilter,
+  );
+
   const plaidConnectionsQuery = useQuery({
     queryKey: ["list-plaid-connections"],
     queryFn: listPlaidConnections,
@@ -89,14 +100,7 @@ export function TransactionsView() {
     [allBanks],
   );
 
-  const storedAppliedFilter = useTransactionsFilterStore(
-    (state) => state.appliedFilter,
-  );
-  const setAppliedFilter = useTransactionsFilterStore(
-    (state) => state.setAppliedFilter,
-  );
-
-  const appliedFilter = useMemo<TransactionsFilterState>(() => {
+  const appliedFilter = useMemo(() => {
     if (!isFilterStoreHydrated) {
       return getDefaultTransactionsFilter(undefined);
     }
@@ -108,11 +112,17 @@ export function TransactionsView() {
   }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
 
   const handleApplyFilter = useCallback(
-    (draftFilter: TransactionsFilterState) => {
-      setAppliedFilter(draftFilter, activeBanks);
+    (nextFilter: TransactionsFilterState) => {
+      setAppliedFilter(nextFilter, activeBanks);
     },
     [setAppliedFilter, activeBanks],
   );
+
+  const { triggerProps, panelsProps } = useTransactionsFilter({
+    banks: activeBanks,
+    applied: appliedFilter,
+    onApply: handleApplyFilter,
+  });
 
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -123,30 +133,26 @@ export function TransactionsView() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-  const currentPage = pagination.pageIndex + 1;
-  const pageSize = pagination.pageSize;
-
+  const page = pagination.pageIndex + 1;
+  const limit = pagination.pageSize;
   const sortKey = sorting[0]
     ? `${sorting[0].id}:${sorting[0].desc ? "desc" : "asc"}`
     : "default";
+  const filterKey = JSON.stringify(appliedFilter);
 
-  const appliedFilterKey = JSON.stringify(appliedFilter);
+  useEffect(() => {
+    setPagination((previous) => {
+      if (previous.pageIndex === 0) return previous;
+      return { ...previous, pageIndex: 0 };
+    });
+  }, [filterKey]);
 
   useEffect(() => {
     setRowSelection({});
-  }, [currentPage, pageSize, sortKey, appliedFilterKey]);
-
-  useEffect(() => {
-    setPagination((previous) => ({ ...previous, pageIndex: 0 }));
-  }, [appliedFilterKey]);
-
-  const selectedRowCount = useMemo(
-    () => Object.values(rowSelection).filter(Boolean).length,
-    [rowSelection],
-  );
+  }, [page, limit, sortKey, filterKey]);
 
   const accountLabelById = useMemo(() => {
-    const map = new Map<string, string>();
+    const labels = new Map<string, string>();
 
     for (const bank of allBanks) {
       for (const account of bank.accounts) {
@@ -155,15 +161,14 @@ export function TransactionsView() {
           account.accountName.trim() ||
           "Account";
 
-        const label = account.mask
-          ? `${baseLabel} ·•••${account.mask}`
-          : baseLabel;
-
-        map.set(account.id, label);
+        labels.set(
+          account.id,
+          account.mask ? `${baseLabel} ·•••${account.mask}` : baseLabel,
+        );
       }
     }
 
-    return map;
+    return labels;
   }, [allBanks]);
 
   const columns = useMemo(
@@ -172,17 +177,11 @@ export function TransactionsView() {
   );
 
   const transactionsQuery = useQuery({
-    queryKey: [
-      "query-transaction-list",
-      currentPage,
-      pageSize,
-      sortKey,
-      appliedFilterKey,
-    ],
+    queryKey: ["query-transaction-list", page, limit, sortKey, filterKey],
     queryFn: () =>
       queryTransactions({
-        page: currentPage,
-        limit: pageSize,
+        page,
+        limit,
         ...getApiSortParams(sorting),
         ...appliedFilter,
       }),
@@ -193,14 +192,17 @@ export function TransactionsView() {
   const transactions = pagedResponse?.items ?? [];
   const totalRows = pagedResponse?.totalCount;
   const pageCount = Math.max(1, pagedResponse?.totalPages ?? 1);
+  const selectedRowCount = Object.values(rowSelection).filter(Boolean).length;
 
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6 p-6 md:p-8">
-      <TransactionsFilter
-        banks={activeBanks}
-        applied={appliedFilter}
-        onApply={handleApplyFilter}
-      />
+      <div className="flex w-full flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <TransactionsFilterTrigger {...triggerProps} />
+          <TransactionsSyncMenu banks={allBanks} />
+        </div>
+        <TransactionsFilterPanels {...panelsProps} />
+      </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
@@ -230,7 +232,7 @@ export function TransactionsView() {
           onPaginationChange={setPagination}
           sorting={sorting}
           onSortingChange={(updater) => {
-            setSorting((previous) => resolveUpdater(updater, previous));
+            setSorting((previous) => applyTableUpdater(updater, previous));
             setPagination((previous) => ({ ...previous, pageIndex: 0 }));
           }}
           columnFilters={columnFilters}
