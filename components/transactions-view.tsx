@@ -96,7 +96,7 @@ export function TransactionsView() {
   const allBanks = plaidConnectionsQuery.data ?? [];
 
   const activeBanks = useMemo(
-    () => allBanks.filter((bank) => bank.status === "active"),
+    () => allBanks.filter((bank) => bank.status === "active" || bank.status === "relink_required"),
     [allBanks],
   );
 
