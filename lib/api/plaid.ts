@@ -3,9 +3,10 @@ import type {
   CreatePlaidLinkTokenResponse,
   ExchangePlaidPublicTokenRequest,
   ExchangePlaidPublicTokenResponse,
-  HardDeleteLinkedBankResponse,
   LinkedBankResponse,
   SoftDisconnectLinkedBankResponse,
+  UnlinkInstitutionRequest,
+  UnlinkInstitutionResponse,
 } from "@/interface/plaid";
 
 import { apiFetch, parseApiErrorMessage } from "./client";
@@ -15,12 +16,13 @@ export type {
   CreatePlaidLinkTokenResponse,
   ExchangePlaidPublicTokenRequest,
   ExchangePlaidPublicTokenResponse,
-  HardDeleteLinkedBankResponse,
   LinkedBankAccountResponse,
   LinkedBankResponse,
   LinkedBankStatus,
   PlaidLinkIntent,
   SoftDisconnectLinkedBankResponse,
+  UnlinkInstitutionRequest,
+  UnlinkInstitutionResponse,
 } from "@/interface/plaid";
 
 const JSON_HEADERS = { "Content-Type": "application/json" } as const;
@@ -76,13 +78,14 @@ export async function softDisconnectPlaidConnection(
   return (await res.json()) as SoftDisconnectLinkedBankResponse;
 }
 
-export async function hardDeletePlaidConnection(
-  linkedBankId: string,
-): Promise<HardDeleteLinkedBankResponse> {
-  const res = await apiFetch(
-    `${BASE_URL}/connections/${encodeURIComponent(linkedBankId)}`,
-    { method: "DELETE" },
-  );
+export async function unlinkPlaidInstitution(
+  body: UnlinkInstitutionRequest,
+): Promise<UnlinkInstitutionResponse> {
+  const res = await apiFetch(`${BASE_URL}/connections/unlink`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  });
   if (!res.ok) throw new Error(await parseApiErrorMessage(res));
-  return (await res.json()) as HardDeleteLinkedBankResponse;
+  return (await res.json()) as UnlinkInstitutionResponse;
 }

@@ -58,6 +58,13 @@ export interface SoftDisconnectLinkedBankResponse {
   linkedBankId: string;
 }
 
-export interface HardDeleteLinkedBankResponse {
+export interface UnlinkInstitutionRequest {
   linkedBankId: string;
+  deleteTransactions: boolean;
+}
+
+export interface UnlinkInstitutionResponse {
+  linkedBankId: string;
+  deleted: boolean;
+  transactionsRemoved: number;
 }

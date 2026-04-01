@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LinkedBankAccountRow } from "@/components/linked-bank-account-row";
 import { RelinkInstitutionDialog } from "@/components/relink-institution-dialog";
+import { UnlinkInstitutionDialog } from "@/components/unlink-institution-dialog";
 import type { LinkedBankResponse, LinkedBankStatus } from "@/interface/plaid";
 import { syncPlaidTransactions } from "@/lib/api/plaid";
 import { cn } from "@/lib/utils";
@@ -139,6 +140,7 @@ export type LinkedBankRowProps = {
 export function LinkedBankRow({ bank }: LinkedBankRowProps) {
   const queryClient = useQueryClient();
   const [relinkOpen, setRelinkOpen] = useState(false);
+  const [unlinkOpen, setUnlinkOpen] = useState(false);
 
   const syncMutation = useMutation({
     mutationFn: syncPlaidTransactions,
@@ -264,7 +266,10 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
                   Sync Now
                 </DropdownMenuItem>
 
-                <DropdownMenuItem variant="destructive" onClick={() => {}}>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => setUnlinkOpen(true)}
+                >
                   <Unlink className="size-4" />
                   Unlink Institution
                 </DropdownMenuItem>
@@ -286,6 +291,12 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
         bank={bank}
         open={relinkOpen}
         onOpenChange={setRelinkOpen}
+      />
+
+      <UnlinkInstitutionDialog
+        bank={bank}
+        open={unlinkOpen}
+        onOpenChange={setUnlinkOpen}
       />
     </AccordionItem>
   );
