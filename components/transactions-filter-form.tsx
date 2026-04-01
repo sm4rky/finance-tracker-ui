@@ -77,7 +77,8 @@ export function TransactionsFilterForm({
   const [categorySearch, setCategorySearch] = useState("");
 
   const allAccountIds = useMemo(() => getAllAccountIds(banks), [banks]);
-  const selectedAccountIds = filter.accountIds ?? [];
+  const selectedAccountIds =
+    filter.accountIds === undefined ? allAccountIds : filter.accountIds;
   const selectedCategoryCodes = filter.pfcPrimaryList ?? [];
   const selectedPaymentChannels = filter.paymentChannels ?? [];
 
@@ -274,6 +275,30 @@ export function TransactionsFilterForm({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+
+      <div
+        className={cn(
+          "flex items-center gap-2",
+          isSheet ? "h-10 w-full rounded-md border border-dashed px-3" : "h-8",
+        )}
+      >
+        <Checkbox
+          id="tf-include-unlinked"
+          checked={filter.includeUnlinkedTransactions ?? true}
+          onCheckedChange={(checked) =>
+            onChange({
+              ...filter,
+              includeUnlinkedTransactions: checked === true,
+            })
+          }
+        />
+        <label
+          htmlFor="tf-include-unlinked"
+          className="cursor-pointer select-none text-sm font-normal"
+        >
+          Include unlinked account
+        </label>
       </div>
 
       <div className={rowClassName}>

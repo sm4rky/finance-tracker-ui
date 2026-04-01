@@ -1,5 +1,6 @@
 export type TransactionsFilterState = {
   accountIds?: string[];
+  includeUnlinkedTransactions?: boolean;
   pfcPrimaryList?: string[];
   paymentChannels?: string[];
   pending?: boolean;

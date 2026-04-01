@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type SetStateAction,
@@ -263,6 +264,7 @@ export function getDefaultTransactionsFilter(
 ): TransactionsFilterState {
   return {
     accountIds: getAllAccountIds(banks),
+    includeUnlinkedTransactions: true,
     pfcPrimaryList: [...PFC_PRIMARY_CATEGORY_CODES],
     paymentChannels: [...PAYMENT_CHANNEL_FILTER_IDS],
     pending: undefined,
@@ -282,19 +284,19 @@ export function sanitizeTransactionsFilter(
   const validCategoryCodes = new Set(PFC_PRIMARY_CATEGORY_CODES);
   const validChannelIds = new Set<string>(PAYMENT_CHANNEL_FILTER_IDS);
 
-  let accountIds = (filter.accountIds ?? []).filter((id) =>
-    validAccountIds.has(id),
-  );
+  const accountIds =
+    filter.accountIds === undefined
+      ? validAccountIds.size > 0
+        ? [...validAccountIds]
+        : []
+      : filter.accountIds.filter((id) => validAccountIds.has(id));
+
   let pfcPrimaryList = (filter.pfcPrimaryList ?? []).filter((code) =>
     validCategoryCodes.has(code),
   );
   let paymentChannels = (filter.paymentChannels ?? []).filter((channel) =>
     validChannelIds.has(channel),
   );
-
-  if (accountIds.length === 0 && validAccountIds.size > 0) {
-    accountIds = [...validAccountIds];
-  }
 
   if (pfcPrimaryList.length === 0) {
     pfcPrimaryList = [...PFC_PRIMARY_CATEGORY_CODES];
@@ -307,6 +309,7 @@ export function sanitizeTransactionsFilter(
   return {
     ...filter,
     accountIds,
+    includeUnlinkedTransactions: filter.includeUnlinkedTransactions ?? true,
     pfcPrimaryList,
     paymentChannels,
   };
@@ -387,6 +390,8 @@ export function useTransactionsFilter({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [draftFilter, setDraftFilter] =
     useState<TransactionsFilterState>(applied);
+  const draftFilterRef = useRef(draftFilter);
+  draftFilterRef.current = draftFilter;
 
   useEffect(() => {
     if (isDesktopOpen || isMobileOpen) return;
@@ -409,8 +414,8 @@ export function useTransactionsFilter({
   }, [applied, closeAllPanels]);
 
   const handleApply = useCallback(() => {
-    onApply(draftFilter);
-  }, [draftFilter, onApply]);
+    onApply(draftFilterRef.current);
+  }, [onApply]);
 
   const handleOpen = useCallback(() => {
     if (isMobile) {
