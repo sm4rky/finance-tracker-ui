@@ -1,4 +1,6 @@
 import type {
+  ConfirmPlaidUpdateAccountsRequest,
+  ConfirmPlaidUpdateAccountsResponse,
   CreatePlaidLinkTokenRequest,
   CreatePlaidLinkTokenResponse,
   ExchangePlaidPublicTokenRequest,
@@ -12,6 +14,8 @@ import type {
 import { apiFetch, parseApiErrorMessage } from "./client";
 
 export type {
+  ConfirmPlaidUpdateAccountsRequest,
+  ConfirmPlaidUpdateAccountsResponse,
   CreatePlaidLinkTokenRequest,
   CreatePlaidLinkTokenResponse,
   ExchangePlaidPublicTokenRequest,
@@ -88,4 +92,20 @@ export async function unlinkPlaidInstitution(
   });
   if (!res.ok) throw new Error(await parseApiErrorMessage(res));
   return (await res.json()) as UnlinkInstitutionResponse;
+}
+
+export async function confirmPlaidUpdateAccounts(
+  linkedBankId: string,
+  body: ConfirmPlaidUpdateAccountsRequest,
+): Promise<ConfirmPlaidUpdateAccountsResponse> {
+  const res = await apiFetch(
+    `${BASE_URL}/connections/${encodeURIComponent(linkedBankId)}/confirm-update-accounts`,
+    {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) throw new Error(await parseApiErrorMessage(res));
+  return (await res.json()) as ConfirmPlaidUpdateAccountsResponse;
 }

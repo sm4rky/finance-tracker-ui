@@ -11,6 +11,7 @@ import {
   Loader2,
   MoreVertical,
   RefreshCw,
+  SlidersHorizontal,
   Unlink,
   WifiOff,
   type LucideIcon,
@@ -33,6 +34,11 @@ import {
 import { LinkedBankAccountRow } from "@/components/linked-bank-account-row";
 import { RelinkInstitutionDialog } from "@/components/relink-institution-dialog";
 import { UnlinkInstitutionDialog } from "@/components/unlink-institution-dialog";
+import { ConfirmPlaidUpdateAccountsDialog } from "@/components/confirm-plaid-update-accounts-dialog";
+import {
+  UpdateLinkedAccountsDialog,
+  type AccountOptOutPayload,
+} from "@/components/update-linked-accounts-dialog";
 import type { LinkedBankResponse, LinkedBankStatus } from "@/interface/plaid";
 import { syncPlaidTransactions } from "@/lib/api/plaid";
 import { cn } from "@/lib/utils";
@@ -141,6 +147,10 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
   const queryClient = useQueryClient();
   const [relinkOpen, setRelinkOpen] = useState(false);
   const [unlinkOpen, setUnlinkOpen] = useState(false);
+  const [updateAccountsOpen, setUpdateAccountsOpen] = useState(false);
+  const [accountOptOut, setAccountOptOut] = useState<AccountOptOutPayload | null>(
+    null,
+  );
 
   const syncMutation = useMutation({
     mutationFn: syncPlaidTransactions,
@@ -160,6 +170,8 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
     syncMutation.isPending && syncMutation.variables === bank.id;
   const syncOnCooldown = isSyncedWithin30Minutes(bank.lastSyncedAt);
   const needsRelink = bank.status === "relink_required";
+  const canManageAccounts =
+    bank.status === "active" && !needsRelink;
 
   const statusConfig = LINKED_BANK_STATUS_BADGE[bank.status];
   const StatusIcon = statusConfig.Icon;
@@ -253,6 +265,18 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
                   </DropdownMenuItem>
                 ) : null}
 
+                {canManageAccounts ? (
+                  <DropdownMenuItem onClick={() => setUpdateAccountsOpen(true)}>
+                    <SlidersHorizontal className="size-4 text-muted-foreground" />
+                    Manage linked accounts
+                    {bank.hasPendingUpdateAccountDecisions ? (
+                      <span className="ml-1 text-xs text-amber-600 dark:text-amber-400">
+                        (action needed)
+                      </span>
+                    ) : null}
+                  </DropdownMenuItem>
+                ) : null}
+
                 <DropdownMenuItem
                   disabled={syncOnCooldown || syncing}
                   closeOnClick={false}
@@ -298,6 +322,26 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
         open={unlinkOpen}
         onOpenChange={setUnlinkOpen}
       />
+
+      <UpdateLinkedAccountsDialog
+        bank={bank}
+        open={updateAccountsOpen}
+        onOpenChange={setUpdateAccountsOpen}
+        onAccountOptOutRequired={setAccountOptOut}
+      />
+
+      {accountOptOut ? (
+        <ConfirmPlaidUpdateAccountsDialog
+          key={`${accountOptOut.linkedBankId}-${accountOptOut.pendingDeselectedAccounts.map((a) => a.plaidAccountId).join(",")}`}
+          linkedBankId={accountOptOut.linkedBankId}
+          institutionName={institutionName}
+          pendingDeselected={accountOptOut.pendingDeselectedAccounts}
+          open
+          onOpenChange={(next) => {
+            if (!next) setAccountOptOut(null);
+          }}
+        />
+      ) : null}
     </AccordionItem>
   );
 }

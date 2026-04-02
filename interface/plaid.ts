@@ -18,7 +18,11 @@ export interface ExchangePlaidPublicTokenRequest {
 export interface ExchangePlaidPublicTokenResponse {
   linkedBankId: string;
   plaidItemId: string;
+  institutionId: string | null;
+  institutionName: string | null;
   accounts: LinkedBankAccountResponse[];
+  requiresAccountOptOutHandling: boolean;
+  pendingDeselectedAccounts: LinkedBankAccountResponse[];
 }
 
 export interface LinkedBankAccountResponse {
@@ -51,7 +55,28 @@ export interface LinkedBankResponse {
   tokenRemovedAt: string | null;
   lastSyncedAt: string | null;
   createdAt: string;
+  hasPendingUpdateAccountDecisions?: boolean;
   accounts: LinkedBankAccountResponse[];
+}
+
+export interface PlaidAccountOptOutDecision {
+  plaidAccountId: string;
+  deleteTransactions: boolean;
+}
+
+export interface ConfirmPlaidUpdateAccountsRequest {
+  decisions: PlaidAccountOptOutDecision[];
+}
+
+export interface SyncPlaidTransactionsResponse {
+  linkedBankId: string;
+  transactionsUpdateStatus: string | null;
+  syncedAt: string;
+}
+
+export interface ConfirmPlaidUpdateAccountsResponse {
+  linkedBankId: string;
+  sync: SyncPlaidTransactionsResponse;
 }
 
 export interface SoftDisconnectLinkedBankResponse {
