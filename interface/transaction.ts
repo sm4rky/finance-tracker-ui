@@ -33,7 +33,7 @@ export type QueryTransactionsRequest = TransactionsFilterState & {
 export interface TransactionResponse {
   id: string;
   linkedBankAccountId: string | null;
-  plaidTransactionId: string;
+  plaidTransactionId: string | null;
   amount: number;
   isoCurrencyCode: string | null;
   date: string;
@@ -46,8 +46,24 @@ export interface TransactionResponse {
   pfcPrimary: string | null;
   pfcDetailed: string | null;
   logoUrl: string | null;
+  website?: string | null;
   status: string;
   removedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SaveTransactionRequest {
+  merchantName: string;
+  linkedBankAccountId: string | null;
+  date: string;
+  pfcPrimary: string | null;
+  pfcDetailed: string | null;
+  paymentChannel: string | null;
+  amountFlow: "expense" | "income";
+  amount: number;
+  website: string | null;
+  status: "active" | "account_opted_out";
+  pending: boolean;
+  clearLogo?: boolean;
 }

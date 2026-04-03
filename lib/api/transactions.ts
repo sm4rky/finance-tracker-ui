@@ -1,6 +1,7 @@
 import type { PagedResponse } from "@/interface/paged-response";
 import type {
   QueryTransactionsRequest,
+  SaveTransactionRequest,
   TransactionResponse,
 } from "@/interface/transaction";
 
@@ -51,4 +52,40 @@ export async function queryTransactions(
   }
 
   return (await res.json()) as PagedResponse<TransactionResponse>;
+}
+
+export async function createTransaction(
+  body: SaveTransactionRequest,
+): Promise<TransactionResponse> {
+  const res = await apiFetch(BASE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res));
+  }
+
+  return (await res.json()) as TransactionResponse;
+}
+
+export async function updateTransaction(
+  transactionId: string,
+  body: SaveTransactionRequest,
+): Promise<TransactionResponse> {
+  const res = await apiFetch(
+    `${BASE_URL}/${encodeURIComponent(transactionId)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res));
+  }
+
+  return (await res.json()) as TransactionResponse;
 }

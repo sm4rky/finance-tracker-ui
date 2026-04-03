@@ -51,7 +51,7 @@ function toggleSelection(
   return [...next];
 }
 
-function filterChipClassName(active: boolean): string {
+function getSelectTriggerClassName(active: boolean): string {
   return cn(
     buttonVariants({ variant: active ? "secondary" : "outline", size: "sm" }),
     "h-8 gap-1.5 border-dashed font-normal",
@@ -194,7 +194,7 @@ export function TransactionsFilterForm({
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
             type="button"
-            className={cn(filterChipClassName(accountCount > 0), triggerClassName)}
+            className={cn(getSelectTriggerClassName(accountCount > 0), triggerClassName)}
           >
             <span>Accounts ({accountCount})</span>
             <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
@@ -310,7 +310,7 @@ export function TransactionsFilterForm({
         >
           <DropdownMenuTrigger
             type="button"
-            className={cn(filterChipClassName(categoryCount > 0), triggerClassName)}
+            className={cn(getSelectTriggerClassName(categoryCount > 0), triggerClassName)}
           >
             <span>Categories ({categoryCount})</span>
             <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
@@ -404,7 +404,7 @@ export function TransactionsFilterForm({
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
             type="button"
-            className={cn(filterChipClassName(channelCount > 0), triggerClassName)}
+            className={cn(getSelectTriggerClassName(channelCount > 0), triggerClassName)}
           >
             <span>Channel ({channelCount})</span>
             <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
@@ -494,7 +494,7 @@ export function TransactionsFilterForm({
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
             type="button"
-            className={cn(filterChipClassName(hasDateFilter), triggerClassName)}
+            className={cn(getSelectTriggerClassName(hasDateFilter), triggerClassName)}
           >
             <span className="inline-flex items-center gap-1">
               <CalendarRange className="size-3.5 shrink-0 opacity-70" aria-hidden />
@@ -564,7 +564,7 @@ export function TransactionsFilterForm({
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
             type="button"
-            className={cn(filterChipClassName(hasAmountFilter), triggerClassName)}
+            className={cn(getSelectTriggerClassName(hasAmountFilter), triggerClassName)}
           >
             <span className="inline-flex items-center gap-1">
               <Wallet className="size-3.5 shrink-0 opacity-70" aria-hidden />

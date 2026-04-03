@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 import type {
   ColumnFiltersState,
   PaginationState,
@@ -18,12 +19,14 @@ import {
   TransactionsFilterTrigger,
   useTransactionsFilter,
 } from "@/components/transactions-filter";
+import { SaveTransactionSheet } from "@/components/save-transaction-sheet";
 import { TransactionsSyncMenu } from "@/components/transactions-sync-menu";
 import { DataTable } from "@/components/table";
 import { Button } from "@/components/ui/button";
 import type { LinkedBankResponse } from "@/interface/plaid";
 import type {
   QueryTransactionsRequest,
+  TransactionResponse,
   TransactionSortField,
   TransactionsFilterState,
 } from "@/interface/transaction";
@@ -132,6 +135,12 @@ export function TransactionsView() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [saveSheetOpen, setSaveSheetOpen] = useState(false);
+  const [saveSheetMode, setSaveSheetMode] = useState<"create" | "edit">(
+    "create",
+  );
+  const [editingTransaction, setEditingTransaction] =
+    useState<TransactionResponse | null>(null);
 
   const page = pagination.pageIndex + 1;
   const limit = pagination.pageSize;
@@ -150,6 +159,18 @@ export function TransactionsView() {
   useEffect(() => {
     setRowSelection({});
   }, [page, limit, sortKey, filterKey]);
+
+  const openCreateTransaction = useCallback(() => {
+    setSaveSheetMode("create");
+    setEditingTransaction(null);
+    setSaveSheetOpen(true);
+  }, []);
+
+  const openEditTransaction = useCallback((row: TransactionResponse) => {
+    setSaveSheetMode("edit");
+    setEditingTransaction(row);
+    setSaveSheetOpen(true);
+  }, []);
 
   const accountLabelById = useMemo(() => {
     const labels = new Map<string, string>();
@@ -172,8 +193,11 @@ export function TransactionsView() {
   }, [allBanks]);
 
   const columns = useMemo(
-    () => createTransactionColumns(accountLabelById),
-    [accountLabelById],
+    () =>
+      createTransactionColumns(accountLabelById, {
+        onEdit: openEditTransaction,
+      }),
+    [accountLabelById, openEditTransaction],
   );
 
   const transactionsQuery = useQuery({
@@ -200,6 +224,15 @@ export function TransactionsView() {
         <div className="flex flex-wrap items-center gap-2">
           <TransactionsFilterTrigger {...triggerProps} />
           <TransactionsSyncMenu banks={allBanks} />
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-1.5"
+            onClick={openCreateTransaction}
+          >
+            <Plus className="size-4 shrink-0" aria-hidden />
+            Add transaction
+          </Button>
         </div>
         <TransactionsFilterPanels {...panelsProps} />
       </div>
@@ -222,6 +255,17 @@ export function TransactionsView() {
             Delete
           </Button>
         </div>
+
+        <SaveTransactionSheet
+          open={saveSheetOpen}
+          onOpenChange={(next) => {
+            setSaveSheetOpen(next);
+            if (!next) setEditingTransaction(null);
+          }}
+          mode={saveSheetMode}
+          transaction={editingTransaction}
+          banks={activeBanks}
+        />
 
         <DataTable
           columns={columns}

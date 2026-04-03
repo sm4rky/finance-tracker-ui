@@ -381,7 +381,13 @@ function getPaymentChannelMeta(
   );
 }
 
-function TransactionRowActions({ row }: { row: TransactionResponse }) {
+function TransactionRowActions({
+  row,
+  onEdit,
+}: {
+  row: TransactionResponse;
+  onEdit?: (row: TransactionResponse) => void;
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -393,7 +399,7 @@ function TransactionRowActions({ row }: { row: TransactionResponse }) {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="min-w-36">
-        <DropdownMenuItem onClick={() => {}}>
+        <DropdownMenuItem onClick={() => onEdit?.(row)}>
           <Pencil className="size-4 text-muted-foreground" />
           Edit
         </DropdownMenuItem>
@@ -406,8 +412,13 @@ function TransactionRowActions({ row }: { row: TransactionResponse }) {
   );
 }
 
+export type CreateTransactionColumnsOptions = {
+  onEdit?: (row: TransactionResponse) => void;
+};
+
 export function createTransactionColumns(
   accountLabelMap: Map<string, string>,
+  options?: CreateTransactionColumnsOptions,
 ): ColumnDef<TransactionResponse>[] {
   return [
     {
@@ -553,7 +564,12 @@ export function createTransactionColumns(
     {
       id: "actions",
       header: () => <span className="sr-only">Actions</span>,
-      cell: ({ row }) => <TransactionRowActions row={row.original} />,
+      cell: ({ row }) => (
+        <TransactionRowActions
+          row={row.original}
+          onEdit={options?.onEdit}
+        />
+      ),
       enableSorting: false,
       enableHiding: false,
       size: 48,
