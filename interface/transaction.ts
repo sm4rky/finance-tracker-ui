@@ -53,6 +53,10 @@ export interface TransactionResponse {
   updatedAt: string;
 }
 
+export type DeleteTransactionsResponse = {
+  deletedCount: number;
+};
+
 export interface SaveTransactionRequest {
   merchantName: string;
   linkedBankAccountId: string | null;

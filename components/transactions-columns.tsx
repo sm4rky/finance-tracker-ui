@@ -384,9 +384,11 @@ function getPaymentChannelMeta(
 function TransactionRowActions({
   row,
   onEdit,
+  onDelete,
 }: {
   row: TransactionResponse;
   onEdit?: (row: TransactionResponse) => void;
+  onDelete?: (row: TransactionResponse) => void;
 }) {
   return (
     <DropdownMenu>
@@ -403,7 +405,10 @@ function TransactionRowActions({
           <Pencil className="size-4 text-muted-foreground" />
           Edit
         </DropdownMenuItem>
-        <DropdownMenuItem variant="destructive" onClick={() => {}}>
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={() => onDelete?.(row)}
+        >
           <Trash2 className="size-4" />
           Delete
         </DropdownMenuItem>
@@ -414,6 +419,7 @@ function TransactionRowActions({
 
 export type CreateTransactionColumnsOptions = {
   onEdit?: (row: TransactionResponse) => void;
+  onDelete?: (row: TransactionResponse) => void;
 };
 
 export function createTransactionColumns(
@@ -568,6 +574,7 @@ export function createTransactionColumns(
         <TransactionRowActions
           row={row.original}
           onEdit={options?.onEdit}
+          onDelete={options?.onDelete}
         />
       ),
       enableSorting: false,

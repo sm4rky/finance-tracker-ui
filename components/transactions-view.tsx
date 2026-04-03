@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import type {
   ColumnFiltersState,
   PaginationState,
@@ -19,6 +19,7 @@ import {
   TransactionsFilterTrigger,
   useTransactionsFilter,
 } from "@/components/transactions-filter";
+import { DeleteTransactionsDialog } from "@/components/delete-transactions-dialog";
 import { SaveTransactionSheet } from "@/components/save-transaction-sheet";
 import { TransactionsSyncMenu } from "@/components/transactions-sync-menu";
 import { DataTable } from "@/components/table";
@@ -33,6 +34,9 @@ import type {
 import { listPlaidConnections } from "@/lib/api/plaid";
 import { queryTransactions } from "@/lib/api/transactions";
 import { useTransactionsFilterStore } from "@/stores/transactions-filter";
+
+/** Backend accepts at most 100 ids per request after deduplication. */
+const MAX_DELETE_BATCH = 100;
 
 const TRANSACTION_SORT_COLUMN_TO_API: Record<string, TransactionSortField> = {
   merchant: "merchantName",
@@ -141,6 +145,10 @@ export function TransactionsView() {
   );
   const [editingTransaction, setEditingTransaction] =
     useState<TransactionResponse | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTransactionIds, setDeleteTransactionIds] = useState<string[]>(
+    [],
+  );
 
   const page = pagination.pageIndex + 1;
   const limit = pagination.pageSize;
@@ -172,6 +180,28 @@ export function TransactionsView() {
     setSaveSheetOpen(true);
   }, []);
 
+  const openDeleteDialogForIds = useCallback((ids: string[]) => {
+    const nextIds = [...new Set(ids)].filter(Boolean).slice(0, MAX_DELETE_BATCH);
+    if (nextIds.length === 0) return;
+    setDeleteTransactionIds(nextIds);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const openBulkDeleteDialog = useCallback(() => {
+    openDeleteDialogForIds(
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => id),
+    );
+  }, [rowSelection, openDeleteDialogForIds]);
+
+  const openSingleDeleteDialog = useCallback(
+    (row: TransactionResponse) => {
+      openDeleteDialogForIds([row.id]);
+    },
+    [openDeleteDialogForIds],
+  );
+
   const accountLabelById = useMemo(() => {
     const labels = new Map<string, string>();
 
@@ -196,8 +226,9 @@ export function TransactionsView() {
     () =>
       createTransactionColumns(accountLabelById, {
         onEdit: openEditTransaction,
+        onDelete: openSingleDeleteDialog,
       }),
-    [accountLabelById, openEditTransaction],
+    [accountLabelById, openEditTransaction, openSingleDeleteDialog],
   );
 
   const transactionsQuery = useQuery({
@@ -249,12 +280,24 @@ export function TransactionsView() {
             type="button"
             variant="destructive"
             size="sm"
+            className="gap-1.5"
             disabled={selectedRowCount === 0}
-            onClick={() => {}}
+            onClick={openBulkDeleteDialog}
           >
+            <Trash2 className="size-4 shrink-0" aria-hidden />
             Delete
           </Button>
         </div>
+
+        <DeleteTransactionsDialog
+          open={deleteDialogOpen}
+          onOpenChange={(next) => {
+            setDeleteDialogOpen(next);
+            if (!next) setDeleteTransactionIds([]);
+          }}
+          transactionIds={deleteTransactionIds}
+          onDeleted={() => setRowSelection({})}
+        />
 
         <SaveTransactionSheet
           open={saveSheetOpen}

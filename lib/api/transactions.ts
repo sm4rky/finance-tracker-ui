@@ -1,5 +1,6 @@
 import type { PagedResponse } from "@/interface/paged-response";
 import type {
+  DeleteTransactionsResponse,
   QueryTransactionsRequest,
   SaveTransactionRequest,
   TransactionResponse,
@@ -88,4 +89,20 @@ export async function updateTransaction(
   }
 
   return (await res.json()) as TransactionResponse;
+}
+
+export async function deleteTransactions(
+  transactionIds: string[],
+): Promise<DeleteTransactionsResponse> {
+  const res = await apiFetch(`${BASE_URL}/delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ transactionIds }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res));
+  }
+
+  return (await res.json()) as DeleteTransactionsResponse;
 }
