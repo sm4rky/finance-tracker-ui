@@ -6,10 +6,21 @@ import { Plus } from "lucide-react";
 
 import { DeleteRecurringCashflowDialog } from "@/components/delete-recurring-cashflow-dialog";
 import { RecurringCashflowRow } from "@/components/recurring-cashflow-row";
+import {
+  filterRecurringCashflowRows,
+  getDefaultRecurringCashflowsFilter,
+  RecurringCashflowsFilterPanels,
+  RecurringCashflowsFilterTrigger,
+  sanitizeRecurringCashflowsFilter,
+  useRecurringCashflowsFilter,
+} from "@/components/recurring-cashflows-filter";
 import { SaveRecurringCashflowSheet } from "@/components/save-recurring-cashflow-sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ProfileRecurringCashflowResponse } from "@/interface/profile-recurring-cashflow";
+import type {
+  ProfileRecurringCashflowResponse,
+  RecurringCashflowsFilterState,
+} from "@/interface/profile-recurring-cashflow";
 import { listPlaidConnections } from "@/lib/api/plaid";
 import { listProfileRecurringCashflows } from "@/lib/api/profile-recurring-cashflows";
 
@@ -42,6 +53,10 @@ export function SubscriptionsView() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  const [storedFilter, setStoredFilter] = useState<RecurringCashflowsFilterState>(
+    getDefaultRecurringCashflowsFilter,
+  );
+
   const { data } = useQuery({
     queryKey: ["list-plaid-connections"],
     queryFn: listPlaidConnections,
@@ -68,6 +83,24 @@ export function SubscriptionsView() {
     return { activeBanks, accountLineByLinkedId };
   }, [data]);
 
+  const appliedFilter = useMemo(
+    () => sanitizeRecurringCashflowsFilter(storedFilter, activeBanks),
+    [storedFilter, activeBanks],
+  );
+
+  const handleApplyFilter = useCallback(
+    (next: RecurringCashflowsFilterState) => {
+      setStoredFilter(next);
+    },
+    [],
+  );
+
+  const { triggerProps, panelsProps } = useRecurringCashflowsFilter({
+    banks: activeBanks,
+    applied: appliedFilter,
+    onApply: handleApplyFilter,
+  });
+
   const listQuery = useQuery({
     queryKey: ["profile-recurring-cashflows"],
     queryFn: listProfileRecurringCashflows,
@@ -76,6 +109,11 @@ export function SubscriptionsView() {
   const rows = listQuery.data ?? [];
   const loading = listQuery.isPending;
   const error = listQuery.isError;
+
+  const filteredRows = useMemo(
+    () => filterRecurringCashflowRows(rows, appliedFilter, data ?? []),
+    [rows, appliedFilter, data],
+  );
 
   const openCreate = useCallback(() => {
     setSheetMode("create");
@@ -96,16 +134,20 @@ export function SubscriptionsView() {
 
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6 p-6 md:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          className="gap-1.5"
-          onClick={openCreate}
-        >
-          <Plus className="size-4 shrink-0" aria-hidden />
-          Add subscription
-        </Button>
+      <div className="flex w-full flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <RecurringCashflowsFilterTrigger {...triggerProps} />
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-1.5"
+            onClick={openCreate}
+          >
+            <Plus className="size-4 shrink-0" aria-hidden />
+            Add subscription
+          </Button>
+        </div>
+        <RecurringCashflowsFilterPanels {...panelsProps} />
       </div>
 
       <DeleteRecurringCashflowDialog
@@ -155,8 +197,12 @@ export function SubscriptionsView() {
           <p className="text-sm text-muted-foreground">
             No subscriptions yet. Use Add subscription to add one.
           </p>
+        ) : filteredRows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No subscriptions match your filters.
+          </p>
         ) : (
-          rows.map((row) => {
+          filteredRows.map((row) => {
             const accountLine = accountLineForRecurringRow(
               row,
               accountLineByLinkedId,

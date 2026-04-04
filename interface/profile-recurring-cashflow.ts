@@ -9,15 +9,6 @@ export type RecurringCashflowFrequency =
   | "ANNUALLY"
   | "ONE_TIME";
 
-/** Matches backend `RecurringCashflowLinkedBankAccountResponse`. */
-export interface RecurringCashflowLinkedBankAccountResponse {
-  id: string;
-  name: string;
-  mask?: string | null;
-  type?: string | null;
-  subtype?: string | null;
-}
-
 export interface SaveProfileRecurringCashflowRequest {
   linkedBankAccountId: string | null;
   direction: RecurringCashflowDirection;
@@ -54,3 +45,23 @@ export interface ProfileRecurringCashflowResponse {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface RecurringCashflowLinkedBankAccountResponse {
+  id: string;
+  name: string;
+  mask?: string | null;
+  type?: string | null;
+  subtype?: string | null;
+}
+
+export type RecurringCashflowStatusFilterId = "active" | "unlinked";
+
+export const RECURRING_CASHFLOW_STATUS_FILTER_IDS: RecurringCashflowStatusFilterId[] =
+  ["active", "unlinked"];
+
+export type RecurringCashflowsFilterState = {
+  accountIds?: string[];
+  includeUnlinked?: boolean;
+  pfcPrimaryList?: string[];
+  statusList?: string[];
+};
