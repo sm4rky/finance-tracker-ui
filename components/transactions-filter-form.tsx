@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { CalendarRange, ChevronDown, Wallet } from "lucide-react";
+import { ChevronDown, Wallet } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -62,7 +62,6 @@ export type TransactionsFilterFormProps = {
   filter: TransactionsFilterState;
   onChange: (next: TransactionsFilterState) => void;
   banks: LinkedBankResponse[] | undefined;
-  maxDate: string;
   variant?: "default" | "sheet";
 };
 
@@ -70,7 +69,6 @@ export function TransactionsFilterForm({
   filter,
   onChange,
   banks,
-  maxDate,
   variant = "default",
 }: TransactionsFilterFormProps) {
   const isSheet = variant === "sheet";
@@ -111,7 +109,6 @@ export function TransactionsFilterForm({
       selectedPaymentChannels.includes(id),
     );
 
-  const hasDateFilter = Boolean(filter.dateFrom || filter.dateTo);
   const hasAmountFilter =
     filter.amountMin != null ||
     filter.amountMax != null ||
@@ -488,76 +485,6 @@ export function TransactionsFilterForm({
         >
           Pending
         </label>
-      </div>
-
-      <div className={rowClassName}>
-        <DropdownMenu modal={false}>
-          <DropdownMenuTrigger
-            type="button"
-            className={cn(getSelectTriggerClassName(hasDateFilter), triggerClassName)}
-          >
-            <span className="inline-flex items-center gap-1">
-              <CalendarRange className="size-3.5 shrink-0 opacity-70" aria-hidden />
-              <span>Dates</span>
-            </span>
-
-            {hasDateFilter ? (
-              <Badge
-                variant="secondary"
-                className="h-5 min-w-5 px-1.5 font-normal"
-              >
-                Set
-              </Badge>
-            ) : null}
-
-            <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent
-            align="start"
-            className={cn("p-3", isSheet ? "min-w-0" : "w-72")}
-            sideOffset={6}
-          >
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="tf-date-from" className="text-xs">
-                  From
-                </Label>
-                <Input
-                  id="tf-date-from"
-                  type="date"
-                  max={maxDate}
-                  value={filter.dateFrom ?? ""}
-                  onChange={(e) =>
-                    onChange({
-                      ...filter,
-                      dateFrom: e.target.value || undefined,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="tf-date-to" className="text-xs">
-                  To
-                </Label>
-                <Input
-                  id="tf-date-to"
-                  type="date"
-                  max={maxDate}
-                  min={filter.dateFrom || undefined}
-                  value={filter.dateTo ?? ""}
-                  onChange={(e) =>
-                    onChange({
-                      ...filter,
-                      dateTo: e.target.value || undefined,
-                    })
-                  }
-                />
-              </div>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       <div className={rowClassName}>

@@ -3,7 +3,6 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type Dispatch,
@@ -315,14 +314,6 @@ export function sanitizeTransactionsFilter(
   };
 }
 
-function getTodayISODate(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function areTransactionsFiltersEqual(
   a: TransactionsFilterState,
   b: TransactionsFilterState,
@@ -348,7 +339,6 @@ export type TransactionsFilterPanelsProps = {
   banks: LinkedBankResponse[] | undefined;
   draftFilter: TransactionsFilterState;
   setDraftFilter: Dispatch<SetStateAction<TransactionsFilterState>>;
-  maxDate: string;
   isMobile: boolean;
   isDesktopOpen: boolean;
   isMobileOpen: boolean;
@@ -394,14 +384,23 @@ export function useTransactionsFilter({
   draftFilterRef.current = draftFilter;
 
   useEffect(() => {
-    if (isDesktopOpen || isMobileOpen) return;
+    if (isDesktopOpen || isMobileOpen) {
+      setDraftFilter((current) => {
+        if (
+          current.dateFrom === applied.dateFrom &&
+          current.dateTo === applied.dateTo
+        ) {
+          return current;
+        }
+        return { ...current, dateFrom: applied.dateFrom, dateTo: applied.dateTo };
+      });
+      return;
+    }
 
     setDraftFilter((current) =>
       areTransactionsFiltersEqual(current, applied) ? current : applied,
     );
   }, [applied, isDesktopOpen, isMobileOpen]);
-
-  const maxDate = useMemo(() => getTodayISODate(), []);
 
   const closeAllPanels = useCallback(() => {
     setIsDesktopOpen(false);
@@ -437,7 +436,6 @@ export function useTransactionsFilter({
       banks,
       draftFilter,
       setDraftFilter,
-      maxDate,
       isMobile,
       isDesktopOpen,
       isMobileOpen,
@@ -482,7 +480,6 @@ export function TransactionsFilterPanels({
   banks,
   draftFilter,
   setDraftFilter,
-  maxDate,
   isMobile,
   isDesktopOpen,
   isMobileOpen,
@@ -501,7 +498,6 @@ export function TransactionsFilterPanels({
             filter={draftFilter}
             onChange={setDraftFilter}
             banks={banks}
-            maxDate={maxDate}
             variant="default"
           />
           <div className="mt-4 border-t border-border pt-4">
@@ -525,7 +521,6 @@ export function TransactionsFilterPanels({
               filter={draftFilter}
               onChange={setDraftFilter}
               banks={banks}
-              maxDate={maxDate}
               variant="sheet"
             />
           </div>

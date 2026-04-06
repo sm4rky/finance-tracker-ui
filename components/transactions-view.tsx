@@ -12,6 +12,7 @@ import type {
 } from "@tanstack/react-table";
 
 import { createTransactionColumns } from "@/components/transactions-columns";
+import { TransactionsDateFilter } from "@/components/transactions-date-filter";
 import {
   getDefaultTransactionsFilter,
   sanitizeTransactionsFilter,
@@ -253,6 +254,10 @@ export function TransactionsView() {
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6 p-6 md:p-8">
       <div className="flex w-full flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
+          <TransactionsDateFilter
+            banks={activeBanks}
+            isStoreReady={isFilterStoreHydrated}
+          />
           <TransactionsFilterTrigger {...triggerProps} />
           <TransactionsSyncMenu banks={allBanks} />
           <Button
