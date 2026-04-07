@@ -13,10 +13,12 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Car,
+  Check,
   ChevronDown,
   CircleDollarSign,
   CircleHelp,
   Clapperboard,
+  FilterX,
   Hammer,
   HandCoins,
   HeartPulse,
@@ -343,27 +345,37 @@ export type TransactionsFilterPanelsProps = {
   isDesktopOpen: boolean;
   isMobileOpen: boolean;
   onMobileOpenChange: (open: boolean) => void;
-  onCancel: () => void;
+  onClear: () => void;
   onApply: () => void;
 };
 
 type FilterActionsProps = {
-  onCancel: () => void;
+  onClear?: () => void;
   onApply: () => void;
   className?: string;
 };
 
 function FilterActions({
-  onCancel,
+  onClear,
   onApply,
   className,
 }: FilterActionsProps) {
   return (
     <div className={cn("flex flex-wrap justify-end gap-2", className)}>
-      <Button type="button" variant="outline" size="sm" onClick={onCancel}>
-        Cancel
-      </Button>
-      <Button type="button" size="sm" onClick={onApply}>
+      {onClear ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={onClear}
+        >
+          <FilterX className="size-4 shrink-0" aria-hidden />
+          Clear
+        </Button>
+      ) : null}
+      <Button type="button" size="sm" className="gap-1.5" onClick={onApply}>
+        <Check className="size-4 shrink-0" aria-hidden />
         Apply
       </Button>
     </div>
@@ -402,15 +414,14 @@ export function useTransactionsFilter({
     );
   }, [applied, isDesktopOpen, isMobileOpen]);
 
-  const closeAllPanels = useCallback(() => {
-    setIsDesktopOpen(false);
-    setIsMobileOpen(false);
-  }, []);
-
-  const handleCancel = useCallback(() => {
-    setDraftFilter(applied);
-    closeAllPanels();
-  }, [applied, closeAllPanels]);
+  const handleClear = useCallback(() => {
+    const defaults = getDefaultTransactionsFilter(banks);
+    setDraftFilter({
+      ...defaults,
+      dateFrom: applied.dateFrom,
+      dateTo: applied.dateTo,
+    });
+  }, [banks, applied.dateFrom, applied.dateTo]);
 
   const handleApply = useCallback(() => {
     onApply(draftFilterRef.current);
@@ -440,7 +451,7 @@ export function useTransactionsFilter({
       isDesktopOpen,
       isMobileOpen,
       onMobileOpenChange: setIsMobileOpen,
-      onCancel: handleCancel,
+      onClear: handleClear,
       onApply: handleApply,
     } satisfies TransactionsFilterPanelsProps,
   };
@@ -484,7 +495,7 @@ export function TransactionsFilterPanels({
   isDesktopOpen,
   isMobileOpen,
   onMobileOpenChange,
-  onCancel,
+  onClear,
   onApply,
 }: TransactionsFilterPanelsProps) {
   return (
@@ -501,7 +512,7 @@ export function TransactionsFilterPanels({
             variant="default"
           />
           <div className="mt-4 border-t border-border pt-4">
-            <FilterActions onCancel={onCancel} onApply={onApply} />
+            <FilterActions onClear={onClear} onApply={onApply} />
           </div>
         </div>
       ) : null}
@@ -528,7 +539,7 @@ export function TransactionsFilterPanels({
           <SheetFooter className="border-t border-border px-5 py-4">
             <FilterActions
               className="gap-4"
-              onCancel={onCancel}
+              onClear={onClear}
               onApply={onApply}
             />
           </SheetFooter>
