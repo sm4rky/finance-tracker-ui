@@ -294,20 +294,15 @@ export function sanitizeTransactionsFilter(
         : []
       : filter.accountIds.filter((id) => validAccountIds.has(id));
 
-  let pfcPrimaryList = (filter.pfcPrimaryList ?? []).filter((code) =>
-    validCategoryCodes.has(code),
-  );
-  let paymentChannels = (filter.paymentChannels ?? []).filter((channel) =>
-    validChannelIds.has(channel),
-  );
+  const pfcPrimaryList =
+    filter.pfcPrimaryList === undefined
+      ? [...PFC_PRIMARY_CATEGORY_CODES]
+      : filter.pfcPrimaryList.filter((code) => validCategoryCodes.has(code));
 
-  if (pfcPrimaryList.length === 0) {
-    pfcPrimaryList = [...PFC_PRIMARY_CATEGORY_CODES];
-  }
-
-  if (paymentChannels.length === 0) {
-    paymentChannels = [...PAYMENT_CHANNEL_FILTER_IDS];
-  }
+  const paymentChannels =
+    filter.paymentChannels === undefined
+      ? [...PAYMENT_CHANNEL_FILTER_IDS]
+      : filter.paymentChannels.filter((channel) => validChannelIds.has(channel));
 
   return {
     ...filter,
