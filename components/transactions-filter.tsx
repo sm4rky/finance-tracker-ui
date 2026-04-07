@@ -46,6 +46,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { LinkedBankResponse } from "@/interface/plaid";
 import type { TransactionsFilterState } from "@/interface/transaction";
+import { getDateRangeForPreset } from "@/lib/transactions-date-range";
 import { cn } from "@/lib/utils";
 
 import { TransactionsFilterForm } from "./transactions-filter-form";
@@ -263,14 +264,15 @@ export function getAllAccountIds(
 export function getDefaultTransactionsFilter(
   banks: LinkedBankResponse[] | undefined,
 ): TransactionsFilterState {
+  const { dateFrom, dateTo } = getDateRangeForPreset("this_month");
   return {
     accountIds: getAllAccountIds(banks),
     includeUnlinkedTransactions: true,
     pfcPrimaryList: [...PFC_PRIMARY_CATEGORY_CODES],
     paymentChannels: [...PAYMENT_CHANNEL_FILTER_IDS],
     pending: undefined,
-    dateFrom: undefined,
-    dateTo: undefined,
+    dateFrom,
+    dateTo,
     amountMin: undefined,
     amountMax: undefined,
     amountFlow: null,

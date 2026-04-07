@@ -22,13 +22,13 @@ export const DATE_PRESET_LABELS: Record<
 };
 
 export const DATE_PRESET_ORDER: Exclude<DatePreset, "custom">[] = [
-  "all_time",
   "this_month",
   "last_month",
   "last_3_months",
   "last_6_months",
   "this_year",
   "last_year",
+  "all_time",
 ];
 
 function toISODate(d: Date): string {
