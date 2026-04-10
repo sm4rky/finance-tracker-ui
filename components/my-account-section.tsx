@@ -102,11 +102,7 @@ function bankAccountsList(bank: LinkedBankResponse): ReactNode {
   );
 }
 
-export type MyAccountSectionProps = {
-  className?: string;
-};
-
-export function MyAccountSection({ className }: MyAccountSectionProps) {
+export function MyAccountSection() {
   const accessToken = useAuthStore((s) => s.accessToken);
 
   const { data: netWorth, isPending: isNetWorthPending } = useQuery({
@@ -133,12 +129,7 @@ export function MyAccountSection({ className }: MyAccountSectionProps) {
       ?.isoCurrencyCode ?? "USD";
 
   return (
-    <section
-      className={cn(
-        "flex min-h-0 max-h-92 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm sm:max-h-92",
-        className,
-      )}
-    >
+    <section className="flex h-full min-h-0 max-h-92 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm sm:max-h-92">
       <header className="flex shrink-0 items-center justify-between gap-3 bg-card px-4 py-3 sm:px-5">
         <h2 className="font-heading text-base font-semibold tracking-tight sm:text-lg">
           My accounts

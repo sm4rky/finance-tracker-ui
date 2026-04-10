@@ -11,6 +11,7 @@ import {
   TransactionsFilterTrigger,
   useTransactionsFilter,
 } from "@/components/transactions-filter";
+import { CategoryExpensePieChart } from "@/components/category-expense-pie-chart";
 import { MyAccountSection } from "@/components/my-account-section";
 import type { TransactionsFilterState } from "@/interface/transaction";
 import { listPlaidConnections } from "@/lib/api/plaid";
@@ -99,7 +100,10 @@ export function DashboardView() {
         <TransactionsFilterPanels {...panelsProps} />
       </div>
 
-      <MyAccountSection className="min-h-0 flex-1" />
+      <div className="grid h-full min-h-0 grid-cols-1 gap-6 lg:grid-cols-2 lg:items-stretch">
+        <MyAccountSection />
+        <CategoryExpensePieChart />
+      </div>
     </div>
   );
 }
