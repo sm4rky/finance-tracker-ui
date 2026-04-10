@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, ChevronDown, Wallet } from "lucide-react";
+import { ArrowUpRight, Building2, ChevronDown, Wallet } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -141,6 +141,7 @@ export function MyAccountSection() {
             "shrink-0",
           )}
         >
+          <ArrowUpRight className="opacity-90" strokeWidth={1.75} aria-hidden />
           Manage banks
         </Link>
       </header>
