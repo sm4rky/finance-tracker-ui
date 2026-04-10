@@ -14,6 +14,7 @@ import {
 import { CategoryExpensePieChart } from "@/components/category-expense-pie-chart";
 import { MyAccountSection } from "@/components/my-account-section";
 import type { TransactionsFilterState } from "@/interface/transaction";
+import { fetchCashflow } from "@/lib/api/analytics";
 import { listPlaidConnections } from "@/lib/api/plaid";
 import { useAuthStore } from "@/stores/auth-session";
 import { useTransactionsFilterStore } from "@/stores/transactions-filter";
@@ -66,6 +67,14 @@ export function DashboardView() {
     );
   }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
 
+  const filterKey = JSON.stringify(appliedFilter);
+
+  const { data: cashflow, isPending: isCashflowPending } = useQuery({
+    queryKey: ["analytics-cashflow", filterKey],
+    queryFn: () => fetchCashflow(appliedFilter),
+    enabled: isFilterStoreHydrated,
+  });
+
   const handleApplyFilter = useCallback(
     (nextFilter: TransactionsFilterState) => {
       setAppliedFilter(nextFilter, activeBanks);
@@ -102,7 +111,13 @@ export function DashboardView() {
 
       <div className="grid h-full min-h-0 grid-cols-1 gap-6 lg:grid-cols-2 lg:items-stretch">
         <MyAccountSection />
-        <CategoryExpensePieChart />
+        <CategoryExpensePieChart
+          totalExpenses={cashflow?.totalExpenses}
+          expensesChangePercentFromPrevious={
+            cashflow?.expensesChangePercentFromPrevious
+          }
+          cashflowLoading={isCashflowPending}
+        />
       </div>
     </div>
   );

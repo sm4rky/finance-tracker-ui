@@ -1,3 +1,4 @@
+import type { CashflowResponse } from "@/interface/cashflow";
 import type { PfcPrimaryExpenseDistributionResponse } from "@/interface/pfc-primary-expense-distribution";
 import type { NetWorthResponse } from "@/interface/net-worth";
 import type { TransactionAnalyticsQueryRequest } from "@/interface/transaction-analytics";
@@ -33,6 +34,21 @@ export async function fetchNetWorth(): Promise<NetWorthResponse> {
   const res = await apiFetch(`${BASE_URL}/net-worth`, { method: "GET" });
   if (!res.ok) throw new Error(await parseApiErrorMessage(res));
   return (await res.json()) as NetWorthResponse;
+}
+
+export async function fetchCashflow(
+  request: TransactionAnalyticsQueryRequest,
+): Promise<CashflowResponse> {
+  const res = await apiFetch(
+    `${BASE_URL}/cashflow?${buildTransactionAnalyticsQuery(request)}`,
+    { method: "GET" },
+  );
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res));
+  }
+
+  return (await res.json()) as CashflowResponse;
 }
 
 export async function fetchPfcPrimaryExpenseDistribution(

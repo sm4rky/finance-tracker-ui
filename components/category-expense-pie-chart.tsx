@@ -14,6 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchPfcPrimaryExpenseDistribution } from "@/lib/api/analytics";
 import { listPlaidConnections } from "@/lib/api/plaid";
+import { cn } from "@/lib/utils";
 import { useTransactionsFilterStore } from "@/stores/transactions-filter";
 
 function formatUsdTooltip(value: number): string {
@@ -23,6 +24,11 @@ function formatUsdTooltip(value: number): string {
   }).format(value);
 }
 
+function formatSignedPercent(roundedToOneDecimal: number): string {
+  const sign = roundedToOneDecimal > 0 ? "+" : "";
+  return `${sign}${roundedToOneDecimal.toFixed(1)}%`;
+}
+
 function sliceDisplayName(pfcPrimary: string | null): string {
   if (pfcPrimary == null || pfcPrimary === "") {
     return "Uncategorized";
@@ -30,7 +36,17 @@ function sliceDisplayName(pfcPrimary: string | null): string {
   return getPfcCategoryMeta(pfcPrimary).displayName;
 }
 
-export function CategoryExpensePieChart() {
+export type CategoryExpensePieChartProps = {
+  totalExpenses?: number | null;
+  expensesChangePercentFromPrevious?: number | null;
+  cashflowLoading?: boolean;
+};
+
+export function CategoryExpensePieChart({
+  totalExpenses,
+  expensesChangePercentFromPrevious,
+  cashflowLoading = false,
+}: CategoryExpensePieChartProps = {}) {
   const { resolvedTheme } = useTheme();
   const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(false);
 
@@ -158,12 +174,51 @@ export function CategoryExpensePieChart() {
 
   const showSkeleton = !isFilterStoreHydrated || isPending;
 
+  const expensesChangeRounded =
+    expensesChangePercentFromPrevious != null
+      ? Math.round(expensesChangePercentFromPrevious * 10) / 10
+      : null;
+
   return (
     <section className="flex h-full min-h-0 max-h-92 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm sm:max-h-92">
-      <header className="shrink-0 px-3 py-2.5 sm:px-4 sm:py-3">
-        <h2 className="font-heading text-base font-semibold tracking-tight sm:text-lg">
+      <header className="flex min-w-0 shrink-0 flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:px-4 sm:py-3">
+        <h2 className="min-w-0 shrink font-heading text-base font-semibold tracking-tight sm:max-w-[min(100%,14rem)] sm:text-lg md:max-w-none">
           Expense by Category
         </h2>
+        <div className="flex w-full min-w-0 flex-col items-start gap-0.5 text-left sm:max-w-[min(100%,12rem)] sm:shrink-0 sm:items-end sm:text-right md:max-w-[55%]">
+          {cashflowLoading ? (
+            <>
+              <Skeleton className="h-5 w-44 self-start sm:self-end" />
+              <Skeleton className="h-3.5 w-14 self-start sm:self-end" />
+            </>
+          ) : (
+            <>
+              <p className="min-w-0 max-w-full text-left leading-snug text-sm sm:text-right">
+                <span className="text-muted-foreground">Total expense: </span>
+                <span className="font-semibold tabular-nums">
+                  {totalExpenses != null
+                    ? formatUsdTooltip(totalExpenses)
+                    : "—"}
+                </span>
+              </p>
+              {expensesChangeRounded !== null && (
+                <p
+                  className={cn(
+                    "text-left text-xs font-medium tabular-nums sm:text-right",
+                    expensesChangeRounded > 0 &&
+                      "text-emerald-600 dark:text-emerald-400",
+                    expensesChangeRounded < 0 &&
+                      "text-red-600 dark:text-red-400",
+                    expensesChangeRounded === 0 &&
+                      "text-muted-foreground",
+                  )}
+                >
+                  {formatSignedPercent(expensesChangeRounded)}
+                </p>
+              )}
+            </>
+          )}
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden overscroll-contain px-2 pb-3 sm:px-3 sm:pb-4">
