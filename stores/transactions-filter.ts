@@ -2,7 +2,17 @@ import { sanitizeTransactionsFilter } from "@/components/transactions-filter";
 import type { LinkedBankResponse } from "@/interface/plaid";
 import type { TransactionsFilterState } from "@/interface/transaction";
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import {
+  createJSONStorage,
+  persist,
+  type StateStorage,
+} from "zustand/middleware";
+
+const noopSessionStorageFallback: StateStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
 
 type TransactionsFilterStoreState = {
   appliedFilter: TransactionsFilterState | null;
@@ -28,7 +38,11 @@ export const useTransactionsFilterStore = create<TransactionsFilterStoreState>()
     }),
     {
       name: "money-insight-transactions-filter",
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() =>
+        typeof window === "undefined"
+          ? noopSessionStorageFallback
+          : sessionStorage,
+      ),
     },
   ),
 );

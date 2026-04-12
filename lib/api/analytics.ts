@@ -1,6 +1,10 @@
 import type { CashflowResponse } from "@/interface/cashflow";
-import type { PfcPrimaryExpenseDistributionResponse } from "@/interface/pfc-primary-expense-distribution";
 import type { NetWorthResponse } from "@/interface/net-worth";
+import type { PfcPrimaryExpenseDistributionResponse } from "@/interface/pfc-primary-expense-distribution";
+import type {
+  StackedExpensesByPfcPrimaryRequest,
+  StackedExpensesByPfcPrimaryResponse,
+} from "@/interface/stacked-expenses-by-pfc-primary";
 import type { TransactionAnalyticsQueryRequest } from "@/interface/transaction-analytics";
 
 import { apiFetch, parseApiErrorMessage } from "./client";
@@ -55,7 +59,7 @@ export async function fetchPfcPrimaryExpenseDistribution(
   request: TransactionAnalyticsQueryRequest,
 ): Promise<PfcPrimaryExpenseDistributionResponse> {
   const res = await apiFetch(
-    `${BASE_URL}/pfc-primary/expense-distribution?${buildTransactionAnalyticsQuery(request)}`,
+    `${BASE_URL}/expense/pfcprimary-distribution?${buildTransactionAnalyticsQuery(request)}`,
     { method: "GET" },
   );
 
@@ -64,4 +68,19 @@ export async function fetchPfcPrimaryExpenseDistribution(
   }
 
   return (await res.json()) as PfcPrimaryExpenseDistributionResponse;
+}
+
+export async function fetchStackedExpensesByPfcPrimary(
+  request: StackedExpensesByPfcPrimaryRequest,
+): Promise<StackedExpensesByPfcPrimaryResponse> {
+  const res = await apiFetch(
+    `${BASE_URL}/expense/stacked-by-pfcprimary?${buildTransactionAnalyticsQuery(request)}`,
+    { method: "GET" },
+  );
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res));
+  }
+
+  return (await res.json()) as StackedExpensesByPfcPrimaryResponse;
 }

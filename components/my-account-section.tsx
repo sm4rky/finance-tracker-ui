@@ -129,8 +129,8 @@ export function MyAccountSection() {
       ?.isoCurrencyCode ?? "USD";
 
   return (
-    <section className="flex h-full min-h-0 max-h-92 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm sm:max-h-92">
-      <header className="flex shrink-0 items-center justify-between gap-3 bg-card px-4 py-3 sm:px-5">
+    <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+      <header className="flex shrink-0 items-center justify-between gap-3 bg-card px-3 py-2.5 sm:px-4 sm:py-3">
         <h2 className="font-heading text-base font-semibold tracking-tight sm:text-lg">
           My accounts
         </h2>
@@ -146,7 +146,7 @@ export function MyAccountSection() {
         </Link>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 sm:px-3">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3 sm:px-3 sm:pb-4">
         <Accordion type="multiple" className="w-full">
           <AccordionItem
             value="net-worth"
