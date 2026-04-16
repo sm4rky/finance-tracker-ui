@@ -2,6 +2,10 @@ import type { CashflowResponse } from "@/interface/cashflow";
 import type { NetWorthResponse } from "@/interface/net-worth";
 import type { PfcPrimaryExpenseDistributionResponse } from "@/interface/pfc-primary-expense-distribution";
 import type {
+  GroupedExpensesByAccountRequest,
+  GroupedExpensesByAccountResponse,
+} from "@/interface/grouped-expenses-by-account";
+import type {
   StackedExpensesByPfcPrimaryRequest,
   StackedExpensesByPfcPrimaryResponse,
 } from "@/interface/stacked-expenses-by-pfc-primary";
@@ -83,4 +87,19 @@ export async function fetchStackedExpensesByPfcPrimary(
   }
 
   return (await res.json()) as StackedExpensesByPfcPrimaryResponse;
+}
+
+export async function fetchGroupedExpensesByAccount(
+  request: GroupedExpensesByAccountRequest,
+): Promise<GroupedExpensesByAccountResponse> {
+  const res = await apiFetch(
+    `${BASE_URL}/expense/grouped-by-account?${buildTransactionAnalyticsQuery(request)}`,
+    { method: "GET" },
+  );
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res));
+  }
+
+  return (await res.json()) as GroupedExpensesByAccountResponse;
 }
