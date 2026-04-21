@@ -13,6 +13,7 @@ import {
 } from "@/components/transactions-filter";
 import { CategoryExpensePieChart } from "@/components/category-expense-pie-chart";
 import { MyAccountSection } from "@/components/my-account-section";
+import { NetWorthTrendChart } from "@/components/net-worth-trend-chart";
 import { AccountExpenseBarChart } from "@/components/account-expense-bar-chart";
 import { CategoryExpenseBarChart } from "@/components/category-expense-bar-chart";
 import type { TransactionsFilterState } from "@/interface/transaction";
@@ -125,6 +126,10 @@ export function DashboardView() {
       <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch lg:gap-5">
         <CategoryExpenseBarChart />
         <AccountExpenseBarChart />
+      </div>
+
+      <div className="w-full min-w-0 shrink-0">
+        <NetWorthTrendChart />
       </div>
     </div>
   );

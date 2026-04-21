@@ -1,4 +1,8 @@
 import type { CashflowResponse } from "@/interface/cashflow";
+import type {
+  NetWorthTrendQueryRequest,
+  NetWorthTrendResponse,
+} from "@/interface/net-worth-trend";
 import type { NetWorthResponse } from "@/interface/net-worth";
 import type { PfcPrimaryExpenseDistributionResponse } from "@/interface/pfc-primary-expense-distribution";
 import type {
@@ -42,6 +46,21 @@ export async function fetchNetWorth(): Promise<NetWorthResponse> {
   const res = await apiFetch(`${BASE_URL}/net-worth`, { method: "GET" });
   if (!res.ok) throw new Error(await parseApiErrorMessage(res));
   return (await res.json()) as NetWorthResponse;
+}
+
+export async function fetchNetWorthTrend(
+  request?: NetWorthTrendQueryRequest,
+): Promise<NetWorthTrendResponse> {
+  const params = new URLSearchParams();
+  if (request?.dateFrom?.trim()) params.set("dateFrom", request.dateFrom.trim());
+  if (request?.dateTo?.trim()) params.set("dateTo", request.dateTo.trim());
+  const qs = params.toString();
+  const res = await apiFetch(
+    `${BASE_URL}/net-worth/history${qs ? `?${qs}` : ""}`,
+    { method: "GET" },
+  );
+  if (!res.ok) throw new Error(await parseApiErrorMessage(res));
+  return (await res.json()) as NetWorthTrendResponse;
 }
 
 export async function fetchCashflow(
