@@ -249,7 +249,11 @@ export function AccountExpenseBarChart() {
           handleSize: 10,
           moveHandleSize: 6,
         },
-        { type: "inside", xAxisIndex: 0 },
+        {
+          type: "inside",
+          xAxisIndex: 0,
+          // zoomOnMouseWheel: false,
+        },
       ],
       tooltip: {
         trigger: "axis",
@@ -359,7 +363,7 @@ export function AccountExpenseBarChart() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden overscroll-contain px-2 pb-2 sm:px-3 sm:pb-3">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-2 sm:px-3 sm:pb-3">
         {showSkeleton ? (
           <Skeleton className="mx-auto min-h-60 w-full flex-1 rounded-lg sm:min-h-64 md:min-h-72" />
         ) : isGroupedError ? (
