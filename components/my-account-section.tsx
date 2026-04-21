@@ -130,8 +130,8 @@ export function MyAccountSection() {
 
   return (
     <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-      <header className="flex shrink-0 items-center justify-between gap-3 bg-card px-3 py-2.5 sm:px-4 sm:py-3">
-        <h2 className="font-heading text-base font-semibold tracking-tight sm:text-lg">
+      <header className="flex shrink-0 items-center justify-between gap-3 bg-card px-3 py-2 sm:px-4 sm:py-2.5">
+        <h2 className="font-heading text-base font-light tracking-tight sm:text-lg">
           My accounts
         </h2>
         <Link
@@ -146,14 +146,14 @@ export function MyAccountSection() {
         </Link>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3 sm:px-3 sm:pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-2 sm:px-3 sm:pb-3">
         <Accordion type="multiple" className="w-full">
           <AccordionItem
             value="net-worth"
             className="border-b border-border last:border-b-0"
           >
             <AccordionHeader className="flex w-full">
-              <AccordionTrigger className="w-full gap-3 py-4 hover:no-underline">
+              <AccordionTrigger className="w-full gap-3 py-3 hover:no-underline">
                 <span className="flex min-w-0 flex-1 items-center gap-2.5">
                   <Wallet
                     className="size-[1.125rem] shrink-0 text-foreground"
@@ -211,7 +211,7 @@ export function MyAccountSection() {
             className="border-b border-border last:border-b-0"
           >
             <AccordionHeader className="flex w-full">
-              <AccordionTrigger className="w-full gap-3 py-4 hover:no-underline">
+              <AccordionTrigger className="w-full gap-3 py-3 hover:no-underline">
                 <span className="flex min-w-0 flex-1 items-center gap-2.5">
                   <Building2
                     className="size-[1.125rem] shrink-0 text-foreground"

@@ -197,7 +197,7 @@ export function CategoryExpenseBarChart() {
         {
           type: "slider",
           xAxisIndex: 0,
-          height: 10,
+          height: 20,
           bottom: 5,
           left: 30,
           right: 30,
@@ -285,8 +285,8 @@ export function CategoryExpenseBarChart() {
 
   return (
     <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-      <header className="flex min-w-0 shrink-0 flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:px-4 sm:py-3">
-        <h2 className="min-w-0 shrink text-balance font-heading text-base font-semibold tracking-tight sm:max-w-[min(100%,20rem)] sm:text-lg md:max-w-none">
+      <header className="flex min-w-0 shrink-0 flex-col gap-2 px-3 py-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:px-4 sm:py-2.5">
+        <h2 className="min-w-0 shrink text-balance font-heading text-base font-light tracking-tight sm:max-w-[min(100%,20rem)] sm:text-lg md:max-w-none">
           Expenses by category over time
         </h2>
         <div className="flex w-full min-w-0 flex-row items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
@@ -315,21 +315,21 @@ export function CategoryExpenseBarChart() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden overscroll-contain px-2 pb-3 sm:px-3 sm:pb-4">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden overscroll-contain px-2 pb-2 sm:px-3 sm:pb-3">
         {showSkeleton ? (
-          <Skeleton className="mx-auto min-h-72 w-full flex-1 rounded-lg sm:min-h-80 md:min-h-96" />
+          <Skeleton className="mx-auto min-h-60 w-full flex-1 rounded-lg sm:min-h-64 md:min-h-72" />
         ) : isStackedError ? (
-          <p className="flex min-h-72 flex-1 items-center justify-center px-2 py-8 text-center text-sm text-destructive sm:min-h-80 md:min-h-96">
+          <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-destructive sm:min-h-64 md:min-h-72">
             {stackedQuery.error instanceof Error
               ? stackedQuery.error.message
               : "Could not load chart."}
           </p>
         ) : showEmpty ? (
-          <p className="flex min-h-72 flex-1 items-center justify-center px-2 py-8 text-center text-sm text-muted-foreground sm:min-h-80 md:min-h-96">
+          <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-64 md:min-h-72">
             No expense data for this period.
           </p>
         ) : chartOption ? (
-          <div className="relative mx-auto flex min-h-72 w-full flex-1 flex-col sm:min-h-80 md:min-h-96">
+          <div className="relative mx-auto flex min-h-60 w-full flex-1 flex-col sm:min-h-64 md:min-h-72">
             <ReactECharts
               option={chartOption}
               className="min-h-0 w-full flex-1"
@@ -339,7 +339,7 @@ export function CategoryExpenseBarChart() {
             />
           </div>
         ) : (
-          <p className="flex min-h-72 flex-1 items-center justify-center px-2 py-8 text-center text-sm text-muted-foreground sm:min-h-80 md:min-h-96">
+          <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-64 md:min-h-72">
             No expense data for this period.
           </p>
         )}

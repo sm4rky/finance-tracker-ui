@@ -94,7 +94,7 @@ export function DashboardView() {
   const displayLine = profile?.fullName?.trim() || "";
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-6 p-4 sm:gap-8 sm:p-6 md:p-8">
+    <div className="flex w-full min-w-0 flex-col gap-3 p-4 sm:gap-5 sm:p-6 md:p-8">
       <div className="flex w-full min-w-0 shrink-0 flex-col gap-3 sm:gap-4">
         <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <p className="min-w-0 flex-1 text-balance font-heading text-xl font-semibold leading-snug tracking-tight sm:text-2xl md:text-3xl">
@@ -111,7 +111,7 @@ export function DashboardView() {
         <TransactionsFilterPanels {...panelsProps} />
       </div>
 
-      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-6 lg:grid-cols-2 lg:items-stretch lg:gap-8">
+      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch lg:gap-5">
         <MyAccountSection />
         <CategoryExpensePieChart
           totalExpenses={cashflow?.totalExpenses}
@@ -122,7 +122,7 @@ export function DashboardView() {
         />
       </div>
 
-      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-6 lg:grid-cols-2 lg:items-stretch lg:gap-8">
+      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch lg:gap-5">
         <CategoryExpenseBarChart />
         <AccountExpenseBarChart />
       </div>
