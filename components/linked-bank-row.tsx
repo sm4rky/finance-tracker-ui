@@ -159,6 +159,7 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] });
+      void queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] });
       toast.success("Transactions synced");
     },
     onError: (err: Error) => {

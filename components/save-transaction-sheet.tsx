@@ -252,6 +252,7 @@ export function SaveTransactionSheet({
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] });
+      await queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] });
       toast.success(mode === "create" ? "Transaction added." : "Transaction updated.");
       onOpenChange(false);
     },

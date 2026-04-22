@@ -38,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { TransactionResponse } from "@/interface/transaction";
+import { formatMoneyAbs, getTransactionCashFlow } from "@/lib/transaction-amount";
 import { cn } from "@/lib/utils";
 
 type PfcPrimaryMeta = {
@@ -51,8 +52,6 @@ type PaymentChannelMeta = {
   displayName: string;
   badgeClassName: string;
 };
-
-type TransactionCashFlow = "in" | "out" | "neutral";
 
 const PFC_PRIMARY_BY_CODE: Record<string, PfcPrimaryMeta> = {
   BANK_FEES: {
@@ -219,14 +218,6 @@ const PAYMENT_CHANNEL_META_BY_KEY: Record<string, PaymentChannelMeta> = {
   },
 };
 
-const PFC_MONEY_IN_CODES = new Set([
-  "INCOME",
-  "TRANSFER_IN",
-  "LOAN_DISBURSEMENTS",
-]);
-
-const PFC_MONEY_OUT_CODES = new Set(["TRANSFER_OUT", "LOAN_PAYMENTS"]);
-
 function SelectAllCheckbox<TData>({
   table,
 }: {
@@ -305,31 +296,6 @@ function formatTxDate(iso: string): string {
     month: "short",
     day: "numeric",
   });
-}
-
-function getTransactionCashFlow(
-  row: Pick<TransactionResponse, "amount" | "pfcPrimary">,
-): TransactionCashFlow {
-  if (row.amount === 0) return "neutral";
-
-  const code = row.pfcPrimary?.trim().toUpperCase();
-  if (code && PFC_MONEY_IN_CODES.has(code)) return "in";
-  if (code && PFC_MONEY_OUT_CODES.has(code)) return "out";
-
-  return row.amount < 0 ? "in" : "out";
-}
-
-function formatMoneyAbs(absAmount: number, currency?: string | null): string {
-  const code = currency?.toUpperCase() || "USD";
-
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency: code,
-    }).format(absAmount);
-  } catch {
-    return absAmount.toFixed(2);
-  }
 }
 
 function AmountCell({ row }: { row: TransactionResponse }) {

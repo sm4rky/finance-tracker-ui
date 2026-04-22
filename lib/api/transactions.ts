@@ -55,6 +55,27 @@ export async function queryTransactions(
   return (await res.json()) as PagedResponse<TransactionResponse>;
 }
 
+const RECENT_TRANSACTIONS_MAX_LIMIT = 100 as const;
+
+export async function fetchRecentTransactions(
+  limit: number = 5,
+): Promise<TransactionResponse[]> {
+  const capped = Math.min(
+    RECENT_TRANSACTIONS_MAX_LIMIT,
+    Math.max(1, Math.floor(limit)),
+  );
+  const res = await apiFetch(
+    `${BASE_URL}/recent?limit=${encodeURIComponent(String(capped))}`,
+    { method: "GET" },
+  );
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res));
+  }
+
+  return (await res.json()) as TransactionResponse[];
+}
+
 export async function createTransaction(
   body: SaveTransactionRequest,
 ): Promise<TransactionResponse> {

@@ -57,6 +57,7 @@ export function UpdateLinkedAccountsDialog({
   const invalidateLinkedData = async () => {
     await queryClient.invalidateQueries({ queryKey: ["list-plaid-connections"] });
     await queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] });
+    await queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] });
   };
 
   const linkTokenMutation = useMutation({

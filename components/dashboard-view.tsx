@@ -14,6 +14,7 @@ import {
 import { CategoryExpensePieChart } from "@/components/category-expense-pie-chart";
 import { MyAccountSection } from "@/components/my-account-section";
 import { NetWorthTrendChart } from "@/components/net-worth-trend-chart";
+import { RecentTransactionsSection } from "@/components/recent-transactions-section";
 import { AccountExpenseBarChart } from "@/components/account-expense-bar-chart";
 import { CategoryExpenseBarChart } from "@/components/category-expense-bar-chart";
 import type { TransactionsFilterState } from "@/interface/transaction";
@@ -112,7 +113,7 @@ export function DashboardView() {
         <TransactionsFilterPanels {...panelsProps} />
       </div>
 
-      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch lg:gap-5">
+      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-[20rem_1fr] lg:items-stretch lg:gap-5 [&>*]:min-w-0">
         <MyAccountSection />
         <CategoryExpensePieChart
           totalExpenses={cashflow?.totalExpenses}
@@ -123,13 +124,14 @@ export function DashboardView() {
         />
       </div>
 
-      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch lg:gap-5">
+      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch lg:gap-5 [&>*]:min-w-0">
         <CategoryExpenseBarChart />
         <AccountExpenseBarChart />
       </div>
 
-      <div className="w-full min-w-0 shrink-0">
+      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-[2fr_1fr] lg:items-stretch lg:gap-5 [&>*]:min-w-0">
         <NetWorthTrendChart />
+        <RecentTransactionsSection />
       </div>
     </div>
   );

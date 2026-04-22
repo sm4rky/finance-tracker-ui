@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { NetWorthTrendItem } from "@/interface/net-worth-trend";
 import { fetchNetWorthTrend } from "@/lib/api/analytics";
-import { useAuthStore } from "@/stores/auth-session";
 
 const NET_WORTH_LINE_COLOR = "#5071de";
 const NET_WORTH_AREA_TOP_COLOR = "rgba(80, 113, 222, 0.38)";
@@ -188,12 +187,9 @@ function buildChartOption(
 }
 
 export function NetWorthTrendChart() {
-  const accessToken = useAuthStore((s) => s.accessToken);
-
   const historyQuery = useQuery({
     queryKey: ["analytics-net-worth-trend"],
     queryFn: () => fetchNetWorthTrend(),
-    enabled: Boolean(accessToken),
   });
 
   const { isPending, isError, error, data } = historyQuery;
@@ -232,11 +228,7 @@ export function NetWorthTrendChart() {
       </header>
 
       <div className="relative flex min-h-0 flex-1 flex-col px-2 pb-2 sm:px-3 sm:pb-3">
-        {!accessToken ? (
-          <p className="flex min-h-52 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-56 md:min-h-60">
-            Sign in to see net worth history.
-          </p>
-        ) : isPending ? (
+        {isPending ? (
           <Skeleton className="mx-auto min-h-52 w-full flex-1 rounded-lg sm:min-h-56 md:min-h-60" />
         ) : isError ? (
           <p className="flex min-h-52 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-destructive sm:min-h-56 md:min-h-60">

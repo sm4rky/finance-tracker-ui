@@ -47,6 +47,9 @@ export function DeleteTransactionsDialog({
       await queryClient.invalidateQueries({
         queryKey: ["query-transaction-list"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["get-recent-transactions"],
+      });
 
       toast.success(
         deletedCount === 1

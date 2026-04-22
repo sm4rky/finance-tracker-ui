@@ -62,6 +62,9 @@ export function LinkBankDialog({
       queryKey: ["query-transaction-list"],
     });
     await queryClient.invalidateQueries({
+      queryKey: ["get-recent-transactions"],
+    });
+    await queryClient.invalidateQueries({
       queryKey: ["list-plaid-connections"],
     });
   };

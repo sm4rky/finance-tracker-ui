@@ -82,6 +82,7 @@ export function TransactionsSyncMenu({
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] });
+      void queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] });
       setOpen(false);
       toast.success("Transactions synced");
     },

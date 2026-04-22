@@ -55,6 +55,9 @@ export function RelinkInstitutionDialog({
     await queryClient.invalidateQueries({
       queryKey: ["query-transaction-list"],
     });
+    await queryClient.invalidateQueries({
+      queryKey: ["get-recent-transactions"],
+    });
   };
 
   const linkTokenMutation = useMutation({
