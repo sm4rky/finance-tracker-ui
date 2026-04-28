@@ -80,9 +80,23 @@ export function TransactionsSyncMenu({
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ["list-plaid-connections"] });
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] });
-      void queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] }),
+        queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["analytics-cashflow"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["analytics-pfc-expense-distribution"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["analytics-stacked-expense-pfc-primary"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["analytics-grouped-expense-by-account"],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["analytics-net-worth"] }),
+        queryClient.invalidateQueries({ queryKey: ["analytics-net-worth-trend"] }),
+      ]);
       setOpen(false);
       toast.success("Transactions synced");
     },
