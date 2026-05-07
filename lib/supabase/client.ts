@@ -36,17 +36,6 @@ export function createClient(): SupabaseClient {
 }
 
 export async function signInWithGoogle(options?: { next?: string }) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) {
-    return {
-      data: { provider: "google" as const, url: null },
-      error: new Error(
-        "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.",
-      ),
-    };
-  }
-
   const supabase = createClient();
   const next = options?.next ?? "/dashboard";
   const redirectTo = `${oauthRedirectBase(window.location.origin)}?next=${encodeURIComponent(next)}`;
@@ -54,5 +43,13 @@ export async function signInWithGoogle(options?: { next?: string }) {
   return supabase.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo },
+  });
+}
+
+export async function signInWithEmailPassword(email: string, password: string) {
+  const supabase = createClient();
+  return supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
   });
 }

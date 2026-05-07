@@ -2,16 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
 
 import { GoogleIcon } from "@/components/google-icon";
 import { MobileBrand } from "@/components/mobile-brand";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
   FieldContent,
@@ -21,9 +20,11 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { type LoginFormValues, loginSchema } from "@/schema/login.schema";
-import { signInWithGoogle } from "@/lib/supabase/client";
+import {
+  signInWithEmailPassword,
+  signInWithGoogle,
+} from "@/lib/supabase/client";
 
 function oauthReturnPath(nextParam: string | null): string {
   if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
@@ -33,43 +34,72 @@ function oauthReturnPath(nextParam: string | null): string {
 }
 
 export function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
+  const [credentialsError, setCredentialsError] = useState<string | null>(
+    null,
+  );
   const oauthError = searchParams.get("error") === "oauth";
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
-      remember: false,
     },
   });
 
   const { control, handleSubmit, formState } = form;
 
-  function onSubmit(_data: LoginFormValues) {
-    // Wire Supabase / API next
+  async function handleSignInWithEmail(data: LoginFormValues) {
+    setCredentialsError(null);
+    try {
+      const { error } = await signInWithEmailPassword(
+        data.email,
+        data.password,
+      );
+      if (error) {
+        const msg =
+          error.message === "Invalid login credentials"
+            ? "Invalid email or password."
+            : error.message;
+        setCredentialsError(msg);
+        return;
+      }
+      router.push(oauthReturnPath(searchParams.get("next")));
+      router.refresh();
+    } catch (e) {
+      setCredentialsError(
+        e instanceof Error ? e.message : "Could not sign in.",
+      );
+    }
   }
 
   async function handleContinueWithGoogle() {
     setGoogleError(null);
     setGoogleLoading(true);
-    const { data, error } = await signInWithGoogle({
-      next: oauthReturnPath(searchParams.get("next")),
-    });
-    if (error) {
-      setGoogleError(error.message);
+    try {
+      const { data, error } = await signInWithGoogle({
+        next: oauthReturnPath(searchParams.get("next")),
+      });
+      if (error) {
+        setGoogleError(error.message);
+        return;
+      }
+      if (data?.url) {
+        window.location.assign(data.url);
+        return;
+      }
+    } catch (e) {
+      setGoogleError(
+        e instanceof Error ? e.message : "Could not start Google sign-in.",
+      );
+    } finally {
       setGoogleLoading(false);
-      return;
     }
-    if (data?.url) {
-      window.location.assign(data.url);
-      return;
-    }
-    setGoogleLoading(false);
   }
 
   return (
@@ -95,32 +125,41 @@ export function LoginForm() {
                 {googleError}
               </p>
             ) : null}
+            {credentialsError ? (
+              <p className="mb-4 text-sm text-destructive" role="alert">
+                {credentialsError}
+              </p>
+            ) : null}
             <form
               className="space-y-4"
               noValidate
-              onSubmit={handleSubmit(onSubmit)}
+              onSubmit={handleSubmit(handleSignInWithEmail)}
             >
               <FieldGroup className="gap-4">
                 <Controller
-                  name="username"
+                  name="email"
                   control={control}
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid ? true : undefined}>
-                      <FieldLabel htmlFor="login-username">Username</FieldLabel>
+                      <FieldLabel htmlFor="login-email">Email</FieldLabel>
                       <FieldContent>
                         <div className="relative">
-                          <User
+                          <Mail
                             className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                             aria-hidden
                           />
                           <Input
                             {...field}
-                            id="login-username"
-                            type="text"
-                            autoComplete="username"
-                            placeholder="e.g. janedoe or blue_whale"
+                            id="login-email"
+                            type="email"
+                            autoComplete="email"
+                            placeholder="you@example.com"
                             className="h-10 pl-9"
                             aria-invalid={fieldState.invalid}
+                            onChange={(e) => {
+                              setCredentialsError(null);
+                              field.onChange(e);
+                            }}
                           />
                         </div>
                       </FieldContent>
@@ -149,6 +188,10 @@ export function LoginForm() {
                             placeholder="••••••••"
                             className="h-10 pr-10 pl-9"
                             aria-invalid={fieldState.invalid}
+                            onChange={(e) => {
+                              setCredentialsError(null);
+                              field.onChange(e);
+                            }}
                           />
                           <Button
                             type="button"
@@ -175,23 +218,7 @@ export function LoginForm() {
                 />
               </FieldGroup>
 
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Controller
-                  name="remember"
-                  control={control}
-                  render={({ field }) => (
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="login-remember"
-                        checked={field.value ?? false}
-                        onCheckedChange={(v) => field.onChange(v === true)}
-                      />
-                      <Label htmlFor="login-remember" className="font-normal">
-                        Remember me
-                      </Label>
-                    </div>
-                  )}
-                />
+              <div className="flex justify-end">
                 <Link
                   href="/forgot-password"
                   className="text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
