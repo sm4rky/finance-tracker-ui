@@ -4,7 +4,9 @@ import { UserRound } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { TabsContent } from "@/components/ui/tabs";
+import { ProfileUsernameSection } from "@/components/profile-username-section";
 import { useAuthStore } from "@/stores/auth-session";
 
 export function ProfileSettingsTab() {
@@ -43,6 +45,10 @@ export function ProfileSettingsTab() {
           />
         </div>
       </div>
+
+      <Separator className="my-6 sm:my-8" />
+
+      <ProfileUsernameSection />
     </TabsContent>
   );
 }

@@ -12,4 +12,14 @@ export async function ensureUserProfile(): Promise<UserProfile> {
   return (await res.json()) as UserProfile;
 }
 
+export async function setProfileUsername(username: string): Promise<UserProfile> {
+  const res = await apiFetch(`${BASE_URL}/username`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username }),
+  });
+  if (!res.ok) throw new Error(await parseApiErrorMessage(res));
+  return (await res.json()) as UserProfile;
+}
+
 export const ensureUser = ensureUserProfile;
