@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { TabsContent } from "@/components/ui/tabs";
 import { ProfileUsernameSection } from "@/components/profile-username-section";
 import { useAuthStore } from "@/stores/auth-session";
+import { ProfilePasswordSection } from "./profile-password-section";
 
 export function ProfileSettingsTab() {
   const user = useAuthStore((s) => s.user);
@@ -49,6 +50,10 @@ export function ProfileSettingsTab() {
       <Separator className="my-6 sm:my-8" />
 
       <ProfileUsernameSection />
+
+      <Separator className="my-6 sm:my-8" />
+
+      <ProfilePasswordSection />
     </TabsContent>
   );
 }

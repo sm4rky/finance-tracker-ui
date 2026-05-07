@@ -22,4 +22,12 @@ export async function setProfileUsername(username: string): Promise<UserProfile>
   return (await res.json()) as UserProfile;
 }
 
+export async function markPasswordLoginEnabled(): Promise<UserProfile> {
+  const res = await apiFetch(`${BASE_URL}/password-login-enabled`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(await parseApiErrorMessage(res));
+  return (await res.json()) as UserProfile;
+}
+
 export const ensureUser = ensureUserProfile;
