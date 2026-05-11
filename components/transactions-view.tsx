@@ -24,8 +24,8 @@ import { DeleteTransactionsDialog } from "@/components/delete-transactions-dialo
 import { SaveTransactionSheet } from "@/components/save-transaction-sheet";
 import { TransactionsSyncMenu } from "@/components/transactions-sync-menu";
 import { DataTable } from "@/components/table";
+import { TransactionsMobileList } from "@/components/transactions-mobile-list";
 import { Button } from "@/components/ui/button";
-import type { LinkedBankResponse } from "@/interface/plaid";
 import type {
   QueryTransactionsRequest,
   TransactionResponse,
@@ -34,6 +34,7 @@ import type {
 } from "@/interface/transaction";
 import { listPlaidConnections } from "@/lib/api/plaid";
 import { queryTransactions } from "@/lib/api/transactions";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useTransactionsFilterStore } from "@/stores/transactions-filter";
 
 /** Backend accepts at most 100 ids per request after deduplication. */
@@ -72,6 +73,7 @@ function applyTableUpdater<T>(updater: Updater<T>, previous: T): T {
 }
 
 export function TransactionsView() {
+  const isMobile = useIsMobile();
   const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(false);
 
   useEffect(() => {
@@ -203,7 +205,7 @@ export function TransactionsView() {
     [openDeleteDialogForIds],
   );
 
-  const accountLabelById = useMemo(() => {
+  const accountLabelMap = useMemo(() => {
     const labels = new Map<string, string>();
 
     for (const bank of allBanks) {
@@ -225,11 +227,11 @@ export function TransactionsView() {
 
   const columns = useMemo(
     () =>
-      createTransactionColumns(accountLabelById, {
+      createTransactionColumns(accountLabelMap, {
         onEdit: openEditTransaction,
         onDelete: openSingleDeleteDialog,
       }),
-    [accountLabelById, openEditTransaction, openSingleDeleteDialog],
+    [accountLabelMap, openEditTransaction, openSingleDeleteDialog],
   );
 
   const transactionsQuery = useQuery({
@@ -341,6 +343,22 @@ export function TransactionsView() {
           }
           footerPagination
           totalRows={totalRows}
+          useMobileLayout={isMobile}
+          renderMobileView={(table) => (
+            <TransactionsMobileList
+              table={table}
+              data={transactions}
+              accountLabelMap={accountLabelMap}
+              isLoading={!isFilterStoreHydrated || transactionsQuery.isPending}
+              emptyMessage={
+                transactionsQuery.isError
+                  ? "Could not load transactions."
+                  : "No transactions yet."
+              }
+              onEdit={openEditTransaction}
+              onDelete={openSingleDeleteDialog}
+            />
+          )}
         />
       </div>
     </div>

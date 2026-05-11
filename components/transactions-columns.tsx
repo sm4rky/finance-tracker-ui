@@ -231,21 +231,21 @@ function SelectAllCheckbox<TData>({
       checked={allSelected}
       indeterminate={someSelected && !allSelected}
       onCheckedChange={(checked) => table.toggleAllPageRowsSelected(!!checked)}
-      aria-label="Select all on this page"
+      aria-label="Select all"
     />
   );
 }
 
-function getPfcPrimaryMeta(code: string | null | undefined): PfcPrimaryMeta {
+export function getPfcPrimaryMeta(code: string | null | undefined): PfcPrimaryMeta {
   const normalized = code?.trim().toUpperCase();
   return normalized ? PFC_PRIMARY_BY_CODE[normalized] ?? PFC_PRIMARY_FALLBACK : PFC_PRIMARY_FALLBACK;
 }
 
-function getMerchantLabel(row: TransactionResponse): string {
+export function getMerchantLabel(row: TransactionResponse): string {
   return row.merchantName?.trim() || row.name?.trim() || "—";
 }
 
-function MerchantCell({ row }: { row: TransactionResponse }) {
+export function MerchantCell({ row }: { row: TransactionResponse }) {
   const [imgFailed, setImgFailed] = useState(false);
 
   const meta = getPfcPrimaryMeta(row.pfcPrimary);
@@ -282,12 +282,12 @@ function MerchantCell({ row }: { row: TransactionResponse }) {
   );
 }
 
-function formatDetailCategory(raw: string | null | undefined): string {
+export function formatDetailCategory(raw: string | null | undefined): string {
   const trimmed = raw?.trim();
   return trimmed ? trimmed.replace(/_/g, " ") : "—";
 }
 
-function formatTxDate(iso: string): string {
+export function formatTxDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
 
@@ -298,7 +298,7 @@ function formatTxDate(iso: string): string {
   });
 }
 
-function AmountCell({ row }: { row: TransactionResponse }) {
+export function AmountCell({ row }: { row: TransactionResponse }) {
   const flow = getTransactionCashFlow(row);
   const formatted = formatMoneyAbs(Math.abs(row.amount), row.isoCurrencyCode);
 
@@ -325,7 +325,7 @@ function AmountCell({ row }: { row: TransactionResponse }) {
   );
 }
 
-function getPaymentChannelMeta(
+export function getPaymentChannelMeta(
   raw: string | null | undefined,
 ): PaymentChannelMeta {
   const trimmed = raw?.trim();
@@ -347,7 +347,7 @@ function getPaymentChannelMeta(
   );
 }
 
-function TransactionRowActions({
+export function TransactionRowActions({
   row,
   onEdit,
   onDelete,

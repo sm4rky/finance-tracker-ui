@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -10,6 +11,7 @@ import {
   type PaginationState,
   type RowSelectionState,
   type SortingState,
+  type Table as TanStackTable,
 } from "@tanstack/react-table";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,7 +30,6 @@ export type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   getRowId?: (row: TData) => string;
-  /** Total page count from the API (`ceil(total / pageSize)`). */
   pageCount: number;
   pagination: PaginationState;
   onPaginationChange: OnChangeFn<PaginationState>;
@@ -41,11 +42,12 @@ export type DataTableProps<TData, TValue> = {
   isLoading?: boolean;
   emptyMessage?: string;
   className?: string;
-  /** Renders `DataTablePagination` below the table (same TanStack instance). */
   footerPagination?: boolean;
   totalRows?: number;
   rowSelection?: RowSelectionState;
   onRowSelectionChange?: OnChangeFn<RowSelectionState>;
+  useMobileLayout?: boolean;
+  renderMobileView?: (table: TanStackTable<TData>) => ReactNode;
 };
 
 export function DataTable<TData, TValue>({
@@ -68,6 +70,8 @@ export function DataTable<TData, TValue>({
   totalRows,
   rowSelection,
   onRowSelectionChange,
+  useMobileLayout,
+  renderMobileView,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -159,13 +163,18 @@ export function DataTable<TData, TValue>({
     </div>
   );
 
+  const content =
+    useMobileLayout && renderMobileView
+      ? renderMobileView(table)
+      : tableShell;
+
   if (!footerPagination) {
-    return tableShell;
+    return content;
   }
 
   return (
     <div className="flex flex-col gap-4">
-      {tableShell}
+      {content}
       <DataTablePagination table={table} totalRows={totalRows} />
     </div>
   );
