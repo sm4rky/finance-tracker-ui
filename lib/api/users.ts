@@ -31,7 +31,7 @@ export async function markPasswordLoginEnabled(): Promise<UserProfile> {
 }
 
 export async function updateProfileAvatar(
-  avatarUrl: string,
+  avatarUrl: string | null,
 ): Promise<UserProfile> {
   const res = await apiFetch(`${BASE_URL}/avatar`, {
     method: "POST",

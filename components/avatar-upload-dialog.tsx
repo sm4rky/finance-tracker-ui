@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import imageCompression from "browser-image-compression";
-import { ImageUp, Loader2, ZoomIn, ZoomOut } from "lucide-react";
+import { ImageUp, Loader2, Trash2, ZoomIn, ZoomOut } from "lucide-react";
 import { toast } from "sonner";
 
+import { DeleteProfileAvatarDialog } from "@/components/delete-profile-avatar-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -152,6 +153,8 @@ export function AvatarUploadDialog({
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.userProfile);
+  const hasStoredAvatar = Boolean(profile?.avatarUrl?.trim());
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -160,6 +163,8 @@ export function AvatarUploadDialog({
     null,
   );
   const [saving, setSaving] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const revokeSrc = useCallback(() => {
     if (imageSrc?.startsWith("blob:")) {
@@ -178,6 +183,8 @@ export function AvatarUploadDialog({
   useEffect(() => {
     if (!open) {
       resetState();
+      setDeleteConfirmOpen(false);
+      setIsDeleting(false);
     }
   }, [open, resetState]);
 
@@ -240,132 +247,166 @@ export function AvatarUploadDialog({
   ]);
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (saving && !next) return;
-        onOpenChange(next);
-      }}
-    >
-      <DialogContent
-        className="max-w-lg gap-0 overflow-hidden p-0 sm:max-w-lg"
-        showCloseButton={!saving}
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if ((saving || isDeleting) && !next) return;
+          onOpenChange(next);
+        }}
       >
-        <DialogHeader className="space-y-1 px-6 pt-6 pb-2 text-left">
-          <DialogTitle className="text-base leading-tight">
-            Update profile photo
-          </DialogTitle>
-          <DialogDescription className="text-sm leading-snug">
-            Pick a photo and position it the way you want before saving.
-          </DialogDescription>
-        </DialogHeader>
+        <DialogContent
+          className="max-w-lg gap-0 overflow-hidden p-0 sm:max-w-lg"
+          showCloseButton={!saving && !isDeleting}
+        >
+          <DialogHeader className="space-y-1 px-6 pt-6 pb-2 text-left">
+            <DialogTitle className="text-base leading-tight">
+              Update profile photo
+            </DialogTitle>
+            <DialogDescription className="text-sm leading-snug">
+              Pick a photo and position it the way you want before saving.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="px-6 py-4">
-          {!imageSrc ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-8">
-              <input
-                ref={fileInputRef}
-                id={inputId}
-                type="file"
-                accept={fileInputAccept}
-                className="sr-only"
-                onChange={onPickFile}
-              />
+          <div className="px-6 py-4">
+            {!imageSrc ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-8">
+                <input
+                  ref={fileInputRef}
+                  id={inputId}
+                  type="file"
+                  accept={fileInputAccept}
+                  className="sr-only"
+                  onChange={onPickFile}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!user}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Choose image
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="relative aspect-square w-full max-h-[min(70vw,22rem)] overflow-hidden rounded-lg bg-muted">
+                  <Cropper
+                    image={imageSrc}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={1}
+                    cropShape="rect"
+                    showGrid={false}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={onCropComplete}
+                  />
+                </div>
+                <div className="flex items-center gap-3 px-0.5">
+                  <ZoomOut
+                    className="size-5 shrink-0 text-muted-foreground"
+                    aria-hidden
+                  />
+                  <Slider
+                    id={`${inputId}-zoom`}
+                    className="min-w-0 flex-1 py-2"
+                    min={1}
+                    max={3}
+                    step={0.01}
+                    value={zoom}
+                    onValueChange={(v) =>
+                      setZoom(typeof v === "number" ? v : v[0])
+                    }
+                    aria-label="Zoom"
+                  />
+                  <ZoomIn
+                    className="size-5 shrink-0 text-muted-foreground"
+                    aria-hidden
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="self-start text-muted-foreground"
+                  onClick={() => {
+                    resetState();
+                    requestAnimationFrame(() =>
+                      fileInputRef.current?.click(),
+                    );
+                  }}
+                >
+                  Choose different image
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="mx-0 mb-0 flex-col gap-2 rounded-none px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              {hasStoredAvatar ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                disabled={!user || saving || isDeleting}
+                onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  <Trash2 className="size-4 shrink-0" aria-hidden />
+                  Remove photo
+                </Button>
+              ) : null}
+            </div>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
-                disabled={!user}
-                onClick={() => fileInputRef.current?.click()}
+                disabled={saving || isDeleting}
+                onClick={() => onOpenChange(false)}
               >
-                Choose image
+                Cancel
               </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <div className="relative aspect-square w-full max-h-[min(70vw,22rem)] overflow-hidden rounded-lg bg-muted">
-                <Cropper
-                  image={imageSrc}
-                  crop={crop}
-                  zoom={zoom}
-                  aspect={1}
-                  cropShape="rect"
-                  showGrid={false}
-                  onCropChange={setCrop}
-                  onZoomChange={setZoom}
-                  onCropComplete={onCropComplete}
-                />
-              </div>
-              <div className="flex items-center gap-3 px-0.5">
-                <ZoomOut
-                  className="size-5 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-                <Slider
-                  id={`${inputId}-zoom`}
-                  className="min-w-0 flex-1 py-2"
-                  min={1}
-                  max={3}
-                  step={0.01}
-                  value={zoom}
-                  onValueChange={(v) =>
-                    setZoom(typeof v === "number" ? v : v[0])
-                  }
-                  aria-label="Zoom"
-                />
-                <ZoomIn
-                  className="size-5 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-              </div>
               <Button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="self-start text-muted-foreground"
-                onClick={() => {
-                  resetState();
-                  requestAnimationFrame(() =>
-                    fileInputRef.current?.click(),
-                  );
-                }}
+                className="gap-2"
+                disabled={
+                saving ||
+                isDeleting ||
+                  !imageSrc ||
+                  !croppedAreaPixels ||
+                  !user?.id
+                }
+                onClick={() => void handleSave()}
               >
-                Choose different image
+                {saving ? (
+                  <>
+                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <ImageUp className="size-4 shrink-0" aria-hidden />
+                    Save
+                  </>
+                )}
               </Button>
             </div>
-          )}
-        </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        <DialogFooter className="mx-0 mb-0 gap-2 rounded-none px-6 py-4 sm:justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={saving}
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            className="gap-2"
-            disabled={
-              saving || !imageSrc || !croppedAreaPixels || !user?.id
-            }
-            onClick={() => void handleSave()}
-          >
-            {saving ? (
-              <>
-                <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-                Saving…
-              </>
-            ) : (
-              <>
-                <ImageUp className="size-4 shrink-0" aria-hidden />
-                Save
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <DeleteProfileAvatarDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        userId={user?.id ?? null}
+        avatarUrl={profile?.avatarUrl?.trim() ?? null}
+        onDeletingChange={setIsDeleting}
+        onDeleted={(nextProfile) => {
+          onUploaded?.(nextProfile);
+          onOpenChange(false);
+        }}
+      />
+    </>
   );
 }

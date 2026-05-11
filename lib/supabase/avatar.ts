@@ -33,6 +33,22 @@ export async function uploadAvatarObject(
   return path;
 }
 
+export async function removeAvatarObject(avatarStoragePath: string): Promise<void> {
+  const trimmed = avatarStoragePath.trim();
+  if (
+    !trimmed ||
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://")
+  ) {
+    return;
+  }
+  const supabase = createClient();
+  const { error } = await supabase.storage
+    .from(SUPABASE_AVATARS_BUCKET)
+    .remove([trimmed]);
+  if (error) throw error;
+}
+
 export function getStoredAvatarUrl(
   avatarStoragePath: string | null | undefined,
 ): string {
