@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Camera, Crown } from "lucide-react";
 
+import { AvatarUploadDialog } from "@/components/avatar-upload-dialog";
 import {
   Avatar,
   AvatarFallback,
@@ -16,6 +17,7 @@ import { ProfileAccountsTab } from "@/components/profile-accounts-tab";
 import { ProfilePlanBillingTab } from "@/components/profile-plan-billing-tab";
 import { ProfileSettingsTab } from "@/components/profile-settings-tab";
 import { cn } from "@/lib/utils";
+import { getStoredAvatarUrl } from "@/lib/supabase/avatar";
 import { useAuthStore } from "@/stores/auth-session";
 
 const PLAN_LABELS: Record<string, string> = {
@@ -48,10 +50,11 @@ export function ProfileView() {
   const profile = useAuthStore((s) => s.userProfile);
 
   const [tabValue, setTabValue] = useState(PROFILE_DEFAULT_SECTION);
+  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
 
   const email = user?.email ?? "";
   const displayName = profile?.fullName?.trim() || "Account";
-  const avatarUrl = profile?.avatarUrl ?? "";
+  const avatarUrl = getStoredAvatarUrl(profile?.avatarUrl);
   const avatarFallback = profile?.fullName?.[0] ?? "0";
 
   const planKey = profile?.plan?.trim().toLowerCase() ?? "";
@@ -118,6 +121,7 @@ export function ProfileView() {
                 variant="secondary"
                 className="absolute -right-1 -bottom-1 size-8 rounded-full shadow-md"
                 aria-label="Update profile photo"
+                onClick={() => setAvatarDialogOpen(true)}
               >
                 <Camera className="size-3.5" />
               </Button>
@@ -169,6 +173,11 @@ export function ProfileView() {
           <ProfilePlanBillingTab />
           <ProfileAccountsTab active={isAccountsTabActive} />
         </Tabs>
+
+        <AvatarUploadDialog
+          open={avatarDialogOpen}
+          onOpenChange={setAvatarDialogOpen}
+        />
       </div>
     </div>
   );

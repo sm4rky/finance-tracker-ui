@@ -21,6 +21,7 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Switch } from "@/components/ui/switch";
 import { createClient } from "@/lib/supabase/client";
+import { getStoredAvatarUrl } from "@/lib/supabase/avatar";
 import { useAuthStore } from "@/stores/auth-session";
 import { useUserPreferenceStore } from "@/stores/user-preference";
 
@@ -62,6 +63,7 @@ export function AppInsetHeader() {
 
   const email = user?.email ?? "";
   const displayLine = profile?.fullName?.trim() || "Account";
+  const avatarUrl = getStoredAvatarUrl(profile?.avatarUrl);
   const colorMode = useUserPreferenceStore((s) => s.theme);
   const setThemeColorMode = useUserPreferenceStore((s) => s.setThemeColorMode);
 
@@ -100,7 +102,7 @@ export function AppInsetHeader() {
       <DropdownMenu>
         <DropdownMenuTrigger className="shrink-0 rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
           <Avatar>
-            <AvatarImage src={profile?.avatarUrl ?? ""} alt="" />
+            <AvatarImage src={avatarUrl} alt="" />
             <AvatarFallback>
               {profile?.fullName?.[0] ?? "0"}
             </AvatarFallback>
@@ -113,7 +115,7 @@ export function AppInsetHeader() {
                 <Avatar
                   className="pointer-events-none shrink-0"
                 >
-                  <AvatarImage src={profile?.avatarUrl ?? ""} alt="" />
+                  <AvatarImage src={avatarUrl} alt="" />
                   <AvatarFallback>
                     {profile?.fullName?.[0] ?? "0"}
                   </AvatarFallback>
