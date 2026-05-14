@@ -83,7 +83,8 @@ export function RecurringCashflowsFilterForm({
   const allAccountIds = useMemo(() => getAllAccountIds(banks), [banks]);
   const selectedAccountIds =
     filter.accountIds === undefined ? allAccountIds : filter.accountIds;
-  const selectedCategoryCodes = filter.pfcPrimaryList ?? [];
+  const selectedCategoryCodes =
+    filter.pfcPrimaryList ?? [...PFC_PRIMARY_CATEGORY_CODES];
   const selectedStatuses = filter.statusList ?? [...RECURRING_CASHFLOW_STATUS_FILTER_IDS];
 
   const filteredCategoryCodes = useMemo(() => {

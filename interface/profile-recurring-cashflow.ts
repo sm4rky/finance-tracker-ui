@@ -46,6 +46,21 @@ export interface ProfileRecurringCashflowResponse {
   updatedAt?: string;
 }
 
+export interface ProfileRecurringCashflowCalendarOccurrenceResponse {
+  date: string;
+  amount: number;
+  merchantName?: string | null;
+  description?: string | null;
+  pfcPrimary?: string | null;
+  pfcDetailed?: string | null;
+  linkedBankAccountId?: string | null;
+  recurringCashflowId: string;
+  frequency: string;
+  direction: string;
+  status: string;
+  linkedBankAccount?: RecurringCashflowLinkedBankAccountResponse | null;
+}
+
 export interface RecurringCashflowLinkedBankAccountResponse {
   id: string;
   name: string;

@@ -21,7 +21,7 @@ export function ProfileAccountsTab({ active }: ProfileAccountsTabProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const {
-    data: connections = [],
+    data: plaidConnections = [],
     isPending,
     isError,
     error,
@@ -76,13 +76,13 @@ export function ProfileAccountsTab({ active }: ProfileAccountsTabProps) {
         </div>
       ) : errorMessage ? (
         <p className="text-sm text-destructive">{errorMessage}</p>
-      ) : connections.length === 0 ? (
+      ) : plaidConnections.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No linked accounts yet. Use Link Bank to connect a bank.
         </p>
       ) : (
         <Accordion type="multiple" className="flex flex-col gap-3">
-          {connections.map((bank) => (
+          {plaidConnections.map((bank) => (
             <LinkedBankRow key={bank.id} bank={bank} />
           ))}
         </Accordion>

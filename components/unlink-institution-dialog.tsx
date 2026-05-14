@@ -44,6 +44,8 @@ export function UnlinkInstitutionDialog({
       await queryClient.invalidateQueries({ queryKey: ["list-plaid-connections"] });
       await queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] });
       await queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] });
+      await queryClient.invalidateQueries({ queryKey: ["profile-recurring-cashflows"] });
+      await queryClient.invalidateQueries({ queryKey: ["profile-recurring-calendar-cashflows"] });
       toast.success(
         data.transactionsRemoved > 0
           ? `Institution unlinked. ${data.transactionsRemoved} transaction(s) removed.`

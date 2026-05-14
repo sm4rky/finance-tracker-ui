@@ -1,4 +1,5 @@
 import type {
+  ProfileRecurringCashflowCalendarOccurrenceResponse,
   ProfileRecurringCashflowResponse,
   SaveProfileRecurringCashflowRequest,
 } from "@/interface/profile-recurring-cashflow";
@@ -29,6 +30,29 @@ export async function listProfileRecurringCashflows(): Promise<
     return (json as { items: ProfileRecurringCashflowResponse[] }).items;
   }
   return [];
+}
+
+export async function listProfileRecurringCashflowsCalendar(request: {
+  dateFrom: string;
+  dateTo: string;
+}): Promise<ProfileRecurringCashflowCalendarOccurrenceResponse[]> {
+  const params = new URLSearchParams();
+  if (request.dateFrom?.trim()) params.set("dateFrom", request.dateFrom.trim());
+  if (request.dateTo?.trim()) params.set("dateTo", request.dateTo.trim());
+  const qs = params.toString();
+  const res = await apiFetch(`${BASE_URL}/calendar${qs ? `?${qs}` : ""}`, {
+    method: "GET",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res));
+  }
+
+  const json: unknown = await res.json();
+  if (!Array.isArray(json)) {
+    return [];
+  }
+  return json as ProfileRecurringCashflowCalendarOccurrenceResponse[];
 }
 
 export async function getProfileRecurringCashflow(

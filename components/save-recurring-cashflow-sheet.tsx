@@ -198,8 +198,8 @@ export function SaveRecurringCashflowSheet({
     const orphanId = recurring
       ? linkedBankAccountIdFromRecurring(recurring)
       : null;
-    if (orphanId && !seen.has(orphanId)) {
-      const nested = recurring?.linkedBankAccount;
+    if (orphanId && recurring && !seen.has(orphanId)) {
+      const nested = recurring.linkedBankAccount ?? null;
       const label =
         nested != null
           ? linkedBankAccountSelectLabel(nested)
@@ -238,6 +238,9 @@ export function SaveRecurringCashflowSheet({
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ["profile-recurring-cashflows"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["profile-recurring-calendar-cashflows"],
       });
       toast.success(
         mode === "create"

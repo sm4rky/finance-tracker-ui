@@ -111,13 +111,13 @@ export function MyAccountSection() {
     enabled: Boolean(accessToken),
   });
 
-  const { data: connections, isPending: isConnectionsPending } = useQuery({
+  const { data: plaidConnections, isPending: isConnectionsPending } = useQuery({
     queryKey: ["list-plaid-connections"],
     queryFn: listPlaidConnections,
     enabled: Boolean(accessToken),
   });
 
-  const banks = connections ?? [];
+  const banks = plaidConnections ?? [];
 
   const netWorthDisplay = netWorth?.netWorth ?? 0;
   const assetsDisplay = netWorth?.totalAssets ?? 0;

@@ -3,7 +3,6 @@
 import {
   useCallback,
   useEffect,
-  useRef,
   useState,
   type Dispatch,
   type SetStateAction,
@@ -22,6 +21,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { LinkedBankResponse } from "@/interface/plaid";
 import {
   RECURRING_CASHFLOW_STATUS_FILTER_IDS,
+  type ProfileRecurringCashflowCalendarOccurrenceResponse,
   type ProfileRecurringCashflowResponse,
   type RecurringCashflowsFilterState,
 } from "@/interface/profile-recurring-cashflow";
@@ -33,6 +33,54 @@ import {
   PFC_PRIMARY_CATEGORY_CODES,
   PFC_PRIMARY_UNCATEGORIZED_FILTER_CODE,
 } from "@/components/transactions-filter";
+
+function isRecurringPayloadRecord(v: unknown): v is Record<string, unknown> {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+
+function coalesceTrimmedString(...vals: unknown[]): string | null {
+  for (const v of vals) {
+    if (v === null || v === undefined) continue;
+    if (typeof v === "string") {
+      const t = v.trim();
+      if (t) return t;
+    }
+    if (typeof v === "number" && Number.isFinite(v)) {
+      const t = String(v).trim();
+      if (t) return t;
+    }
+  }
+  return null;
+}
+
+function readRecurringLinkedBankAccountId(record: unknown): string | null {
+  if (!isRecurringPayloadRecord(record)) return null;
+  const direct = coalesceTrimmedString(
+    record.linkedBankAccountId,
+    record.linked_bank_account_id,
+  );
+  if (direct) return direct;
+
+  const nested =
+    record.linkedBankAccount ?? record.linked_bank_account ?? null;
+  if (!isRecurringPayloadRecord(nested)) return null;
+
+  return coalesceTrimmedString(
+    nested.id,
+    nested.accountId,
+    nested.account_id,
+  );
+}
+
+function readRecurringPfcPrimary(record: unknown): string | null {
+  if (!isRecurringPayloadRecord(record)) return null;
+  return coalesceTrimmedString(record.pfcPrimary, record.pfc_primary);
+}
+
+function readRecurringStatus(record: unknown): string | null {
+  if (!isRecurringPayloadRecord(record)) return null;
+  return coalesceTrimmedString(record.status, record.recurring_status);
+}
 
 export function getDefaultRecurringCashflowsFilter(): RecurringCashflowsFilterState {
   return {
@@ -58,20 +106,17 @@ export function sanitizeRecurringCashflowsFilter(
         : []
       : filter.accountIds.filter((id) => validAccountIds.has(id));
 
-  let pfcPrimaryList = (filter.pfcPrimaryList ?? []).filter((code) =>
-    validCategoryCodes.has(code),
-  );
-  let statusList = (filter.statusList ?? []).filter((s) =>
-    validStatuses.has(s),
-  );
+  const pfcPrimaryList = (
+    filter.pfcPrimaryList === undefined
+      ? [...PFC_PRIMARY_CATEGORY_CODES]
+      : [...filter.pfcPrimaryList]
+  ).filter((code) => validCategoryCodes.has(code));
 
-  if (pfcPrimaryList.length === 0) {
-    pfcPrimaryList = [...PFC_PRIMARY_CATEGORY_CODES];
-  }
-
-  if (statusList.length === 0) {
-    statusList = [...RECURRING_CASHFLOW_STATUS_FILTER_IDS];
-  }
+  const statusList = (
+    filter.statusList === undefined
+      ? [...RECURRING_CASHFLOW_STATUS_FILTER_IDS]
+      : [...filter.statusList]
+  ).filter((s) => validStatuses.has(s));
 
   return {
     ...filter,
@@ -90,15 +135,14 @@ export function filterRecurringCashflowRows(
   const allAccountIds = getAllAccountIds(banks);
   const selectedAccountIds =
     filter.accountIds === undefined ? allAccountIds : filter.accountIds;
-  const selectedCategories =
+  const selectedCategoryCodes =
     filter.pfcPrimaryList ?? [...PFC_PRIMARY_CATEGORY_CODES];
   const selectedStatuses =
     filter.statusList ?? [...RECURRING_CASHFLOW_STATUS_FILTER_IDS];
   const includeUnlinked = filter.includeUnlinked ?? true;
 
   return rows.filter((row) => {
-    const linkedId =
-      row.linkedBankAccountId ?? row.linkedBankAccount?.id ?? null;
+    const linkedId = readRecurringLinkedBankAccountId(row);
 
     if (linkedId == null) {
       if (!includeUnlinked) return false;
@@ -107,21 +151,69 @@ export function filterRecurringCashflowRows(
     }
 
     const code =
-      row.pfcPrimary?.trim() || PFC_PRIMARY_UNCATEGORIZED_FILTER_CODE;
-    if (!selectedCategories.includes(code)) return false;
+      readRecurringPfcPrimary(row) || PFC_PRIMARY_UNCATEGORIZED_FILTER_CODE;
+    if (!selectedCategoryCodes.includes(code)) return false;
 
-    const st = row.status?.trim().toLowerCase() ?? "";
+    const st = readRecurringStatus(row)?.toLowerCase() ?? "";
     if (!selectedStatuses.includes(st)) return false;
 
     return true;
   });
 }
 
+export function filterRecurringCalendarOccurrences(
+  occurrences: ProfileRecurringCashflowCalendarOccurrenceResponse[],
+  filter: RecurringCashflowsFilterState,
+  banks: LinkedBankResponse[] | undefined,
+): ProfileRecurringCashflowCalendarOccurrenceResponse[] {
+  const allAccountIds = getAllAccountIds(banks);
+  const selectedAccountIds =
+    filter.accountIds === undefined ? allAccountIds : filter.accountIds;
+  const selectedCategoryCodes =
+    filter.pfcPrimaryList ?? [...PFC_PRIMARY_CATEGORY_CODES];
+  const selectedStatuses =
+    filter.statusList ?? [...RECURRING_CASHFLOW_STATUS_FILTER_IDS];
+  const includeUnlinked = filter.includeUnlinked ?? true;
+
+  return occurrences.filter((o) => {
+    const linkedId = readRecurringLinkedBankAccountId(o);
+
+    if (linkedId == null) {
+      if (!includeUnlinked) return false;
+    } else if (!selectedAccountIds.includes(linkedId)) {
+      return false;
+    }
+
+    const code =
+      readRecurringPfcPrimary(o) || PFC_PRIMARY_UNCATEGORIZED_FILTER_CODE;
+    if (!selectedCategoryCodes.includes(code)) return false;
+
+    const st = readRecurringStatus(o)?.toLowerCase() ?? "";
+    if (!selectedStatuses.includes(st)) return false;
+
+    return true;
+  });
+}
+
+function recurringFiltersCanonicalKey(
+  f: RecurringCashflowsFilterState,
+  banks: LinkedBankResponse[] | undefined,
+): string {
+  const s = sanitizeRecurringCashflowsFilter(f, banks);
+  return JSON.stringify({
+    includeUnlinked: s.includeUnlinked ?? true,
+    accountIds: [...(s.accountIds ?? [])].sort(),
+    pfcPrimaryList: [...(s.pfcPrimaryList ?? [])].sort(),
+    statusList: [...(s.statusList ?? [])].sort(),
+  });
+}
+
 function areRecurringCashflowsFiltersEqual(
   a: RecurringCashflowsFilterState,
   b: RecurringCashflowsFilterState,
+  banks: LinkedBankResponse[] | undefined,
 ): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
+  return recurringFiltersCanonicalKey(a, banks) === recurringFiltersCanonicalKey(b, banks);
 }
 
 type UseRecurringCashflowsFilterOptions = {
@@ -179,16 +271,20 @@ export function useRecurringCashflowsFilter({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [draftFilter, setDraftFilter] =
     useState<RecurringCashflowsFilterState>(applied);
-  const draftFilterRef = useRef(draftFilter);
-  draftFilterRef.current = draftFilter;
 
   useEffect(() => {
     if (isDesktopOpen || isMobileOpen) return;
-
     setDraftFilter((current) =>
-      areRecurringCashflowsFiltersEqual(current, applied) ? current : applied,
+      areRecurringCashflowsFiltersEqual(current, applied, banks)
+        ? current
+        : applied,
     );
-  }, [applied, isDesktopOpen, isMobileOpen]);
+  }, [applied, banks, isDesktopOpen, isMobileOpen]);
+
+  useEffect(() => {
+    if (!isDesktopOpen && !isMobileOpen) return;
+    setDraftFilter(applied);
+  }, [isDesktopOpen, isMobileOpen, applied, banks]);
 
   const closeAllPanels = useCallback(() => {
     setIsDesktopOpen(false);
@@ -201,8 +297,8 @@ export function useRecurringCashflowsFilter({
   }, [applied, closeAllPanels]);
 
   const handleApply = useCallback(() => {
-    onApply(draftFilterRef.current);
-  }, [onApply]);
+    onApply(sanitizeRecurringCashflowsFilter(draftFilter, banks));
+  }, [draftFilter, onApply, banks]);
 
   const handleOpen = useCallback(() => {
     if (isMobile) {

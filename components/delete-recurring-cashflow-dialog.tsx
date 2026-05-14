@@ -37,6 +37,9 @@ export function DeleteRecurringCashflowDialog({
       await queryClient.invalidateQueries({
         queryKey: ["profile-recurring-cashflows"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["profile-recurring-calendar-cashflows"],
+      });
       toast.success("Subscription removed.");
       onOpenChange(false);
     },

@@ -48,12 +48,12 @@ export function DashboardView() {
     (state) => state.setAppliedFilter,
   );
 
-  const plaidConnectionsQuery = useQuery({
+  const { data: plaidConnections } = useQuery({
     queryKey: ["list-plaid-connections"],
     queryFn: listPlaidConnections,
   });
 
-  const allBanks = plaidConnectionsQuery.data ?? [];
+  const allBanks = plaidConnections ?? [];
 
   const activeBanks = useMemo(
     () => allBanks.filter((bank) => bank.status === "active" || bank.status === "relink_required"),
