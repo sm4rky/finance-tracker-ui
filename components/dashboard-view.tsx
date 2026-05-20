@@ -17,28 +17,27 @@ import { NetWorthTrendChart } from "@/components/net-worth-trend-chart";
 import { RecentTransactionsSection } from "@/components/recent-transactions-section";
 import { AccountExpenseBarChart } from "@/components/account-expense-bar-chart";
 import { CategoryExpenseBarChart } from "@/components/category-expense-bar-chart";
-import type { TransactionsFilterState } from "@/interface/transaction";
 import { fetchCashflow } from "@/lib/api/analytics";
 import { listPlaidConnections } from "@/lib/api/plaid";
+import type { TransactionsFilterState } from "@/lib/transaction-filter";
 import { useAuthStore } from "@/stores/auth-session";
 import { useTransactionsFilterStore } from "@/stores/transactions-filter";
 
 export function DashboardView() {
-  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(false);
+  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(() => {
+    const persistApi = useTransactionsFilterStore.persist;
+    return !persistApi || persistApi.hasHydrated();
+  });
 
   useEffect(() => {
-    const store = useTransactionsFilterStore;
-
-    if (store.persist.hasHydrated()) {
-      setIsFilterStoreHydrated(true);
+    const persistApi = useTransactionsFilterStore.persist;
+    if (!persistApi || persistApi.hasHydrated()) {
       return;
     }
 
-    const unsubscribe = store.persist.onFinishHydration(() => {
+    return persistApi.onFinishHydration(() => {
       setIsFilterStoreHydrated(true);
     });
-
-    return unsubscribe;
   }, []);
 
   const storedAppliedFilter = useTransactionsFilterStore(
@@ -53,10 +52,13 @@ export function DashboardView() {
     queryFn: listPlaidConnections,
   });
 
-  const allBanks = plaidConnections ?? [];
+  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
 
   const activeBanks = useMemo(
-    () => allBanks.filter((bank) => bank.status === "active" || bank.status === "relink_required"),
+    () =>
+      allBanks.filter(
+        (bank) => bank.status === "active" || bank.status === "relink_required",
+      ),
     [allBanks],
   );
 
@@ -76,7 +78,9 @@ export function DashboardView() {
   const { data: cashflow, isPending: isCashflowPending } = useQuery({
     queryKey: ["analytics-cashflow", filterKey],
     queryFn: () => fetchCashflow(appliedFilter),
-    enabled: isFilterStoreHydrated,
+    enabled:
+      isFilterStoreHydrated &&
+      Boolean(appliedFilter.dateFrom?.trim() && appliedFilter.dateTo?.trim()),
   });
 
   const handleApplyFilter = useCallback(
@@ -88,8 +92,8 @@ export function DashboardView() {
 
   const { triggerProps, panelsProps } = useTransactionsFilter({
     banks: activeBanks,
-    applied: appliedFilter,
-    onApply: handleApplyFilter,
+    appliedFilter,
+    onApplyFilter: handleApplyFilter,
   });
 
   const profile = useAuthStore((state) => state.userProfile);
@@ -113,7 +117,7 @@ export function DashboardView() {
         <TransactionsFilterPanels {...panelsProps} />
       </div>
 
-      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-[20rem_1fr] lg:items-stretch lg:gap-5 [&>*]:min-w-0">
+      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-[20rem_1fr] lg:items-stretch lg:gap-5 *:min-w-0">
         <MyAccountSection />
         <CategoryExpensePieChart
           totalExpenses={cashflow?.totalExpenses}
@@ -124,12 +128,12 @@ export function DashboardView() {
         />
       </div>
 
-      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch lg:gap-5 [&>*]:min-w-0">
+      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch lg:gap-5 *:min-w-0">
         <CategoryExpenseBarChart />
         <AccountExpenseBarChart />
       </div>
 
-      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-[2fr_1fr] lg:items-stretch lg:gap-5 [&>*]:min-w-0">
+      <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-[2fr_1fr] lg:items-stretch lg:gap-5 *:min-w-0">
         <NetWorthTrendChart />
         <RecentTransactionsSection />
       </div>

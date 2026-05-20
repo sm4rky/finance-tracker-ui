@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Building2, Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
@@ -43,7 +43,10 @@ function accountNameAndMask(a: LinkedBankAccountResponse): string {
   return mask ? `${name} · ${mask}` : name;
 }
 
-function accountSummaryForAria(institutionLabel: string, a: LinkedBankAccountResponse): string {
+function accountSummaryForAria(
+  institutionLabel: string,
+  a: LinkedBankAccountResponse,
+): string {
   const bank = institutionLabel.trim() || "Bank";
   const sub = formatSubtype(a.subtype);
   const who = accountNameAndMask(a);
@@ -59,17 +62,23 @@ export function ConfirmPlaidUpdateAccountsDialog({
   onOpenChange,
 }: ConfirmPlaidUpdateAccountsDialogProps) {
   const queryClient = useQueryClient();
-  const [deleteByPlaidId, setDeleteByPlaidId] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [deleteByPlaidId, setDeleteByPlaidId] = useState<
+    Record<string, boolean>
+  >({});
 
   const invalidateLinkedData = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["list-plaid-connections"] });
-    await queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] });
-    await queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] });
+    await queryClient.invalidateQueries({
+      queryKey: ["list-plaid-connections"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["query-transaction-list"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["get-recent-transactions"],
+    });
   };
 
-  const confirmMutation = useMutation({
+  const mutation = useMutation({
     mutationFn: () =>
       confirmPlaidUpdateAccounts(linkedBankId, {
         decisions: pendingDeselected.map((a) => ({
@@ -89,22 +98,26 @@ export function ConfirmPlaidUpdateAccountsDialog({
 
   useEffect(() => {
     if (!open) {
-      setDeleteByPlaidId({});
+      startTransition(() => {
+        setDeleteByPlaidId({});
+      });
       return;
     }
     const initial: Record<string, boolean> = {};
     for (const a of pendingDeselected) {
       initial[a.plaidAccountId] = false;
     }
-    setDeleteByPlaidId(initial);
+    startTransition(() => {
+      setDeleteByPlaidId(initial);
+    });
   }, [open, pendingDeselected]);
 
-  const busy = confirmMutation.isPending;
+  const busy = mutation.isPending;
 
   const statusLine = useMemo(() => {
-    if (confirmMutation.isPending) return "Applying your choices…";
+    if (mutation.isPending) return "Applying your choices…";
     return null;
-  }, [confirmMutation.isPending]);
+  }, [mutation.isPending]);
 
   const hasAccounts = pendingDeselected.length > 0;
 
@@ -163,17 +176,19 @@ export function ConfirmPlaidUpdateAccountsDialog({
                   >
                     <div className="min-w-0 space-y-1">
                       <p className="text-sm font-medium leading-snug text-foreground">
-                        <span className="break-words">{institutionName}</span>
+                        <span className="wrap-break-word">
+                          {institutionName}
+                        </span>
                         {subtypeLabel ? (
                           <>
                             <span className="text-muted-foreground"> · </span>
-                            <span className="break-words text-muted-foreground">
+                            <span className="wrap-break-word text-muted-foreground">
                               {subtypeLabel}
                             </span>
                           </>
                         ) : null}
                       </p>
-                      <p className="text-sm leading-snug break-words text-foreground/90">
+                      <p className="text-sm leading-snug wrap-break-word text-foreground/90">
                         {accountNameAndMask(a)}
                       </p>
                     </div>
@@ -259,9 +274,9 @@ export function ConfirmPlaidUpdateAccountsDialog({
             type="button"
             className="h-10 w-full gap-2 rounded-lg border-0 bg-foreground font-medium text-background hover:bg-foreground/90"
             disabled={busy || !hasAccounts}
-            onClick={() => confirmMutation.mutate()}
+            onClick={() => mutation.mutate()}
           >
-            {confirmMutation.isPending ? (
+            {mutation.isPending ? (
               <>
                 <Loader2Icon className="size-4 animate-spin" aria-hidden />
                 Applying…

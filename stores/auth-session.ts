@@ -1,15 +1,15 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { create } from "zustand";
 
-import type { UserProfile } from "@/interface/user";
+import type { UserResponse } from "@/interface/user";
 
 type AuthSessionState = {
   accessToken: string | null;
   user: User | null;
   /** Filled from `POST /api/users/ensure` after a successful sync. */
-  userProfile: UserProfile | null;
+  userProfile: UserResponse | null;
   setFromSession: (session: Session | null) => void;
-  setUserProfile: (profile: UserProfile | null) => void;
+  setUserProfile: (profile: UserResponse | null) => void;
   clear: () => void;
 };
 

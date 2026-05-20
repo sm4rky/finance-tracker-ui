@@ -108,9 +108,9 @@ export function ProfileView() {
         <div className="rounded-xl border border-border bg-card/40 p-4 sm:p-6">
           <div className="flex flex-row items-center gap-4 sm:items-start sm:gap-6">
             <div className="relative shrink-0">
-              <Avatar className="size-20 rounded-xl after:rounded-xl sm:size-24 [&_[data-slot=avatar-image]]:rounded-xl [&_[data-slot=avatar-fallback]]:rounded-xl">
+              <Avatar className="size-20 rounded-xl after:rounded-xl sm:size-24 **:data-[slot=avatar-image]:rounded-xl **:data-[slot=avatar-fallback]:rounded-xl">
                 <AvatarImage src={avatarUrl} alt="" />
-                <AvatarFallback className="rounded-xl bg-primary !text-xl font-bold text-primary-foreground">
+                <AvatarFallback className="rounded-xl bg-primary text-xl! font-bold text-primary-foreground">
                   {avatarFallback}
                 </AvatarFallback>
               </Avatar>
@@ -128,7 +128,7 @@ export function ProfileView() {
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col space-y-1.5 sm:space-y-2">
-              <h2 className="font-heading text-lg font-semibold tracking-tight break-words sm:text-xl">
+              <h2 className="font-heading text-lg font-semibold tracking-tight wrap-break-word sm:text-xl">
                 {displayName}
               </h2>
 
@@ -139,7 +139,7 @@ export function ProfileView() {
               <Badge
                 variant="outline"
                 className={cn(
-                  "h-auto min-h-0 w-fit max-w-full shrink gap-1 rounded-lg border-border bg-muted/50 px-3 py-1.5 whitespace-normal [&>svg]:!size-3.5",
+                  "h-auto min-h-0 w-fit max-w-full shrink gap-1 rounded-lg border-border bg-muted/50 px-3 py-1.5 whitespace-normal [&>svg]:size-3.5!",
                   planAccent,
                 )}
               >

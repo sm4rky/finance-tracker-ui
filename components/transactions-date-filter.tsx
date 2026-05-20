@@ -16,7 +16,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { LinkedBankResponse } from "@/interface/plaid";
-import type { TransactionsFilterState } from "@/interface/transaction";
 import {
   DATE_PRESET_LABELS,
   DATE_PRESET_ORDER,
@@ -27,6 +26,7 @@ import {
   inferDatePreset,
 } from "@/lib/transactions-date-range";
 import { useIsMobile } from "@/hooks/use-mobile";
+import type { TransactionsFilterState } from "@/lib/transaction-filter";
 import { cn } from "@/lib/utils";
 import { useTransactionsFilterStore } from "@/stores/transactions-filter";
 
@@ -38,6 +38,7 @@ import {
 type TransactionsDateFilterProps = {
   banks: LinkedBankResponse[] | undefined;
   isStoreReady: boolean;
+  onFilterChange?: () => void;
 };
 
 function mergeAppliedDates(
@@ -55,6 +56,7 @@ function mergeAppliedDates(
 export function TransactionsDateFilter({
   banks,
   isStoreReady,
+  onFilterChange,
 }: TransactionsDateFilterProps) {
   const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -102,8 +104,9 @@ export function TransactionsDateFilter({
         mergeAppliedDates(appliedFilter, dateFrom, dateTo),
         banks,
       );
+      onFilterChange?.();
     },
-    [appliedFilter, banks, setAppliedFilter],
+    [appliedFilter, banks, onFilterChange, setAppliedFilter],
   );
 
   const handleSelectPreset = useCallback(

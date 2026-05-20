@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
 
@@ -21,7 +21,7 @@ export function ProfileAccountsTab({ active }: ProfileAccountsTabProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const {
-    data: plaidConnections = [],
+    data: plaidConnections,
     isPending,
     isError,
     error,
@@ -30,6 +30,16 @@ export function ProfileAccountsTab({ active }: ProfileAccountsTabProps) {
     queryFn: listPlaidConnections,
     enabled: active,
   });
+
+  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
+
+  const activeBanks = useMemo(
+    () =>
+      allBanks.filter(
+        (bank) => bank.status === "active" || bank.status === "relink_required",
+      ),
+    [allBanks],
+  );
 
   const handleLinked = () => {
     queryClient.invalidateQueries({
@@ -76,13 +86,13 @@ export function ProfileAccountsTab({ active }: ProfileAccountsTabProps) {
         </div>
       ) : errorMessage ? (
         <p className="text-sm text-destructive">{errorMessage}</p>
-      ) : plaidConnections.length === 0 ? (
+      ) : activeBanks.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No linked accounts yet. Use Link Bank to connect a bank.
         </p>
       ) : (
         <Accordion type="multiple" className="flex flex-col gap-3">
-          {plaidConnections.map((bank) => (
+          {activeBanks.map((bank) => (
             <LinkedBankRow key={bank.id} bank={bank} />
           ))}
         </Accordion>

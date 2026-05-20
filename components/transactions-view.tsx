@@ -30,15 +30,12 @@ import type {
   QueryTransactionsRequest,
   TransactionResponse,
   TransactionSortField,
-  TransactionsFilterState,
 } from "@/interface/transaction";
 import { listPlaidConnections } from "@/lib/api/plaid";
-import { queryTransactions } from "@/lib/api/transactions";
+import { queryTransactions } from "@/lib/api/transaction";
+import type { TransactionsFilterState } from "@/lib/transaction-filter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTransactionsFilterStore } from "@/stores/transactions-filter";
-
-/** Backend accepts at most 100 ids per request after deduplication. */
-const MAX_DELETE_BATCH = 100;
 
 const TRANSACTION_SORT_COLUMN_TO_API: Record<string, TransactionSortField> = {
   merchant: "merchantName",
@@ -74,21 +71,20 @@ function applyTableUpdater<T>(updater: Updater<T>, previous: T): T {
 
 export function TransactionsView() {
   const isMobile = useIsMobile();
-  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(false);
+  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(() => {
+    const persistApi = useTransactionsFilterStore.persist;
+    return !persistApi || persistApi.hasHydrated();
+  });
 
   useEffect(() => {
-    const store = useTransactionsFilterStore;
-
-    if (store.persist.hasHydrated()) {
-      setIsFilterStoreHydrated(true);
+    const persistApi = useTransactionsFilterStore.persist;
+    if (!persistApi || persistApi.hasHydrated()) {
       return;
     }
 
-    const unsubscribe = store.persist.onFinishHydration(() => {
+    return persistApi.onFinishHydration(() => {
       setIsFilterStoreHydrated(true);
     });
-
-    return unsubscribe;
   }, []);
 
   const storedAppliedFilter = useTransactionsFilterStore(
@@ -97,42 +93,6 @@ export function TransactionsView() {
   const setAppliedFilter = useTransactionsFilterStore(
     (state) => state.setAppliedFilter,
   );
-
-  const { data: plaidConnections } = useQuery({
-    queryKey: ["list-plaid-connections"],
-    queryFn: listPlaidConnections,
-  });
-
-  const allBanks = plaidConnections ?? [];
-
-  const activeBanks = useMemo(
-    () => allBanks.filter((bank) => bank.status === "active" || bank.status === "relink_required"),
-    [allBanks],
-  );
-
-  const appliedFilter = useMemo(() => {
-    if (!isFilterStoreHydrated) {
-      return getDefaultTransactionsFilter(undefined);
-    }
-
-    return sanitizeTransactionsFilter(
-      storedAppliedFilter ?? getDefaultTransactionsFilter(activeBanks),
-      activeBanks,
-    );
-  }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
-
-  const handleApplyFilter = useCallback(
-    (nextFilter: TransactionsFilterState) => {
-      setAppliedFilter(nextFilter, activeBanks);
-    },
-    [setAppliedFilter, activeBanks],
-  );
-
-  const { triggerProps, panelsProps } = useTransactionsFilter({
-    banks: activeBanks,
-    applied: appliedFilter,
-    onApply: handleApplyFilter,
-  });
 
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -153,6 +113,70 @@ export function TransactionsView() {
     [],
   );
 
+  const { data: plaidConnections } = useQuery({
+    queryKey: ["list-plaid-connections"],
+    queryFn: listPlaidConnections,
+  });
+
+  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
+
+  const activeBanks = useMemo(
+    () =>
+      allBanks.filter(
+        (bank) => bank.status === "active" || bank.status === "relink_required",
+      ),
+    [allBanks],
+  );
+
+  const appliedFilter = useMemo(() => {
+    if (!isFilterStoreHydrated) {
+      return getDefaultTransactionsFilter(undefined);
+    }
+
+    return sanitizeTransactionsFilter(
+      storedAppliedFilter ?? getDefaultTransactionsFilter(activeBanks),
+      activeBanks,
+    );
+  }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
+
+  const resetPaginationAndSelection = useCallback(() => {
+    setPagination((previous) => {
+      if (previous.pageIndex === 0) return previous;
+      return { ...previous, pageIndex: 0 };
+    });
+    setRowSelection({});
+  }, []);
+
+  const handlePaginationChange = useCallback(
+    (updater: Updater<PaginationState>) => {
+      setPagination((previous) => applyTableUpdater(updater, previous));
+      setRowSelection({});
+    },
+    [],
+  );
+
+  const handleSortingChange = useCallback(
+    (updater: Updater<SortingState>) => {
+      setSorting((previous) => applyTableUpdater(updater, previous));
+      resetPaginationAndSelection();
+    },
+    [resetPaginationAndSelection],
+  );
+
+  const handleApplyFilter = useCallback(
+    (filterState: TransactionsFilterState) => {
+      setAppliedFilter(filterState, activeBanks);
+      resetPaginationAndSelection();
+    },
+    [activeBanks, resetPaginationAndSelection, setAppliedFilter],
+  );
+
+  const { triggerProps, panelsProps } = useTransactionsFilter({
+    banks: activeBanks,
+    appliedFilter,
+    onApplyFilter: handleApplyFilter,
+  });
+
   const page = pagination.pageIndex + 1;
   const limit = pagination.pageSize;
   const sortKey = sorting[0]
@@ -160,78 +184,44 @@ export function TransactionsView() {
     : "default";
   const filterKey = JSON.stringify(appliedFilter);
 
-  useEffect(() => {
-    setPagination((previous) => {
-      if (previous.pageIndex === 0) return previous;
-      return { ...previous, pageIndex: 0 };
-    });
-  }, [filterKey]);
-
-  useEffect(() => {
-    setRowSelection({});
-  }, [page, limit, sortKey, filterKey]);
-
-  const openCreateTransaction = useCallback(() => {
+  const openCreateTransactionSheet = useCallback(() => {
     setSaveSheetMode("create");
     setEditingTransaction(null);
     setSaveSheetOpen(true);
   }, []);
 
-  const openEditTransaction = useCallback((row: TransactionResponse) => {
+  const openEditTransactionSheet = useCallback((row: TransactionResponse) => {
     setSaveSheetMode("edit");
     setEditingTransaction(row);
     setSaveSheetOpen(true);
   }, []);
 
-  const openDeleteDialogForIds = useCallback((ids: string[]) => {
-    const nextIds = [...new Set(ids)].filter(Boolean).slice(0, MAX_DELETE_BATCH);
-    if (nextIds.length === 0) return;
-    setDeleteTransactionIds(nextIds);
+  const openDeleteMultipleTransactionsDialog = useCallback(() => {
+    const selectedTransactionIds = Object.entries(rowSelection)
+      .filter(([, selected]) => selected)
+      .map(([id]) => id);
+
+    if (selectedTransactionIds.length === 0) return;
+
+    setDeleteTransactionIds(selectedTransactionIds);
     setDeleteDialogOpen(true);
-  }, []);
+  }, [rowSelection]);
 
-  const openBulkDeleteDialog = useCallback(() => {
-    openDeleteDialogForIds(
-      Object.entries(rowSelection)
-        .filter(([, selected]) => selected)
-        .map(([id]) => id),
-    );
-  }, [rowSelection, openDeleteDialogForIds]);
-
-  const openSingleDeleteDialog = useCallback(
+  const openDeleteSingleTransactionDialog = useCallback(
     (row: TransactionResponse) => {
-      openDeleteDialogForIds([row.id]);
+      setDeleteTransactionIds([row.id]);
+      setDeleteDialogOpen(true);
     },
-    [openDeleteDialogForIds],
+    [],
   );
-
-  const accountLabelMap = useMemo(() => {
-    const labels = new Map<string, string>();
-
-    for (const bank of allBanks) {
-      for (const account of bank.accounts) {
-        const baseLabel =
-          account.officialName?.trim() ||
-          account.accountName.trim() ||
-          "Account";
-
-        labels.set(
-          account.id,
-          account.mask ? `${baseLabel} ·•••${account.mask}` : baseLabel,
-        );
-      }
-    }
-
-    return labels;
-  }, [allBanks]);
 
   const columns = useMemo(
     () =>
-      createTransactionColumns(accountLabelMap, {
-        onEdit: openEditTransaction,
-        onDelete: openSingleDeleteDialog,
+      createTransactionColumns({
+        onEdit: openEditTransactionSheet,
+        onDelete: openDeleteSingleTransactionDialog,
       }),
-    [accountLabelMap, openEditTransaction, openSingleDeleteDialog],
+    [openEditTransactionSheet, openDeleteSingleTransactionDialog],
   );
 
   const transactionsQuery = useQuery({
@@ -259,6 +249,7 @@ export function TransactionsView() {
           <TransactionsDateFilter
             banks={activeBanks}
             isStoreReady={isFilterStoreHydrated}
+            onFilterChange={resetPaginationAndSelection}
           />
           <TransactionsFilterTrigger {...triggerProps} />
           <TransactionsSyncMenu banks={allBanks} />
@@ -266,7 +257,7 @@ export function TransactionsView() {
             type="button"
             variant="outline"
             className="gap-1.5"
-            onClick={openCreateTransaction}
+            onClick={openCreateTransactionSheet}
           >
             <Plus className="size-4 shrink-0" aria-hidden />
             Add transaction
@@ -289,7 +280,7 @@ export function TransactionsView() {
             size="sm"
             className="gap-1.5"
             disabled={selectedRowCount === 0}
-            onClick={openBulkDeleteDialog}
+            onClick={openDeleteMultipleTransactionsDialog}
           >
             <Trash2 className="size-4 shrink-0" aria-hidden />
             Delete
@@ -323,12 +314,9 @@ export function TransactionsView() {
           getRowId={(row) => row.id}
           pageCount={pageCount}
           pagination={pagination}
-          onPaginationChange={setPagination}
+          onPaginationChange={handlePaginationChange}
           sorting={sorting}
-          onSortingChange={(updater) => {
-            setSorting((previous) => applyTableUpdater(updater, previous));
-            setPagination((previous) => ({ ...previous, pageIndex: 0 }));
-          }}
+          onSortingChange={handleSortingChange}
           columnFilters={columnFilters}
           onColumnFiltersChange={setColumnFilters}
           globalFilter={globalFilter}
@@ -348,15 +336,14 @@ export function TransactionsView() {
             <TransactionsMobileList
               table={table}
               data={transactions}
-              accountLabelMap={accountLabelMap}
               isLoading={!isFilterStoreHydrated || transactionsQuery.isPending}
               emptyMessage={
                 transactionsQuery.isError
                   ? "Could not load transactions."
                   : "No transactions yet."
               }
-              onEdit={openEditTransaction}
-              onDelete={openSingleDeleteDialog}
+              onEdit={openEditTransactionSheet}
+              onDelete={openDeleteSingleTransactionDialog}
             />
           )}
         />

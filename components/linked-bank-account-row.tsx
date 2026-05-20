@@ -12,10 +12,6 @@ import {
 import type { LinkedBankAccountResponse } from "@/interface/plaid";
 import { cn } from "@/lib/utils";
 
-export type LinkedBankAccountRowProps = {
-  account: LinkedBankAccountResponse;
-};
-
 const LINKED_BANK_ACCOUNT_ICON_BY_TYPE: Record<string, LucideIcon> = {
   depository: Landmark,
   credit: CreditCard,
@@ -29,10 +25,7 @@ function normalizePlaidKey(value: string | null | undefined): string {
   return value.toLowerCase().trim().replace(/_/g, " ");
 }
 
-function formatMoney(
-  amount: number | null,
-  currency?: string | null,
-): string {
+function formatMoney(amount: number | null, currency?: string | null): string {
   if (amount == null || Number.isNaN(amount)) return "—";
 
   const code = currency?.toUpperCase() || "USD";
@@ -84,12 +77,13 @@ function AccountSecondaryLine({
   return null;
 }
 
-export function LinkedBankAccountRow({
-  account,
-}: LinkedBankAccountRowProps) {
+export type LinkedBankAccountRowProps = {
+  account: LinkedBankAccountResponse;
+};
+
+export function LinkedBankAccountRow({ account }: LinkedBankAccountRowProps) {
   const normalizedType = normalizePlaidKey(account.type);
-  const Icon =
-    LINKED_BANK_ACCOUNT_ICON_BY_TYPE[normalizedType] ?? Building2;
+  const Icon = LINKED_BANK_ACCOUNT_ICON_BY_TYPE[normalizedType] ?? Building2;
 
   const displayName =
     account.officialName?.trim() || account.accountName.trim();

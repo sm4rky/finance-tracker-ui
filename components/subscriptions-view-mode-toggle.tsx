@@ -27,7 +27,7 @@ export function SubscriptionsViewModeToggle({
     >
       <button
         type="button"
-        aria-selected={mode === "list"}
+        aria-pressed={mode === "list"}
         className={cn(
           "flex size-7 items-center justify-center rounded-lg transition-colors",
           mode === "list"
@@ -41,7 +41,7 @@ export function SubscriptionsViewModeToggle({
       </button>
       <button
         type="button"
-        aria-selected={mode === "calendar"}
+        aria-pressed={mode === "calendar"}
         className={cn(
           "flex size-7 items-center justify-center rounded-lg transition-colors",
           mode === "calendar"

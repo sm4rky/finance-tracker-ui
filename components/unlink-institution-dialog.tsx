@@ -41,11 +41,21 @@ export function UnlinkInstitutionDialog({
         deleteTransactions,
       }),
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: ["list-plaid-connections"] });
-      await queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] });
-      await queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] });
-      await queryClient.invalidateQueries({ queryKey: ["profile-recurring-cashflows"] });
-      await queryClient.invalidateQueries({ queryKey: ["profile-recurring-calendar-cashflows"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["list-plaid-connections"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["query-transaction-list"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["get-recent-transactions"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["profile-recurring-cashflows"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["profile-recurring-calendar-cashflows"],
+      });
       toast.success(
         data.transactionsRemoved > 0
           ? `Institution unlinked. ${data.transactionsRemoved} transaction(s) removed.`
@@ -75,7 +85,8 @@ export function UnlinkInstitutionDialog({
               Unlink {institutionName}
             </DialogTitle>
             <DialogDescription className="text-sm leading-snug">
-              Disconnects this bank from Plaid. Choose to keep or delete imported transactions.
+              Disconnects this bank from Plaid. Choose to keep or delete
+              imported transactions.
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -106,8 +117,8 @@ export function UnlinkInstitutionDialog({
                 Keep transactions
               </span>
               <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
-                Transactions are kept and marked as no longer tied to this institution. You can edit
-                them later.
+                Transactions are kept and marked as no longer tied to this
+                institution. You can edit them later.
               </span>
             </span>
           </label>
@@ -132,8 +143,8 @@ export function UnlinkInstitutionDialog({
                 Delete transactions
               </span>
               <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
-                Permanently removes all transactions tied to this institution. You won&apos;t be able
-                to restore them.
+                Permanently removes all transactions tied to this institution.
+                You won&apos;t be able to restore them.
               </span>
             </span>
           </label>

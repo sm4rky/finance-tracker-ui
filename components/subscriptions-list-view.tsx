@@ -3,27 +3,24 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { filterRecurringCashflowRows } from "@/components/recurring-cashflows-filter";
+import { filterRecurringCashflows } from "@/components/recurring-cashflows-filter";
 import { RecurringCashflowRow } from "@/components/recurring-cashflow-row";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LinkedBankResponse } from "@/interface/plaid";
-import type {
-  ProfileRecurringCashflowResponse,
-  RecurringCashflowsFilterState,
-} from "@/interface/profile-recurring-cashflow";
-import { listProfileRecurringCashflows } from "@/lib/api/profile-recurring-cashflows";
+import type { ProfileRecurringCashflowResponse } from "@/interface/profile-recurring-cashflow";
+import { listProfileRecurringCashflows } from "@/lib/api/profile-recurring-cashflow";
+import type { RecurringCashflowsFilterState } from "@/lib/recurring-cashflow-filter";
 
-function getRecurringCashflowAccountLine(row: ProfileRecurringCashflowResponse): string {
+function getRecurringCashflowAccountLabel(row: ProfileRecurringCashflowResponse): string {
   const account = row.linkedBankAccount;
-  if (account != null) {
-    const base = account.name.trim();
-    const mask = account.mask?.trim();
-    return `${base} ·•••${mask}`;
-  }
-  if (row.linkedBankAccountId ?? row.linkedBankAccount?.id) {
-    return "Linked account";
-  }
-  return "No linked account";
+  if (account == null) return "No linked account";
+
+  const baseLabel =
+    account.officialName?.trim() ||
+    account.accountName?.trim() ||
+    "Account";
+
+  return account.mask ? `${baseLabel} ·•••${account.mask}` : baseLabel;
 }
 
 export type SubscriptionsListViewProps = {
@@ -45,11 +42,9 @@ export function SubscriptionsListView({
   });
 
   const filteredRows = useMemo(
-    () => filterRecurringCashflowRows(data ?? [], appliedFilter, banks),
+    () => filterRecurringCashflows(data ?? [], appliedFilter, banks),
     [data, appliedFilter, banks],
   );
-
-  const hasNoSubscriptions = (data ?? []).length === 0;
 
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-col gap-3">
@@ -73,7 +68,7 @@ export function SubscriptionsListView({
         ))
       ) : isError ? (
         <p className="text-sm text-destructive">Could not load subscriptions.</p>
-      ) : hasNoSubscriptions ? (
+      ) : (data ?? []).length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No subscriptions yet. Use Add subscription to add one.
         </p>
@@ -83,7 +78,7 @@ export function SubscriptionsListView({
         </p>
       ) : (
         filteredRows.map((row) => {
-          const accountLine = getRecurringCashflowAccountLine(row);
+          const accountLine = getRecurringCashflowAccountLabel(row);
 
           return (
             <RecurringCashflowRow

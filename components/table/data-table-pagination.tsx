@@ -77,7 +77,7 @@ export function DataTablePagination<TData>({
               if (v != null) table.setPageSize(Number(v));
             }}
           >
-            <SelectTrigger size="sm" className="w-[4.5rem]" aria-label="Rows per page">
+            <SelectTrigger size="sm" className="w-18" aria-label="Rows per page">
               <SelectValue />
             </SelectTrigger>
             <SelectContent side="top" align="end" alignItemWithTrigger={false}>

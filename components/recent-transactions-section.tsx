@@ -2,18 +2,19 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import {
-  PFC_PRIMARY_UNCATEGORIZED_FILTER_CODE,
-  getPfcCategoryMeta,
-} from "@/components/transactions-filter";
+  UNCATEGORIZED_PFC_PRIMARY,
+  getPfcPrmaryMeta,
+} from "@/lib/pfc-primary";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TransactionResponse } from "@/interface/transaction";
-import { fetchRecentTransactions } from "@/lib/api/transactions";
+import { fetchRecentTransactions } from "@/lib/api/transaction";
 import { formatMoneyAbs, getTransactionCashFlow } from "@/lib/transaction-amount";
 import { cn } from "@/lib/utils";
 
@@ -35,15 +36,15 @@ const RECENT_LIMIT = 5;
 
 function TransactionRow({ row }: { row: TransactionResponse }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const pfcCode = row.pfcPrimary?.trim();
-  const meta = getPfcCategoryMeta(
-    pfcCode
-      ? pfcCode.toUpperCase()
-      : PFC_PRIMARY_UNCATEGORIZED_FILTER_CODE,
+  const pfcPrimary = row.pfcPrimary?.trim();
+  const meta = getPfcPrmaryMeta(
+    pfcPrimary
+      ? pfcPrimary.toUpperCase()
+      : UNCATEGORIZED_PFC_PRIMARY,
   );
   const label = getMerchantLabel(row);
-  const logoUrl = row.logoUrl?.trim();
-  const shouldShowImage = Boolean(logoUrl) && !imgFailed;
+  const logoUrl = row.logoUrl?.trim() ?? "";
+  const shouldShowImage = logoUrl !== "" && !imgFailed;
   const flow = getTransactionCashFlow(row);
   const formatted = formatMoneyAbs(Math.abs(row.amount), row.isoCurrencyCode);
   const Icon = meta.Icon;
@@ -53,11 +54,13 @@ function TransactionRow({ row }: { row: TransactionResponse }) {
       className="flex min-w-0 items-center gap-3 border-b border-border/60 py-3 last:border-b-0"
     >
       {shouldShowImage ? (
-        <img
+        <Image
           src={logoUrl}
           alt=""
+          width={36}
+          height={36}
           className="size-9 shrink-0 rounded-lg border border-border/60 bg-muted object-contain"
-          loading="lazy"
+          unoptimized
           onError={() => setImgFailed(true)}
         />
       ) : (
@@ -144,7 +147,7 @@ export function RecentTransactionsSection() {
               >
                 <Skeleton className="size-9 shrink-0 rounded-lg" />
                 <div className="min-w-0 flex-1 space-y-2">
-                  <Skeleton className="h-4 w-full max-w-[12rem]" />
+                  <Skeleton className="h-4 w-full max-w-48" />
                   <Skeleton className="h-3 w-24" />
                 </div>
                 <Skeleton className="h-4 w-16 shrink-0" />

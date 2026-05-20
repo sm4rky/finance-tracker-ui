@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link2, Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
@@ -108,10 +108,13 @@ export function RelinkInstitutionDialog({
     exchangeMutation.reset();
   };
 
-  useEffect(() => {
-    if (open) return;
-    resetAll();
-  }, [open]);
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    onOpenChange(nextOpen);
+
+    if (!nextOpen) {
+      resetAll();
+    }
+  };
 
   const handlePlaidExit = () => {
     resetPlaidState();
@@ -139,7 +142,7 @@ export function RelinkInstitutionDialog({
     plaidSession != null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
         className="gap-0 overflow-hidden p-0 sm:max-w-md"
         showCloseButton={!busy}

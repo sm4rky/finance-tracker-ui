@@ -8,7 +8,7 @@ import type {
 
 import { apiFetch, parseApiErrorMessage } from "./client";
 
-const BASE_URL = "/api/Transactions" as const;
+const BASE_URL = "/api/transaction" as const;
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;

@@ -133,7 +133,7 @@ export function DataTable<TData, TValue>({
               <TableRow key={`sk-${i}`}>
                 {Array.from({ length: leafCount }).map((__, j) => (
                   <TableCell key={j}>
-                    <Skeleton className="h-4 w-full max-w-[12rem]" />
+                    <Skeleton className="h-4 w-full max-w-48" />
                   </TableCell>
                 ))}
               </TableRow>

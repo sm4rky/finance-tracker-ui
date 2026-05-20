@@ -207,7 +207,7 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
       <AccordionHeader className="relative border-0 p-0">
         <AccordionTrigger
           className={cn(
-            "min-h-[4.5rem] w-full gap-2 px-3 py-3 pr-20 sm:min-h-0 sm:gap-3 sm:px-4 sm:pr-24",
+            "min-h-18 w-full gap-2 px-3 py-3 pr-20 sm:min-h-0 sm:gap-3 sm:px-4 sm:pr-24",
             "flex-wrap items-start sm:flex-nowrap sm:items-center",
           )}
         >
@@ -234,7 +234,7 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
             </div>
           </div>
 
-          <div className="flex w-full items-center justify-between gap-2 pl-[3.25rem] sm:w-auto sm:flex-1 sm:justify-end sm:pl-0">
+          <div className="flex w-full items-center justify-between gap-2 pl-13 sm:w-auto sm:flex-1 sm:justify-end sm:pl-0">
             <div className="flex shrink-0 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-3">
               <Badge
                 variant={statusConfig.variant}

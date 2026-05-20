@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Banknote,
@@ -8,10 +8,10 @@ import {
   Loader2Icon,
   Lock,
   ShieldCheck,
-  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { FeatureRow } from "@/components/feature-row";
 import { PlaidLinkSession } from "@/components/plaid-link-session";
 import { Button } from "@/components/ui/button";
 import {
@@ -114,10 +114,13 @@ export function LinkBankDialog({
     exchangeMutation.reset();
   };
 
-  useEffect(() => {
-    if (open) return;
-    resetAll();
-  }, [open]);
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    onOpenChange(nextOpen);
+
+    if (!nextOpen) {
+      resetAll();
+    }
+  };
 
   const handlePlaidExit = () => {
     resetPlaidState();
@@ -148,7 +151,7 @@ export function LinkBankDialog({
     : null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
         className="gap-0 overflow-hidden p-0 sm:max-w-md"
         showCloseButton={!busy}
@@ -261,33 +264,5 @@ export function LinkBankDialog({
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function FeatureRow({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-}) {
-  return (
-    <li className="flex gap-3 rounded-lg bg-muted/60 p-3 dark:bg-muted/40">
-      <div
-        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-        aria-hidden
-      >
-        <Icon className="size-5" strokeWidth={1.75} />
-      </div>
-
-      <div className="min-w-0 space-y-0.5 text-left">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        <p className="text-xs leading-snug text-muted-foreground">
-          {description}
-        </p>
-      </div>
-    </li>
   );
 }

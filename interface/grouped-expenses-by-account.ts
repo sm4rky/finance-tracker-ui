@@ -1,5 +1,5 @@
+import { TimeGranularity } from "@/interface/granularity";
 import type { TransactionAnalyticsQueryRequest } from "@/interface/transaction-analytics";
-import type { TimeGranularity } from "@/interface/stacked-expenses-by-pfc-primary";
 
 export type GroupedExpenseByAccountBar = {
   linkedBankAccountId: string | null;
@@ -12,12 +12,12 @@ export type GroupedExpenseByAccountBucket = {
   bars: readonly GroupedExpenseByAccountBar[];
 };
 
-export type GroupedExpensesByAccountResponse = {
-  timeGranularity: TimeGranularity;
-  buckets: readonly GroupedExpenseByAccountBucket[];
-};
-
 export type GroupedExpensesByAccountRequest =
   TransactionAnalyticsQueryRequest & {
     timeGranularity: TimeGranularity;
   };
+
+export type GroupedExpensesByAccountResponse = {
+  timeGranularity: TimeGranularity;
+  buckets: readonly GroupedExpenseByAccountBucket[];
+};

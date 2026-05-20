@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { setProfileUsername } from "@/lib/api/users";
+import { setProfileUsername } from "@/lib/api/user";
 import {
   type ProfileUsernameFormValues,
   profileUsernameSchema,

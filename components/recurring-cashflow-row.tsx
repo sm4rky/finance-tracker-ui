@@ -1,13 +1,9 @@
 "use client";
 
 import {
-  Check,
-  HelpCircle,
   MoreHorizontal,
   Pencil,
   Trash2,
-  Unlink,
-  type LucideIcon,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -18,66 +14,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  getPfcCategoryMeta,
-  PFC_PRIMARY_UNCATEGORIZED_FILTER_CODE,
-} from "@/components/transactions-filter";
+  getPfcPrmaryMeta,
+  UNCATEGORIZED_PFC_PRIMARY,
+} from "@/lib/pfc-primary";
 import type { ProfileRecurringCashflowResponse } from "@/interface/profile-recurring-cashflow";
+import { getRecurringCashflowStatusMeta } from "@/lib/recurring-cashflow-status";
 import { cn } from "@/lib/utils";
 import { RECURRING_FREQUENCY_LABEL } from "@/schema/save-recurring-cashflow.schema";
-
-type RecurringCashflowStatusKey = "active" | "unlinked";
-
-const RECURRING_CASHFLOW_STATUS_BADGE: Record<
-  RecurringCashflowStatusKey,
-  {
-    label: string;
-    variant: "default" | "secondary" | "destructive" | "outline";
-    Icon: LucideIcon;
-    className?: string;
-  }
-> = {
-  active: {
-    label: "Active",
-    variant: "secondary",
-    Icon: Check,
-    className:
-      "border-emerald-500/20 bg-emerald-500/15 text-emerald-800 dark:text-emerald-400",
-  },
-  unlinked: {
-    label: "Unlinked",
-    variant: "outline",
-    Icon: Unlink,
-    className: "text-muted-foreground",
-  },
-};
-
-function formatRecurringStatusLabel(status: string | null | undefined): string {
-  const s = status?.trim();
-  if (!s) return "—";
-  return s
-    .split(/[_\s]+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(" ");
-}
-
-function getRecurringCashflowStatusConfig(status: string | null | undefined): {
-  label: string;
-  variant: "default" | "secondary" | "destructive" | "outline";
-  Icon: LucideIcon;
-  className?: string;
-} {
-  const key = status?.trim().toLowerCase() ?? "";
-  if (key === "active" || key === "unlinked") {
-    return RECURRING_CASHFLOW_STATUS_BADGE[key];
-  }
-  return {
-    label: formatRecurringStatusLabel(status),
-    variant: "outline",
-    Icon: HelpCircle,
-    className: "text-muted-foreground",
-  };
-}
 
 function formatCurrencyUsd(amount: number): string {
   try {
@@ -148,13 +91,13 @@ export function RecurringCashflowRow({
   onDelete,
 }: RecurringCashflowRowProps) {
   const title = recurringCashflowTitle(row);
-  const statusConfig = getRecurringCashflowStatusConfig(row.status);
+  const statusConfig = getRecurringCashflowStatusMeta(row.status);
   const StatusIcon = statusConfig.Icon;
 
-  const pfcCode =
-    row.pfcPrimary?.trim() || PFC_PRIMARY_UNCATEGORIZED_FILTER_CODE;
-  const catMeta = getPfcCategoryMeta(pfcCode);
-  const CategoryIcon = catMeta.Icon;
+  const pfcPrimary =
+    row.pfcPrimary?.trim() || UNCATEGORIZED_PFC_PRIMARY;
+  const meta = getPfcPrmaryMeta(pfcPrimary);
+  const PfcPrimaryIcon = meta.Icon;
 
   const { dateLine, relative } = formatNextDueDisplay(row.predictedNextDate);
   const freqLabel =
@@ -174,15 +117,15 @@ export function RecurringCashflowRow({
         "hover:border-primary/40",
       )}
     >
-      <div className="flex min-h-[2.5rem] min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="flex min-h-10 min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
         <div
           className={cn(
             "flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/40",
-            catMeta.fallbackIconClassName,
+            meta.fallbackIconClassName,
           )}
           aria-hidden
         >
-          <CategoryIcon className="size-4 shrink-0 opacity-90" />
+          <PfcPrimaryIcon className="size-4 shrink-0 opacity-90" />
         </div>
 
         <div className="min-w-0 flex-[1_1_12rem]">
@@ -193,11 +136,11 @@ export function RecurringCashflowRow({
             <Badge
               variant="outline"
               className={cn(
-                "hidden max-w-[9rem] shrink-0 truncate border font-normal text-xs sm:inline-flex",
-                catMeta.badgeClassName,
+                "hidden max-w-36 shrink-0 truncate border font-normal text-xs sm:inline-flex",
+                meta.badgeClassName,
               )}
             >
-              {catMeta.displayName}
+              {meta.displayName}
             </Badge>
           </div>
           <p className="mt-0.5 truncate text-xs leading-snug text-muted-foreground">
@@ -234,7 +177,7 @@ export function RecurringCashflowRow({
             ) : null}
           </div>
 
-          <div className="flex min-w-[6.5rem] shrink-0 flex-col items-end text-right">
+          <div className="flex min-w-26 shrink-0 flex-col items-end text-right">
             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               {freqUpper}
             </p>

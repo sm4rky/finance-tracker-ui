@@ -6,7 +6,7 @@ import type {
 
 import { apiFetch, parseApiErrorMessage } from "./client";
 
-const BASE_URL = "/api/profile-recurring-cashflows" as const;
+const BASE_URL = "/api/profile-recurring-cashflow" as const;
 
 export async function listProfileRecurringCashflows(): Promise<
   ProfileRecurringCashflowResponse[]

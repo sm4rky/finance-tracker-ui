@@ -1,14 +1,10 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CreditCard, LogOut, Moon, Settings, Sun, Wallet } from "lucide-react";
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,7 +54,7 @@ export function AppInsetHeader() {
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.userProfile);
   const title = formatHeaderTitle(pathname);
-  const [dateLabel, setDateLabel] = useState("");
+  const [dateLabel] = useState(() => formatHeaderDate(new Date()));
   const [signingOut, setSigningOut] = useState(false);
 
   const email = user?.email ?? "";
@@ -66,10 +62,6 @@ export function AppInsetHeader() {
   const avatarUrl = getStoredAvatarUrl(profile?.avatarUrl);
   const colorMode = useUserPreferenceStore((s) => s.theme);
   const setThemeColorMode = useUserPreferenceStore((s) => s.setThemeColorMode);
-
-  useEffect(() => {
-    setDateLabel(formatHeaderDate(new Date()));
-  }, []);
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -95,7 +87,7 @@ export function AppInsetHeader() {
         <h1 className="font-heading text-sm font-semibold leading-tight tracking-tight">
           {title}
         </h1>
-        <p className="min-h-[1rem] text-xs leading-tight text-muted-foreground">
+        <p className="min-h-4 text-xs leading-tight text-muted-foreground">
           {dateLabel || "\u00a0"}
         </p>
       </div>
@@ -103,18 +95,14 @@ export function AppInsetHeader() {
         <DropdownMenuTrigger className="shrink-0 rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
           <Avatar>
             <AvatarImage src={avatarUrl} alt="" />
-            <AvatarFallback>
-              {profile?.fullName?.[0] ?? "0"}
-            </AvatarFallback>
+            <AvatarFallback>{profile?.fullName?.[0] ?? "0"}</AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-60" sideOffset={6}>
           <DropdownMenuGroup>
             <DropdownMenuLabel className="font-normal">
               <div className="flex items-center gap-2 py-0.5">
-                <Avatar
-                  className="pointer-events-none shrink-0"
-                >
+                <Avatar className="pointer-events-none shrink-0">
                   <AvatarImage src={avatarUrl} alt="" />
                   <AvatarFallback>
                     {profile?.fullName?.[0] ?? "0"}
@@ -140,9 +128,15 @@ export function AppInsetHeader() {
           >
             <span className="flex min-w-0 flex-1 items-center gap-2">
               {colorMode === "dark" ? (
-                <Moon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <Moon
+                  className="size-4 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
               ) : (
-                <Sun className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <Sun
+                  className="size-4 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
               )}
               <span className="leading-tight">
                 {colorMode === "dark" ? "Dark mode" : "Light mode"}
@@ -153,13 +147,17 @@ export function AppInsetHeader() {
               onCheckedChange={(checked) =>
                 setThemeColorMode(checked ? "dark" : "light")
               }
-              aria-label={colorMode === "dark" ? "Use light mode" : "Use dark mode"}
+              aria-label={
+                colorMode === "dark" ? "Use light mode" : "Use dark mode"
+              }
             />
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuLabel>Profile</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigateToProfileSection("settings")}>
+            <DropdownMenuItem
+              onClick={() => navigateToProfileSection("settings")}
+            >
               <Settings />
               Settings
             </DropdownMenuItem>
@@ -169,7 +167,9 @@ export function AppInsetHeader() {
               <CreditCard />
               Plan & Billing
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigateToProfileSection("accounts")}>
+            <DropdownMenuItem
+              onClick={() => navigateToProfileSection("accounts")}
+            >
               <Wallet />
               Accounts
             </DropdownMenuItem>

@@ -1,16 +1,3 @@
-export type TransactionsFilterState = {
-  accountIds?: string[];
-  includeUnlinkedTransactions?: boolean;
-  pfcPrimaryList?: string[];
-  paymentChannels?: string[];
-  pending?: boolean;
-  dateFrom?: string;
-  dateTo?: string;
-  amountMin?: number;
-  amountMax?: number;
-  amountFlow?: string | null;
-};
-
 export type SortDirection = "asc" | "desc";
 
 export type TransactionSortField =
@@ -23,16 +10,34 @@ export type TransactionSortField =
   | "paymentChannel"
   | "pending";
 
-export type QueryTransactionsRequest = TransactionsFilterState & {
+export interface TransactionLinkedBankAccountResponse {
+  id: string;
+  accountName?: string | null;
+  officialName?: string | null;
+  mask?: string | null;
+  type?: string | null;
+  subtype?: string | null;
+}
+
+export type QueryTransactionsRequest = {
   page?: number;
   limit?: number;
   sortBy?: TransactionSortField;
   sortDirection?: SortDirection;
+  accountIds?: string[];
+  includeUnlinkedTransactions?: boolean;
+  pfcPrimaryList?: string[];
+  paymentChannels?: string[];
+  pending?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+  amountMin?: number;
+  amountMax?: number;
+  amountFlow?: string | null;
 };
 
 export interface TransactionResponse {
   id: string;
-  linkedBankAccountId: string | null;
   plaidTransactionId: string | null;
   amount: number;
   isoCurrencyCode: string | null;
@@ -51,11 +56,8 @@ export interface TransactionResponse {
   removedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  linkedBankAccount?: TransactionLinkedBankAccountResponse | null;
 }
-
-export type DeleteTransactionsResponse = {
-  deletedCount: number;
-};
 
 export interface SaveTransactionRequest {
   merchantName: string;
@@ -71,3 +73,7 @@ export interface SaveTransactionRequest {
   pending: boolean;
   clearLogo?: boolean;
 }
+
+export type DeleteTransactionsResponse = {
+  deletedCount: number;
+};

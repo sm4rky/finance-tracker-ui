@@ -18,24 +18,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { GroupedExpenseByAccountBucket } from "@/interface/grouped-expenses-by-account";
-import type { TimeGranularity } from "@/interface/stacked-expenses-by-pfc-primary";
+import type { TimeGranularity } from "@/interface/granularity";
+import type {
+  GroupedExpenseByAccountBar,
+  GroupedExpenseByAccountBucket,
+} from "@/interface/grouped-expenses-by-account";
 import { fetchGroupedExpensesByAccount } from "@/lib/api/analytics";
 import { listPlaidConnections } from "@/lib/api/plaid";
+import { TIME_GRANULARITY_OPTIONS } from "@/lib/time-granularity";
 import { useTransactionsFilterStore } from "@/stores/transactions-filter";
 
-const TIME_GRANULARITY_OPTIONS: { value: TimeGranularity; label: string }[] = [
-  { value: "day", label: "Day" },
-  { value: "week", label: "Week" },
-  { value: "month", label: "Month" },
-  { value: "year", label: "Year" },
-];
-
 const UNLINKED_KEY = "unlinked";
-
-function accountSeriesKey(linkedBankAccountId: string | null): string {
-  return linkedBankAccountId ?? UNLINKED_KEY;
-}
 
 function formatUsdTooltip(value: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -53,7 +46,7 @@ function formatUsdAxis(value: number): string {
   }).format(value);
 }
 
-function legendLabelForKey(
+function segmentDisplayName(
   key: string,
   officialNameByKey: ReadonlyMap<string, string | null>,
 ): string {
@@ -64,13 +57,13 @@ function legendLabelForKey(
   return `Account (${key.slice(0, 8)})`;
 }
 
-function collectOfficialNamesByKey(
+function getOfficialNamesMap(
   buckets: readonly GroupedExpenseByAccountBucket[],
 ): Map<string, string | null> {
   const map = new Map<string, string | null>();
   for (const b of buckets) {
     for (const bar of b.bars) {
-      const key = accountSeriesKey(bar.linkedBankAccountId);
+      const key = bar.linkedBankAccountId ?? UNLINKED_KEY;
       if (!map.has(key)) {
         map.set(key, bar.officialName);
       } else if (map.get(key) == null && bar.officialName != null) {
@@ -83,21 +76,21 @@ function collectOfficialNamesByKey(
 
 function buildAccountKeysAcrossBuckets(
   buckets: readonly GroupedExpenseByAccountBucket[],
-  officialNameByKey: ReadonlyMap<string, string | null>,
+  officialNamesMap: ReadonlyMap<string, string | null>,
 ): string[] {
   const totals = new Map<string, number>();
   for (const b of buckets) {
     for (const bar of b.bars) {
-      const k = accountSeriesKey(bar.linkedBankAccountId);
-      totals.set(k, (totals.get(k) ?? 0) + bar.amount);
+      const key = bar.linkedBankAccountId ?? UNLINKED_KEY;
+      totals.set(key, (totals.get(key) ?? 0) + bar.amount);
     }
   }
   const keys = [...totals.keys()];
   keys.sort((a, b) => {
     const diff = (totals.get(b) ?? 0) - (totals.get(a) ?? 0);
     if (diff !== 0) return diff;
-    return legendLabelForKey(a, officialNameByKey).localeCompare(
-      legendLabelForKey(b, officialNameByKey),
+    return segmentDisplayName(a, officialNamesMap).localeCompare(
+      segmentDisplayName(b, officialNamesMap),
       undefined,
       { sensitivity: "base" },
     );
@@ -106,44 +99,42 @@ function buildAccountKeysAcrossBuckets(
 }
 
 function amountForBucketBar(
-  bars: GroupedExpenseByAccountBucket["bars"],
+  bars: readonly GroupedExpenseByAccountBar[],
   key: string,
 ): number {
   const hit = bars.find(
-    (bar) => accountSeriesKey(bar.linkedBankAccountId) === key,
+    (bar) => bar.linkedBankAccountId ?? UNLINKED_KEY === key,
   );
   return hit?.amount ?? 0;
 }
 
 function uniqueSeriesNames(
   keys: string[],
-  officialNameByKey: ReadonlyMap<string, string | null>,
+  officialNamesMap: ReadonlyMap<string, string | null>,
 ): string[] {
-  const baseLabels = keys.map((k) => legendLabelForKey(k, officialNameByKey));
+  const labelsMap = keys.map((k) => segmentDisplayName(k, officialNamesMap));
   const countByLabel = new Map<string, number>();
-  for (const l of baseLabels) {
+  for (const l of labelsMap) {
     countByLabel.set(l, (countByLabel.get(l) ?? 0) + 1);
   }
   return keys.map((k, i) => {
-    const base = baseLabels[i]!;
+    const base = labelsMap[i]!;
     if ((countByLabel.get(base) ?? 0) <= 1) return base;
     return `${base} (${k === UNLINKED_KEY ? "unlinked" : k.slice(0, 8)})`;
   });
 }
 
 export function AccountExpenseBarChart() {
-  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(false);
+  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(() => {
+    const persistApi = useTransactionsFilterStore.persist;
+    return !persistApi || persistApi.hasHydrated();
+  });
   const [timeGranularity, setTimeGranularity] =
     useState<TimeGranularity>("month");
 
   useEffect(() => {
     const persistApi = useTransactionsFilterStore.persist;
-    if (!persistApi) {
-      setIsFilterStoreHydrated(true);
-      return;
-    }
-    if (persistApi.hasHydrated()) {
-      setIsFilterStoreHydrated(true);
+    if (!persistApi || persistApi.hasHydrated()) {
       return;
     }
 
@@ -161,7 +152,15 @@ export function AccountExpenseBarChart() {
     queryFn: listPlaidConnections,
   });
 
-  const banks = plaidConnections ?? [];
+  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
+
+  const activeBanks = useMemo(
+    () =>
+      allBanks.filter(
+        (bank) => bank.status === "active" || bank.status === "relink_required",
+      ),
+    [allBanks],
+  );
 
   const appliedFilter = useMemo(() => {
     if (!isFilterStoreHydrated) {
@@ -169,17 +168,17 @@ export function AccountExpenseBarChart() {
     }
 
     return sanitizeTransactionsFilter(
-      storedAppliedFilter ?? getDefaultTransactionsFilter(banks),
-      banks,
+      storedAppliedFilter ?? getDefaultTransactionsFilter(activeBanks),
+      activeBanks,
     );
-  }, [isFilterStoreHydrated, storedAppliedFilter, banks]);
+  }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
 
   const filterKey = JSON.stringify(appliedFilter);
   const queryReady =
     isFilterStoreHydrated &&
     Boolean(appliedFilter.dateFrom?.trim() && appliedFilter.dateTo?.trim());
 
-  const groupedQuery = useQuery({
+  const { data, isPending, isError, error } = useQuery({
     queryKey: [
       "analytics-grouped-expense-by-account",
       filterKey,
@@ -193,32 +192,30 @@ export function AccountExpenseBarChart() {
     enabled: queryReady,
   });
 
-  const { isPending: isGroupedPending, isError: isGroupedError } = groupedQuery;
-
   useEffect(() => {
-    if (!isGroupedError || !(groupedQuery.error instanceof Error)) {
+    if (!isError || !(error instanceof Error)) {
       return;
     }
-    toast.error(groupedQuery.error.message, {
+    toast.error(error.message, {
       id: "analytics-grouped-expense-by-account-error",
     });
-  }, [isGroupedError, groupedQuery.error]);
+  }, [isError, error]);
 
-  const buckets = useMemo(
-    () => groupedQuery.data?.buckets ?? [],
-    [groupedQuery.data?.buckets],
-  );
+  const buckets = useMemo(() => data?.buckets ?? [], [data?.buckets]);
 
   const chartOption = useMemo((): EChartsOption | null => {
     if (buckets.length === 0) return null;
 
-    const officialNameByKey = collectOfficialNamesByKey(buckets);
-    const accountKeys = buildAccountKeysAcrossBuckets(buckets, officialNameByKey);
+    const officialNamesMap = getOfficialNamesMap(buckets);
+    const accountKeys = buildAccountKeysAcrossBuckets(
+      buckets,
+      officialNamesMap,
+    );
     if (accountKeys.length === 0) return null;
 
     const categories = buckets.map((b) => b.period);
 
-    const seriesNames = uniqueSeriesNames(accountKeys, officialNameByKey);
+    const seriesNames = uniqueSeriesNames(accountKeys, officialNamesMap);
 
     const series = accountKeys.map((key, index) => ({
       name: seriesNames[index]!,
@@ -226,7 +223,7 @@ export function AccountExpenseBarChart() {
       barMaxWidth: 22,
       barGap: "12%",
       emphasis: { focus: "series" as const },
-      data: buckets.map((b) => amountForBucketBar(b.bars, key)),
+      data: buckets.map((bucket) => amountForBucketBar(bucket.bars, key)),
     }));
 
     return {
@@ -322,14 +319,10 @@ export function AccountExpenseBarChart() {
     };
   }, [buckets]);
 
-  const showSkeleton =
-    !isFilterStoreHydrated || (queryReady && isGroupedPending);
+  const showSkeleton = !isFilterStoreHydrated || (queryReady && isPending);
 
   const showEmpty =
-    queryReady &&
-    !isGroupedPending &&
-    !isGroupedError &&
-    buckets.length === 0;
+    queryReady && !isPending && !isError && buckets.length === 0;
 
   return (
     <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
@@ -347,15 +340,15 @@ export function AccountExpenseBarChart() {
           >
             <SelectTrigger
               size="sm"
-              className="min-w-0 flex-1 sm:flex-initial sm:w-[7.5rem]"
+              className="min-w-0 flex-1 sm:flex-initial sm:w-30"
               aria-label="Time grouping"
             >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent align="end" className="min-w-[7.5rem]">
-              {TIME_GRANULARITY_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
+            <SelectContent align="end" className="min-w-30">
+              {TIME_GRANULARITY_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -366,11 +359,9 @@ export function AccountExpenseBarChart() {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-2 sm:px-3 sm:pb-3">
         {showSkeleton ? (
           <Skeleton className="mx-auto min-h-60 w-full flex-1 rounded-lg sm:min-h-64 md:min-h-72" />
-        ) : isGroupedError ? (
+        ) : isError ? (
           <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-destructive sm:min-h-64 md:min-h-72">
-            {groupedQuery.error instanceof Error
-              ? groupedQuery.error.message
-              : "Could not load chart."}
+            {error instanceof Error ? error.message : "Could not load chart."}
           </p>
         ) : showEmpty ? (
           <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-64 md:min-h-72">

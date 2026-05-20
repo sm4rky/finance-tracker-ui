@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Building2, ChevronDown, Wallet } from "lucide-react";
 import Link from "next/link";
@@ -117,15 +117,23 @@ export function MyAccountSection() {
     enabled: Boolean(accessToken),
   });
 
-  const banks = plaidConnections ?? [];
+  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
+
+  const activeBanks = useMemo(
+    () =>
+      allBanks.filter(
+        (bank) => bank.status === "active" || bank.status === "relink_required",
+      ),
+    [allBanks],
+  );
 
   const netWorthDisplay = netWorth?.netWorth ?? 0;
   const assetsDisplay = netWorth?.totalAssets ?? 0;
   const liabilitiesDisplay = netWorth?.totalLiabilities ?? 0;
 
-  const aggregate = sumAllBanksBalance(banks);
+  const aggregate = sumAllBanksBalance(activeBanks);
   const banksCurrency =
-    banks.find((b) => b.accounts[0]?.isoCurrencyCode)?.accounts[0]
+    activeBanks.find((b) => b.accounts[0]?.isoCurrencyCode)?.accounts[0]
       ?.isoCurrencyCode ?? "USD";
 
   return (
@@ -156,7 +164,7 @@ export function MyAccountSection() {
               <AccordionTrigger className="w-full gap-3 py-3 hover:no-underline">
                 <span className="flex min-w-0 flex-1 items-center gap-2.5">
                   <Wallet
-                    className="size-[1.125rem] shrink-0 text-foreground"
+                    className="size-5 shrink-0 text-foreground"
                     strokeWidth={1.75}
                     aria-hidden
                   />
@@ -214,7 +222,7 @@ export function MyAccountSection() {
               <AccordionTrigger className="w-full gap-3 py-3 hover:no-underline">
                 <span className="flex min-w-0 flex-1 items-center gap-2.5">
                   <Building2
-                    className="size-[1.125rem] shrink-0 text-foreground"
+                    className="size-5 shrink-0 text-foreground"
                     strokeWidth={1.75}
                     aria-hidden
                   />
@@ -223,7 +231,7 @@ export function MyAccountSection() {
                 <span className="shrink-0 tabular-nums text-sm font-semibold">
                   {isConnectionsPending ? (
                     <Skeleton className="inline-block h-5 w-24 rounded" />
-                  ) : banks.length === 0 ? (
+                  ) : activeBanks.length === 0 ? (
                     "—"
                   ) : (
                     formatMoney(aggregate, banksCurrency)
@@ -243,7 +251,7 @@ export function MyAccountSection() {
                     <Skeleton className="h-16 w-full rounded-lg" />
                     <Skeleton className="h-16 w-full rounded-lg" />
                   </div>
-                ) : banks.length === 0 ? (
+                ) : activeBanks.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     No linked banks yet.{" "}
                     <Link
@@ -256,7 +264,7 @@ export function MyAccountSection() {
                   </p>
                 ) : (
                   <div className="flex flex-col divide-y divide-border/80">
-                    {banks.map((bank) => {
+                    {activeBanks.map((bank) => {
                       const title =
                         bank.institutionName?.trim() || "Linked institution";
                       const needsAttention =

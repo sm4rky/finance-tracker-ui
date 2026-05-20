@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Building2, Loader2Icon, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
@@ -14,7 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { LinkedBankAccountResponse, LinkedBankResponse } from "@/interface/plaid";
+import type {
+  LinkedBankAccountResponse,
+  LinkedBankResponse,
+} from "@/interface/plaid";
 import {
   createPlaidLinkToken,
   exchangePlaidPublicToken,
@@ -54,12 +57,28 @@ export function UpdateLinkedAccountsDialog({
     setAwaitingPlaidOpen(false);
   };
 
+  const resetAll = () => {
+    resetLocal();
+    linkTokenMutation.reset();
+    exchangeMutation.reset();
+  };
+
   const invalidateLinkedData = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["list-plaid-connections"] });
-    await queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] });
-    await queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] });
-    await queryClient.invalidateQueries({ queryKey: ["profile-recurring-cashflows"] });
-    await queryClient.invalidateQueries({ queryKey: ["profile-recurring-calendar-cashflows"] });
+    await queryClient.invalidateQueries({
+      queryKey: ["list-plaid-connections"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["query-transaction-list"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["get-recent-transactions"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["profile-recurring-cashflows"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["profile-recurring-calendar-cashflows"],
+    });
   };
 
   const linkTokenMutation = useMutation({
@@ -122,12 +141,13 @@ export function UpdateLinkedAccountsDialog({
     },
   });
 
-  useEffect(() => {
-    if (open) return;
-    resetLocal();
-    linkTokenMutation.reset();
-    exchangeMutation.reset();
-  }, [open]);
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    onOpenChange(nextOpen);
+
+    if (!nextOpen) {
+      resetAll();
+    }
+  };
 
   const handlePlaidExit = () => {
     setPlaidSession(null);
@@ -156,7 +176,7 @@ export function UpdateLinkedAccountsDialog({
   }, [exchangeMutation.isPending]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
         className="gap-0 overflow-hidden p-0 sm:max-w-md"
         showCloseButton={!busy}
@@ -224,13 +244,14 @@ export function UpdateLinkedAccountsDialog({
                 {busy ? (
                   <>
                     <Loader2Icon className="size-4 animate-spin" aria-hidden />
-                    {exchangeMutation.isPending
-                      ? "Working…"
-                      : "Please wait…"}
+                    {exchangeMutation.isPending ? "Working…" : "Please wait…"}
                   </>
                 ) : (
                   <>
-                    <SlidersHorizontal className="size-4 shrink-0" aria-hidden />
+                    <SlidersHorizontal
+                      className="size-4 shrink-0"
+                      aria-hidden
+                    />
                     Continue with Plaid
                   </>
                 )}

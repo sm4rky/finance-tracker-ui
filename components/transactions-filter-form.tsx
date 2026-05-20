@@ -18,17 +18,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { LinkedBankResponse } from "@/interface/plaid";
-import type { TransactionsFilterState } from "@/interface/transaction";
-import { cn } from "@/lib/utils";
-
-import type { ChannelFilterId } from "./transactions-filter";
 import {
-  getAllAccountIds,
-  getPfcCategoryMeta,
+  PFC_PRIMARY,
+  getPfcPrmaryMeta,
+} from "@/lib/pfc-primary";
+import {
+  PAYMENT_CHANNELS,
   getPaymentChannelMeta,
-  PAYMENT_CHANNEL_FILTER_IDS,
-  PFC_PRIMARY_CATEGORY_CODES,
-} from "./transactions-filter";
+  type PaymentChannel,
+} from "@/lib/payment-channel";
+import type { TransactionsFilterState } from "@/lib/transaction-filter";
+import { getAllAccountIds } from "@/lib/linked-bank-accounts";
+import { cn } from "@/lib/utils";
 
 function parseOptionalAmount(raw: string): number | undefined {
   const value = raw.trim();
@@ -59,64 +60,60 @@ function getSelectTriggerClassName(active: boolean): string {
 }
 
 export type TransactionsFilterFormProps = {
-  filter: TransactionsFilterState;
+  filterState: TransactionsFilterState;
   onChange: (next: TransactionsFilterState) => void;
   banks: LinkedBankResponse[] | undefined;
   variant?: "default" | "sheet";
 };
 
 export function TransactionsFilterForm({
-  filter,
+  filterState,
   onChange,
   banks,
   variant = "default",
 }: TransactionsFilterFormProps) {
   const isSheet = variant === "sheet";
-  const [categorySearch, setCategorySearch] = useState("");
+  const [pfcPrimarySearch, setPfcPrimarySearch] = useState("");
 
   const allAccountIds = useMemo(() => getAllAccountIds(banks), [banks]);
   const selectedAccountIds =
-    filter.accountIds === undefined ? allAccountIds : filter.accountIds;
-  const selectedCategoryCodes = filter.pfcPrimaryList ?? [];
-  const selectedPaymentChannels = filter.paymentChannels ?? [];
+    filterState.accountIds === undefined ? allAccountIds : filterState.accountIds;
+  const selectedPfcPrimary = filterState.pfcPrimaryList ?? [];
+  const selectedPaymentChannels = filterState.paymentChannels ?? [];
 
-  const filteredCategoryCodes = useMemo(() => {
-    const keyword = categorySearch.trim().toLowerCase();
-    if (!keyword) return PFC_PRIMARY_CATEGORY_CODES;
+  const filteredPfcPrimary = useMemo(() => {
+    const keyword = pfcPrimarySearch.trim().toLowerCase();
+    if (!keyword) return PFC_PRIMARY;
 
-    return PFC_PRIMARY_CATEGORY_CODES.filter((code) => {
-      const meta = getPfcCategoryMeta(code);
-      return (
-        meta.displayName.toLowerCase().includes(keyword) ||
-        code.toLowerCase().includes(keyword)
-      );
-    });
-  }, [categorySearch]);
+    return PFC_PRIMARY.filter((pfcPrimary) =>
+      pfcPrimary.toLowerCase().includes(keyword)
+    );
+  }, [pfcPrimarySearch]);
 
   const allAccountsSelected =
     allAccountIds.length > 0 &&
     allAccountIds.every((id) => selectedAccountIds.includes(id));
 
-  const allCategoriesSelected =
-    PFC_PRIMARY_CATEGORY_CODES.length > 0 &&
-    PFC_PRIMARY_CATEGORY_CODES.every((code) =>
-      selectedCategoryCodes.includes(code),
+  const allPfcPrimarySelected =
+    PFC_PRIMARY.length > 0 &&
+    PFC_PRIMARY.every((pfcPrimary) =>
+      selectedPfcPrimary.includes(pfcPrimary),
     );
 
   const allChannelsSelected =
-    PAYMENT_CHANNEL_FILTER_IDS.length > 0 &&
-    PAYMENT_CHANNEL_FILTER_IDS.every((id) =>
-      selectedPaymentChannels.includes(id),
+    PAYMENT_CHANNELS.length > 0 &&
+    PAYMENT_CHANNELS.every((paymentChannel) =>
+      selectedPaymentChannels.includes(paymentChannel),
     );
 
   const hasAmountFilter =
-    filter.amountMin != null ||
-    filter.amountMax != null ||
-    (filter.amountFlow != null && filter.amountFlow !== "");
+    filterState.amountMin != null ||
+    filterState.amountMax != null ||
+    (filterState.amountFlow != null && filterState.amountFlow !== "");
 
-  const accountCount = selectedAccountIds.length;
-  const categoryCount = selectedCategoryCodes.length;
-  const channelCount = selectedPaymentChannels.length;
+  const accountsCount = selectedAccountIds.length;
+  const pfcPrimaryCount = selectedPfcPrimary.length;
+  const channelsCount = selectedPaymentChannels.length;
 
   const triggerClassName = isSheet
     ? "h-10 w-full min-w-0 justify-between"
@@ -126,56 +123,56 @@ export function TransactionsFilterForm({
 
   const setAllAccounts = () => {
     onChange({
-      ...filter,
+      ...filterState,
       accountIds: allAccountsSelected ? [] : [...allAccountIds],
     });
   };
 
-  const setAllCategories = () => {
+  const setAllPfcPrimary = () => {
     onChange({
-      ...filter,
-      pfcPrimaryList: allCategoriesSelected
+      ...filterState,
+      pfcPrimaryList: allPfcPrimarySelected
         ? []
-        : [...PFC_PRIMARY_CATEGORY_CODES],
+        : [...PFC_PRIMARY],
     });
   };
 
   const setAllChannels = () => {
     onChange({
-      ...filter,
-      paymentChannels: allChannelsSelected ? [] : [...PAYMENT_CHANNEL_FILTER_IDS],
+      ...filterState,
+      paymentChannels: allChannelsSelected ? [] : [...PAYMENT_CHANNELS],
     });
   };
 
   const updateAccountSelection = (accountId: string, checked: boolean) => {
     onChange({
-      ...filter,
+      ...filterState,
       accountIds: toggleSelection(selectedAccountIds, accountId, checked),
     });
   };
 
-  const updateCategorySelection = (categoryCode: string, checked: boolean) => {
+  const updatePfcPrimarySelection = (pfcPrimary: string, checked: boolean) => {
     onChange({
-      ...filter,
+      ...filterState,
       pfcPrimaryList: toggleSelection(
-        selectedCategoryCodes,
-        categoryCode,
+        selectedPfcPrimary,
+        pfcPrimary,
         checked,
       ),
     });
   };
 
   const updateChannelSelection = (
-    channelId: ChannelFilterId,
+    channelId: PaymentChannel,
     checked: boolean,
   ) => {
     onChange({
-      ...filter,
+      ...filterState,
       paymentChannels: toggleSelection(
         selectedPaymentChannels,
         channelId,
         checked,
-      ) as ChannelFilterId[],
+      ) as PaymentChannel[],
     });
   };
 
@@ -191,9 +188,9 @@ export function TransactionsFilterForm({
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
             type="button"
-            className={cn(getSelectTriggerClassName(accountCount > 0), triggerClassName)}
+            className={cn(getSelectTriggerClassName(accountsCount > 0), triggerClassName)}
           >
-            <span>Accounts ({accountCount})</span>
+            <span>Accounts ({accountsCount})</span>
             <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -238,11 +235,10 @@ export function TransactionsFilterForm({
 
                       {bank.accounts.map((account) => {
                         const checked = selectedAccountIds.includes(account.id);
-                        const label = `${
-                          account.officialName?.trim() ||
+                        const label = `${account.officialName?.trim() ||
                           account.accountName.trim() ||
                           "Account"
-                        }${account.mask ? ` ·•••${account.mask}` : ""}`;
+                          }${account.mask ? ` ·•••${account.mask}` : ""}`;
 
                         return (
                           <DropdownMenuItem
@@ -282,10 +278,10 @@ export function TransactionsFilterForm({
       >
         <Checkbox
           id="tf-include-unlinked"
-          checked={filter.includeUnlinkedTransactions ?? true}
+          checked={filterState.includeUnlinkedTransactions ?? true}
           onCheckedChange={(checked) =>
             onChange({
-              ...filter,
+              ...filterState,
               includeUnlinkedTransactions: checked === true,
             })
           }
@@ -302,14 +298,14 @@ export function TransactionsFilterForm({
         <DropdownMenu
           modal={false}
           onOpenChange={(open) => {
-            if (!open) setCategorySearch("");
+            if (!open) setPfcPrimarySearch("");
           }}
         >
           <DropdownMenuTrigger
             type="button"
-            className={cn(getSelectTriggerClassName(categoryCount > 0), triggerClassName)}
+            className={cn(getSelectTriggerClassName(pfcPrimaryCount > 0), triggerClassName)}
           >
-            <span>Categories ({categoryCount})</span>
+            <span>Categories ({pfcPrimaryCount})</span>
             <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
           </DropdownMenuTrigger>
 
@@ -321,13 +317,13 @@ export function TransactionsFilterForm({
             )}
           >
             <div
-              className="px-1 pb-1.5"
+              className="px-1 py-1.5"
               onPointerDown={(e) => e.stopPropagation()}
             >
               <Input
                 placeholder="Search categories…"
-                value={categorySearch}
-                onChange={(e) => setCategorySearch(e.target.value)}
+                value={pfcPrimarySearch}
+                onChange={(e) => setPfcPrimarySearch(e.target.value)}
                 className="h-8 text-sm"
                 autoComplete="off"
                 aria-label="Search categories"
@@ -341,14 +337,14 @@ export function TransactionsFilterForm({
 
             <DropdownMenuItem
               closeOnClick={false}
-              onClick={setAllCategories}
+              onClick={setAllPfcPrimary}
               className="cursor-pointer gap-2 py-1.5 pr-2 pl-1.5"
             >
               <span
                 className="pointer-events-none flex shrink-0 items-center"
                 aria-hidden
               >
-                <Checkbox checked={allCategoriesSelected} tabIndex={-1} />
+                <Checkbox checked={allPfcPrimarySelected} tabIndex={-1} />
               </span>
               <span className="min-w-0 flex-1 text-xs font-medium">
                 Select all
@@ -357,20 +353,20 @@ export function TransactionsFilterForm({
 
             <DropdownMenuSeparator />
 
-            {filteredCategoryCodes.length === 0 ? (
+            {filteredPfcPrimary.length === 0 ? (
               <p className="px-2 py-3 text-center text-sm text-muted-foreground">
                 No matches
               </p>
             ) : (
-              filteredCategoryCodes.map((code) => {
-                const meta = getPfcCategoryMeta(code);
-                const checked = selectedCategoryCodes.includes(code);
+              filteredPfcPrimary.map((code) => {
+                const meta = getPfcPrmaryMeta(code);
+                const checked = selectedPfcPrimary.includes(code);
 
                 return (
                   <DropdownMenuItem
                     key={code}
                     closeOnClick={false}
-                    onClick={() => updateCategorySelection(code, !checked)}
+                    onClick={() => updatePfcPrimarySelection(code, !checked)}
                     className="cursor-pointer gap-2 py-1.5 pr-2 pl-1.5"
                   >
                     <span
@@ -401,9 +397,9 @@ export function TransactionsFilterForm({
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
             type="button"
-            className={cn(getSelectTriggerClassName(channelCount > 0), triggerClassName)}
+            className={cn(getSelectTriggerClassName(channelsCount > 0), triggerClassName)}
           >
-            <span>Channel ({channelCount})</span>
+            <span>Channel ({channelsCount})</span>
             <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
           </DropdownMenuTrigger>
 
@@ -429,7 +425,7 @@ export function TransactionsFilterForm({
 
             <DropdownMenuSeparator />
 
-            {PAYMENT_CHANNEL_FILTER_IDS.map((id) => {
+            {PAYMENT_CHANNELS.map((id) => {
               const meta = getPaymentChannelMeta(id);
               const checked = selectedPaymentChannels.includes(id);
 
@@ -471,10 +467,10 @@ export function TransactionsFilterForm({
       >
         <Checkbox
           id="tf-pending"
-          checked={filter.pending === true}
+          checked={filterState.pending === true}
           onCheckedChange={(checked) =>
             onChange({
-              ...filter,
+              ...filterState,
               pending: checked === true ? true : undefined,
             })
           }
@@ -528,10 +524,10 @@ export function TransactionsFilterForm({
                     step="0.01"
                     inputMode="decimal"
                     placeholder="0"
-                    value={filter.amountMin != null ? String(filter.amountMin) : ""}
+                    value={filterState.amountMin != null ? String(filterState.amountMin) : ""}
                     onChange={(e) =>
                       onChange({
-                        ...filter,
+                        ...filterState,
                         amountMin: parseOptionalAmount(e.target.value),
                       })
                     }
@@ -549,10 +545,10 @@ export function TransactionsFilterForm({
                     step="0.01"
                     inputMode="decimal"
                     placeholder="0"
-                    value={filter.amountMax != null ? String(filter.amountMax) : ""}
+                    value={filterState.amountMax != null ? String(filterState.amountMax) : ""}
                     onChange={(e) =>
                       onChange({
-                        ...filter,
+                        ...filterState,
                         amountMax: parseOptionalAmount(e.target.value),
                       })
                     }
@@ -564,15 +560,15 @@ export function TransactionsFilterForm({
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="tf-flow-in"
-                    checked={filter.amountFlow === "income"}
+                    checked={filterState.amountFlow === "income"}
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        onChange({ ...filter, amountFlow: "income" });
+                        onChange({ ...filterState, amountFlow: "income" });
                         return;
                       }
 
-                      if (filter.amountFlow === "income") {
-                        onChange({ ...filter, amountFlow: null });
+                      if (filterState.amountFlow === "income") {
+                        onChange({ ...filterState, amountFlow: null });
                       }
                     }}
                   />
@@ -584,15 +580,15 @@ export function TransactionsFilterForm({
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="tf-flow-ex"
-                    checked={filter.amountFlow === "expense"}
+                    checked={filterState.amountFlow === "expense"}
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        onChange({ ...filter, amountFlow: "expense" });
+                        onChange({ ...filterState, amountFlow: "expense" });
                         return;
                       }
 
-                      if (filter.amountFlow === "expense") {
-                        onChange({ ...filter, amountFlow: null });
+                      if (filterState.amountFlow === "expense") {
+                        onChange({ ...filterState, amountFlow: null });
                       }
                     }}
                   />

@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { deleteProfileRecurringCashflow } from "@/lib/api/profile-recurring-cashflows";
+import { deleteProfileRecurringCashflow } from "@/lib/api/profile-recurring-cashflow";
 
 export type DeleteRecurringCashflowDialogProps = {
   open: boolean;

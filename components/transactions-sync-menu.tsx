@@ -43,7 +43,11 @@ function formatRelativeLastSync(iso: string | null | undefined): string {
 
   const diffMin = Math.floor(diffMs / 60_000);
   const diffHr = Math.floor(diffMs / 3_600_000);
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  );
   const startOfD = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const dayDiff = Math.round(
     (startOfToday.getTime() - startOfD.getTime()) / 86_400_000,
@@ -78,12 +82,16 @@ export function TransactionsSyncMenu({
   const syncMutation = useMutation({
     mutationFn: syncPlaidTransactions,
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["list-plaid-connections"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["list-plaid-connections"],
+      });
     },
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] }),
-        queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["get-recent-transactions"],
+        }),
         queryClient.invalidateQueries({ queryKey: ["analytics-cashflow"] }),
         queryClient.invalidateQueries({
           queryKey: ["analytics-pfc-expense-distribution"],
@@ -95,7 +103,9 @@ export function TransactionsSyncMenu({
           queryKey: ["analytics-grouped-expense-by-account"],
         }),
         queryClient.invalidateQueries({ queryKey: ["analytics-net-worth"] }),
-        queryClient.invalidateQueries({ queryKey: ["analytics-net-worth-trend"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["analytics-net-worth-trend"],
+        }),
       ]);
       setOpen(false);
       toast.success("Transactions synced");
@@ -115,7 +125,9 @@ export function TransactionsSyncMenu({
       <DropdownMenuTrigger
         type="button"
         className={cn(
-          buttonVariants({ variant: !isMobile && open ? "secondary" : "outline" }),
+          buttonVariants({
+            variant: !isMobile && open ? "secondary" : "outline",
+          }),
           "gap-1.5",
           className,
         )}
@@ -124,10 +136,7 @@ export function TransactionsSyncMenu({
         Sync
         {!isMobile ? (
           <ChevronDown
-            className={cn(
-              "size-4 transition-transform",
-              open && "rotate-180",
-            )}
+            className={cn("size-4 transition-transform", open && "rotate-180")}
             aria-hidden
           />
         ) : null}
@@ -143,7 +152,9 @@ export function TransactionsSyncMenu({
           </div>
         ) : (
           list.map((bank) => {
-            const title = (bank.institutionName?.trim() || "Linked bank").toUpperCase();
+            const title = (
+              bank.institutionName?.trim() || "Linked bank"
+            ).toUpperCase();
             const status = formatRelativeLastSync(bank.lastSyncedAt);
             const onCooldown = isSyncedWithin30Minutes(bank.lastSyncedAt);
             const syncing = syncingId === bank.id;

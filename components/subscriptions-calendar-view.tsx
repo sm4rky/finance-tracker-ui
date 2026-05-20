@@ -5,10 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import {
-  filterRecurringCalendarOccurrences,
-} from "@/components/recurring-cashflows-filter";
-import { getPfcPrimaryMeta } from "@/components/transactions-columns";
+import { filterRecurringCalendarOccurrences } from "@/components/recurring-cashflows-filter";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -17,13 +14,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LinkedBankResponse } from "@/interface/plaid";
-import type {
-  ProfileRecurringCashflowCalendarOccurrenceResponse,
-  RecurringCashflowsFilterState,
-} from "@/interface/profile-recurring-cashflow";
-import { listProfileRecurringCashflowsCalendar } from "@/lib/api/profile-recurring-cashflows";
-import { buildMonthCalendarGrid, parseIsoDate, toIsoDate } from "@/lib/recurring-calendar-dates";
+import type { ProfileRecurringCashflowCalendarOccurrenceResponse } from "@/interface/profile-recurring-cashflow";
+import { listProfileRecurringCashflowsCalendar } from "@/lib/api/profile-recurring-cashflow";
+import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
+import type { RecurringCashflowsFilterState } from "@/lib/recurring-cashflow-filter";
 import { cn } from "@/lib/utils";
+
+type CalendarCell = {
+  date: Date;
+  inMonth: boolean;
+};
 
 const monthSlideVariants = {
   enter: (dir: number) => ({
@@ -42,6 +42,51 @@ function getMonthYearTitle(year: number, month: number): string {
     month: "long",
     year: "numeric",
   }).format(new Date(year, month, 1));
+}
+
+function toIsoDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseIsoDate(isoDate: string): Date {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
+function buildMonthCalendarGrid(date: Date): CalendarCell[][] {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const start = new Date(year, month, 1);
+  const lead = start.getDay();
+  const gridStart = new Date(year, month, 1 - lead);
+  const weeks: CalendarCell[][] = [];
+  const current = new Date(gridStart);
+
+  for (let week = 0; week < 6; week++) {
+    const row: CalendarCell[] = [];
+
+    for (let day = 0; day < 7; day++) {
+      row.push({
+        date: new Date(current),
+        inMonth: current.getMonth() === month,
+      });
+      current.setDate(current.getDate() + 1);
+    }
+
+    weeks.push(row);
+  }
+
+  while (
+    weeks.length > 0 &&
+    !weeks[weeks.length - 1]!.some((cell) => cell.inMonth)
+  ) {
+    weeks.pop();
+  }
+
+  return weeks;
 }
 
 function recurringCashflowMerchantName(
@@ -64,7 +109,9 @@ function formatHeaderDate(date: Date): string {
     year: "numeric",
     month: "long",
     day: "numeric",
-  }).format(date).toUpperCase();
+  })
+    .format(date)
+    .toUpperCase();
 }
 
 function formatCurrencyUsd(amount: number): string {
@@ -76,23 +123,6 @@ function formatCurrencyUsd(amount: number): string {
   } catch {
     return Math.abs(amount).toFixed(2);
   }
-}
-
-function distinctCalendarDotClasses(
-  items: ProfileRecurringCashflowCalendarOccurrenceResponse[] | undefined,
-): string[] {
-  if (!items?.length) return [];
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const o of items) {
-    const meta = getPfcPrimaryMeta(o.pfcPrimary);
-    const cls = meta.calendarDotClassName;
-    if (seen.has(cls)) continue;
-    seen.add(cls);
-    out.push(cls);
-    if (out.length >= 4) break;
-  }
-  return out;
 }
 
 export type SubscriptionsCalendarViewProps = {
@@ -112,16 +142,16 @@ export function SubscriptionsCalendarView({
   const [slideDirection, setSlideDirection] = useState(0);
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
-  const { dateFrom, dateTo } = useMemo(
-    () => {
-      const start = new Date(viewMonth.year, viewMonth.month, 1);
-      const end = new Date(viewMonth.year, viewMonth.month + 1, 0);
-      return { dateFrom: toIsoDate(start), dateTo: toIsoDate(end) };
-    },
-    [viewMonth.year, viewMonth.month],
-  );
+  const { dateFrom, dateTo } = useMemo(() => {
+    const start = new Date(viewMonth.year, viewMonth.month, 1);
+    const end = new Date(viewMonth.year, viewMonth.month + 1, 0);
+    return { dateFrom: toIsoDate(start), dateTo: toIsoDate(end) };
+  }, [viewMonth.year, viewMonth.month]);
 
-  const date = useMemo(() => new Date(viewMonth.year, viewMonth.month, 1), [viewMonth]);
+  const date = useMemo(
+    () => new Date(viewMonth.year, viewMonth.month, 1),
+    [viewMonth],
+  );
   const weeks = useMemo(() => buildMonthCalendarGrid(date), [date]);
 
   const { data, isPending, isError } = useQuery({
@@ -130,8 +160,15 @@ export function SubscriptionsCalendarView({
   });
 
   const occurrencesMapByDate = useMemo(() => {
-    const filtered = filterRecurringCalendarOccurrences(data ?? [], appliedFilter, banks);
-    const map = new Map<string, ProfileRecurringCashflowCalendarOccurrenceResponse[]>();
+    const filtered = filterRecurringCalendarOccurrences(
+      data ?? [],
+      appliedFilter,
+      banks,
+    );
+    const map = new Map<
+      string,
+      ProfileRecurringCashflowCalendarOccurrenceResponse[]
+    >();
     for (const occurrence of filtered) {
       const dateKey = occurrence.date?.trim();
       if (!dateKey) continue;
@@ -143,15 +180,26 @@ export function SubscriptionsCalendarView({
 
   const occurrencesGroupsByDate = useMemo(() => {
     if (selectedDateKey) {
-      return [{ dateKey: selectedDateKey, rows: occurrencesMapByDate.get(selectedDateKey) ?? [] }];
+      return [
+        {
+          dateKey: selectedDateKey,
+          rows: occurrencesMapByDate.get(selectedDateKey) ?? [],
+        },
+      ];
     }
     const keys = Array.from(occurrencesMapByDate.keys()).sort();
-    return keys.map((dateKey) => ({ dateKey, rows: occurrencesMapByDate.get(dateKey)! }));
+    return keys.map((dateKey) => ({
+      dateKey,
+      rows: occurrencesMapByDate.get(dateKey)!,
+    }));
   }, [occurrencesMapByDate, selectedDateKey]);
 
   const canGoPrev = useMemo(() => {
     const now = new Date();
-    return viewMonth.year * 12 + viewMonth.month > now.getFullYear() * 12 + now.getMonth();
+    return (
+      viewMonth.year * 12 + viewMonth.month >
+      now.getFullYear() * 12 + now.getMonth()
+    );
   }, [viewMonth]);
 
   const goPreviousMonth = useCallback(() => {
@@ -230,7 +278,10 @@ export function SubscriptionsCalendarView({
               {Array.from({ length: weeks.length }).map((_, index) => (
                 <div key={index} className="grid shrink-0 grid-cols-7 py-0.5">
                   {Array.from({ length: 7 }).map((_, index) => (
-                    <Skeleton key={index} className="mx-auto size-8 rounded-full" />
+                    <Skeleton
+                      key={index}
+                      className="mx-auto size-8 rounded-full"
+                    />
                   ))}
                 </div>
               ))}
@@ -252,17 +303,13 @@ export function SubscriptionsCalendarView({
                 className="flex shrink-0 flex-col gap-y-1 py-1 pb-4"
               >
                 {weeks.map((week, index) => (
-                  <div
-                    key={index}
-                    className="grid shrink-0 grid-cols-7 py-0.5"
-                  >
+                  <div key={index} className="grid shrink-0 grid-cols-7 py-0.5">
                     {week.map(({ date, inMonth }) => {
                       const iso = toIsoDate(date);
                       const isTodayCell = iso === todayIso;
                       const isSelected = selectedDateKey === iso;
                       const dayNum = date.getDate();
                       const dayItems = occurrencesMapByDate.get(iso);
-                      const dots = distinctCalendarDotClasses(dayItems);
 
                       return (
                         <div
@@ -274,27 +321,37 @@ export function SubscriptionsCalendarView({
                             disabled={!inMonth}
                             onClick={() => onDateClick(iso, inMonth)}
                             className={cn(
-                              "relative z-[1] flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-medium tabular-nums transition-colors",
-                              inMonth ? "text-foreground hover:bg-muted/85" : "opacity-40 text-muted-foreground pointer-events-none",
-                              isTodayCell && !isSelected && "bg-muted-foreground/20",
-                              isSelected && "bg-sky-600 text-white hover:text-foreground",
+                              "relative z-1 flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-medium tabular-nums transition-colors",
+                              inMonth
+                                ? "text-foreground hover:bg-muted/85"
+                                : "opacity-40 text-muted-foreground pointer-events-none",
+                              isTodayCell &&
+                              !isSelected &&
+                              "bg-muted-foreground/20",
+                              isSelected &&
+                              "bg-sky-600 text-white hover:text-foreground",
                             )}
                           >
                             {dayNum}
                           </button>
                           <div
-                            className="pointer-events-none absolute bottom-1/8 left-1/2 z-[2] flex -translate-x-1/2 translate-y-[55%] items-center justify-center gap-1"
+                            className="pointer-events-none absolute bottom-1/8 left-1/2 z-2 flex -translate-x-1/2 translate-y-[55%] items-center justify-center gap-1"
                             aria-hidden
                           >
-                            {dots.map((dotCls, di) => (
-                              <span
-                                key={`${iso}-dot-${di}`}
-                                className={cn(
-                                  "size-1.5 shrink-0 rounded-full",
-                                  dotCls,
-                                )}
-                              />
-                            ))}
+                            {dayItems?.slice(0, 4).map((item, index) => {
+                              const pfcPrimary = item.pfcPrimary?.trim();
+                              const meta = getPfcPrmaryMeta(pfcPrimary);
+
+                              return (
+                                <span
+                                  key={`${iso}-dot-${index}`}
+                                  className={cn(
+                                    "size-1.5 shrink-0 rounded-full",
+                                    meta.calendarDotClassName,
+                                  )}
+                                />
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -328,7 +385,10 @@ export function SubscriptionsCalendarView({
         ) : (
           <div className="px-2 pb-6 pt-1 md:px-3">
             {occurrencesGroupsByDate.map(({ dateKey, rows }) => (
-              <section key={dateKey} className="border-b border-border/50 last:border-b-0">
+              <section
+                key={dateKey}
+                className="border-b border-border/50 last:border-b-0"
+              >
                 <div className="flex flex-wrap items-center gap-2 pb-2 pt-3 first:pt-1">
                   <span className="text-xs font-medium tracking-wide text-muted-foreground">
                     {formatHeaderDate(parseIsoDate(dateKey))}
@@ -347,7 +407,7 @@ export function SubscriptionsCalendarView({
                 ) : (
                   <ul className="pb-2">
                     {rows.map((row, index) => {
-                      const meta = getPfcPrimaryMeta(row.pfcPrimary);
+                      const meta = getPfcPrmaryMeta(row.pfcPrimary);
                       const Icon = meta.Icon;
                       const merchantLine = recurringCashflowMerchantName(row);
                       const descriptionLine = recurringCashflowDescription(row);

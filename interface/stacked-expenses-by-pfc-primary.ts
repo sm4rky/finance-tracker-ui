@@ -1,6 +1,5 @@
+import { TimeGranularity } from "@/interface/granularity";
 import type { TransactionAnalyticsQueryRequest } from "@/interface/transaction-analytics";
-
-export type TimeGranularity = "day" | "week" | "month" | "year";
 
 export type StackedExpensesByPfcPrimaryAmount = {
   pfcPrimary: string | null;
@@ -12,12 +11,12 @@ export type StackedExpensesByPfcPrimaryBucket = {
   stacks: readonly StackedExpensesByPfcPrimaryAmount[];
 };
 
-export type StackedExpensesByPfcPrimaryResponse = {
-  timeGranularity: TimeGranularity;
-  buckets: readonly StackedExpensesByPfcPrimaryBucket[];
-};
-
 export type StackedExpensesByPfcPrimaryRequest =
   TransactionAnalyticsQueryRequest & {
     timeGranularity: TimeGranularity;
   };
+
+export type StackedExpensesByPfcPrimaryResponse = {
+  timeGranularity: TimeGranularity;
+  buckets: readonly StackedExpensesByPfcPrimaryBucket[];
+};

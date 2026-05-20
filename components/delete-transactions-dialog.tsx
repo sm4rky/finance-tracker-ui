@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { deleteTransactions } from "@/lib/api/transactions";
+import { deleteTransactions } from "@/lib/api/transaction";
 
 export type DeleteTransactionsDialogProps = {
   open: boolean;

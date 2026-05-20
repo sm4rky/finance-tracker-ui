@@ -4,18 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { EChartsOption } from "echarts";
 import ReactECharts from "echarts-for-react";
-import { useTheme } from "next-themes";
 
 import {
   getDefaultTransactionsFilter,
-  getPfcCategoryMeta,
   sanitizeTransactionsFilter,
 } from "@/components/transactions-filter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchPfcPrimaryExpenseDistribution } from "@/lib/api/analytics";
 import { listPlaidConnections } from "@/lib/api/plaid";
+import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
 import { cn } from "@/lib/utils";
 import { useTransactionsFilterStore } from "@/stores/transactions-filter";
+
+const UNCATEGORIZED_LABEL = "Uncategorized";
 
 function formatUsdTooltip(value: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -31,9 +32,9 @@ function formatSignedPercent(roundedToOneDecimal: number): string {
 
 function sliceDisplayName(pfcPrimary: string | null): string {
   if (pfcPrimary == null || pfcPrimary === "") {
-    return "Uncategorized";
+    return UNCATEGORIZED_LABEL;
   }
-  return getPfcCategoryMeta(pfcPrimary).displayName;
+  return getPfcPrmaryMeta(pfcPrimary).displayName;
 }
 
 export type CategoryExpensePieChartProps = {
@@ -47,22 +48,20 @@ export function CategoryExpensePieChart({
   expensesChangePercentFromPrevious,
   cashflowLoading = false,
 }: CategoryExpensePieChartProps = {}) {
-  const { resolvedTheme } = useTheme();
-  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(false);
+  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(() => {
+    const persistApi = useTransactionsFilterStore.persist;
+    return !persistApi || persistApi.hasHydrated();
+  });
 
   useEffect(() => {
-    const store = useTransactionsFilterStore;
-
-    if (store.persist.hasHydrated()) {
-      setIsFilterStoreHydrated(true);
+    const persistApi = useTransactionsFilterStore.persist;
+    if (!persistApi || persistApi.hasHydrated()) {
       return;
     }
 
-    const unsubscribe = store.persist.onFinishHydration(() => {
+    return persistApi.onFinishHydration(() => {
       setIsFilterStoreHydrated(true);
     });
-
-    return unsubscribe;
   }, []);
 
   const storedAppliedFilter = useTransactionsFilterStore(
@@ -74,7 +73,15 @@ export function CategoryExpensePieChart({
     queryFn: listPlaidConnections,
   });
 
-  const banks = plaidConnections ?? [];
+  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
+
+  const activeBanks = useMemo(
+    () =>
+      allBanks.filter(
+        (bank) => bank.status === "active" || bank.status === "relink_required",
+      ),
+    [allBanks],
+  );
 
   const appliedFilter = useMemo(() => {
     if (!isFilterStoreHydrated) {
@@ -82,31 +89,31 @@ export function CategoryExpensePieChart({
     }
 
     return sanitizeTransactionsFilter(
-      storedAppliedFilter ?? getDefaultTransactionsFilter(banks),
-      banks,
+      storedAppliedFilter ?? getDefaultTransactionsFilter(activeBanks),
+      activeBanks,
     );
-  }, [isFilterStoreHydrated, storedAppliedFilter, banks]);
+  }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
 
   const filterKey = JSON.stringify(appliedFilter);
 
-  const { data: expenseDistribution, isPending, isError } = useQuery({
+  const { data, isPending, isError, error } = useQuery({
     queryKey: ["analytics-pfc-expense-distribution", filterKey],
     queryFn: () => fetchPfcPrimaryExpenseDistribution(appliedFilter),
     enabled: isFilterStoreHydrated,
   });
 
   const expenseSlices = useMemo(() => {
-    const slices = expenseDistribution?.slices ?? [];
+    const slices = data?.slices ?? [];
     return slices.filter((s) => s.totalExpenses > 0);
-  }, [expenseDistribution?.slices]);
+  }, [data?.slices]);
 
   const chartOption = useMemo((): EChartsOption | null => {
-    const seriesData = expenseSlices.map((s) => ({
+    const series = expenseSlices.map((s) => ({
       name: sliceDisplayName(s.pfcPrimary),
       value: s.totalExpenses,
     }));
 
-    if (seriesData.length === 0) return null;
+    if (series.length === 0) return null;
 
     return {
       tooltip: {
@@ -126,8 +133,8 @@ export function CategoryExpensePieChart({
           formatUsdTooltip(typeof value === "number" ? value : Number(value)),
       },
       legend: {
-        orient: "vertical",
         type: "scroll",
+        orient: "vertical",
         right: 0,
         top: "middle",
         height: "72%",
@@ -139,7 +146,6 @@ export function CategoryExpensePieChart({
           fontSize: 12,
           color: "var(--card-foreground)",
           overflow: "truncate",
-          width: 96,
         },
         pageIconColor: "var(--muted-foreground)",
         pageIconInactiveColor: "var(--muted-foreground)",
@@ -166,18 +172,20 @@ export function CategoryExpensePieChart({
             borderColor: "var(--card)",
             borderWidth: 2,
           },
-          data: seriesData,
+          data: series,
         },
       ],
     };
-  }, [expenseSlices, resolvedTheme]);
-
-  const showSkeleton = !isFilterStoreHydrated || isPending;
+  }, [expenseSlices]);
 
   const expensesChangeRounded =
     expensesChangePercentFromPrevious != null
       ? Math.round(expensesChangePercentFromPrevious * 10) / 10
       : null;
+
+  const showSkeleton = !isFilterStoreHydrated || isPending;
+
+  const showEmpty = !isPending && !isError && chartOption == null;
 
   return (
     <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
@@ -209,8 +217,7 @@ export function CategoryExpensePieChart({
                       "text-emerald-600 dark:text-emerald-400",
                     expensesChangeRounded < 0 &&
                       "text-red-600 dark:text-red-400",
-                    expensesChangeRounded === 0 &&
-                      "text-muted-foreground",
+                    expensesChangeRounded === 0 && "text-muted-foreground",
                   )}
                 >
                   {formatSignedPercent(expensesChangeRounded)}
@@ -224,11 +231,15 @@ export function CategoryExpensePieChart({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-2 sm:px-3 sm:pb-3">
         {showSkeleton ? (
           <Skeleton className="mx-auto min-h-60 w-full max-w-xl flex-1 rounded-lg sm:min-h-64 md:min-h-72" />
-        ) : isError || chartOption == null ? (
+        ) : isError ? (
+          <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-64 md:min-h-72">
+            {error instanceof Error ? error.message : "Could not load chart."}
+          </p>
+        ) : showEmpty ? (
           <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-64 md:min-h-72">
             No expense data for this period.
           </p>
-        ) : (
+        ) : chartOption ? (
           <div className="relative mx-auto flex min-h-60 w-full max-w-xl flex-1 flex-col sm:min-h-64 md:min-h-72">
             <ReactECharts
               option={chartOption}
@@ -238,6 +249,10 @@ export function CategoryExpensePieChart({
               aria-label="Expense distribution chart"
             />
           </div>
+        ) : (
+          <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-64 md:min-h-72">
+            No expense data for this period.
+          </p>
         )}
       </div>
     </section>

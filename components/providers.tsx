@@ -8,7 +8,7 @@ import { ThemePreferenceSync } from "@/components/theme-preference-sync";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ensureUserProfile } from "@/lib/api/users";
+import { ensureUserProfile } from "@/lib/api/user";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-session";
 

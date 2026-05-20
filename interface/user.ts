@@ -1,4 +1,4 @@
-export interface UserProfile {
+export interface UserResponse {
   email: string;
   fullName: string;
   avatarUrl?: string | null;

@@ -1,6 +1,6 @@
 import { sanitizeTransactionsFilter } from "@/components/transactions-filter";
 import type { LinkedBankResponse } from "@/interface/plaid";
-import type { TransactionsFilterState } from "@/interface/transaction";
+import type { TransactionsFilterState } from "@/lib/transaction-filter";
 import { create } from "zustand";
 import {
   createJSONStorage,

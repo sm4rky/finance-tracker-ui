@@ -9,6 +9,15 @@ export type RecurringCashflowFrequency =
   | "ANNUALLY"
   | "ONE_TIME";
 
+export interface RecurringCashflowLinkedBankAccountResponse {
+  id: string;
+  accountName?: string | null;
+  officialName?: string | null;
+  mask?: string | null;
+  type?: string | null;
+  subtype?: string | null;
+}
+
 export interface SaveProfileRecurringCashflowRequest {
   linkedBankAccountId: string | null;
   direction: RecurringCashflowDirection;
@@ -26,24 +35,21 @@ export interface SaveProfileRecurringCashflowRequest {
 
 export interface ProfileRecurringCashflowResponse {
   id: string;
-  linkedBankAccountId: string | null;
-  plaidStreamId: string | null;
-  direction: RecurringCashflowDirection;
   merchantName: string | null;
   description: string;
   pfcPrimary: string | null;
   pfcDetailed: string | null;
+  direction: RecurringCashflowDirection;
   frequency: RecurringCashflowFrequency;
+  status: string;
   lastAmount: number | null;
   expectedAmount: number;
   expectedAmountUserSet?: boolean;
+  plaidStreamId: string | null;
   firstDate: string | null;
   lastDate: string | null;
   predictedNextDate: string | null;
-  status: string;
   linkedBankAccount?: RecurringCashflowLinkedBankAccountResponse | null;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface ProfileRecurringCashflowCalendarOccurrenceResponse {
@@ -53,30 +59,9 @@ export interface ProfileRecurringCashflowCalendarOccurrenceResponse {
   description?: string | null;
   pfcPrimary?: string | null;
   pfcDetailed?: string | null;
-  linkedBankAccountId?: string | null;
   recurringCashflowId: string;
   frequency: string;
   direction: string;
   status: string;
   linkedBankAccount?: RecurringCashflowLinkedBankAccountResponse | null;
 }
-
-export interface RecurringCashflowLinkedBankAccountResponse {
-  id: string;
-  name: string;
-  mask?: string | null;
-  type?: string | null;
-  subtype?: string | null;
-}
-
-export type RecurringCashflowStatusFilterId = "active" | "unlinked";
-
-export const RECURRING_CASHFLOW_STATUS_FILTER_IDS: RecurringCashflowStatusFilterId[] =
-  ["active", "unlinked"];
-
-export type RecurringCashflowsFilterState = {
-  accountIds?: string[];
-  includeUnlinked?: boolean;
-  pfcPrimaryList?: string[];
-  statusList?: string[];
-};

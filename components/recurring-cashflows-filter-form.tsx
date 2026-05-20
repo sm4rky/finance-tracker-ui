@@ -18,16 +18,13 @@ import {
 import { Input } from "@/components/ui/input";
 import type { LinkedBankResponse } from "@/interface/plaid";
 import {
-  RECURRING_CASHFLOW_STATUS_FILTER_IDS,
-  type RecurringCashflowsFilterState,
-} from "@/interface/profile-recurring-cashflow";
+  PFC_PRIMARY,
+  getPfcPrmaryMeta,
+} from "@/lib/pfc-primary";
+import type { RecurringCashflowsFilterState } from "@/lib/recurring-cashflow-filter";
+import { RECURRING_CASHFLOW_STATUSES } from "@/lib/recurring-cashflow-status";
+import { getAllAccountIds } from "@/lib/linked-bank-accounts";
 import { cn } from "@/lib/utils";
-
-import {
-  getAllAccountIds,
-  getPfcCategoryMeta,
-  PFC_PRIMARY_CATEGORY_CODES,
-} from "@/components/transactions-filter";
 
 function toggleSelection(
   list: string[],
@@ -65,59 +62,55 @@ const STATUS_META: Record<
 };
 
 export type RecurringCashflowsFilterFormProps = {
-  filter: RecurringCashflowsFilterState;
+  filterState: RecurringCashflowsFilterState;
   onChange: (next: RecurringCashflowsFilterState) => void;
   banks: LinkedBankResponse[] | undefined;
   variant?: "default" | "sheet";
 };
 
 export function RecurringCashflowsFilterForm({
-  filter,
+  filterState,
   onChange,
   banks,
   variant = "default",
 }: RecurringCashflowsFilterFormProps) {
   const isSheet = variant === "sheet";
-  const [categorySearch, setCategorySearch] = useState("");
+  const [pfcPrimarySearch, setPfcPrimarySearch] = useState("");
 
   const allAccountIds = useMemo(() => getAllAccountIds(banks), [banks]);
   const selectedAccountIds =
-    filter.accountIds === undefined ? allAccountIds : filter.accountIds;
-  const selectedCategoryCodes =
-    filter.pfcPrimaryList ?? [...PFC_PRIMARY_CATEGORY_CODES];
-  const selectedStatuses = filter.statusList ?? [...RECURRING_CASHFLOW_STATUS_FILTER_IDS];
+    filterState.accountIds === undefined ? allAccountIds : filterState.accountIds;
+  const selectedPfcPrimary =
+    filterState.pfcPrimaryList ?? [...PFC_PRIMARY];
+  const selectedStatuses = filterState.statusList ?? [...RECURRING_CASHFLOW_STATUSES];
 
-  const filteredCategoryCodes = useMemo(() => {
-    const keyword = categorySearch.trim().toLowerCase();
-    if (!keyword) return PFC_PRIMARY_CATEGORY_CODES;
+  const filteredPfcPrimary = useMemo(() => {
+    const keyword = pfcPrimarySearch.trim().toLowerCase();
+    if (!keyword) return PFC_PRIMARY;
 
-    return PFC_PRIMARY_CATEGORY_CODES.filter((code) => {
-      const meta = getPfcCategoryMeta(code);
-      return (
-        meta.displayName.toLowerCase().includes(keyword) ||
-        code.toLowerCase().includes(keyword)
-      );
-    });
-  }, [categorySearch]);
+    return PFC_PRIMARY.filter((pfcPrimary) =>
+      pfcPrimary.toLowerCase().includes(keyword)
+    );
+  }, [pfcPrimarySearch]);
 
   const allAccountsSelected =
     allAccountIds.length > 0 &&
     allAccountIds.every((id) => selectedAccountIds.includes(id));
 
-  const allCategoriesSelected =
-    PFC_PRIMARY_CATEGORY_CODES.length > 0 &&
-    PFC_PRIMARY_CATEGORY_CODES.every((code) =>
-      selectedCategoryCodes.includes(code),
+  const allPfcPrimarySelected =
+    PFC_PRIMARY.length > 0 &&
+    PFC_PRIMARY.every((pfcPrimary) =>
+      selectedPfcPrimary.includes(pfcPrimary),
     );
 
   const allStatusesSelected =
-    RECURRING_CASHFLOW_STATUS_FILTER_IDS.length > 0 &&
-    RECURRING_CASHFLOW_STATUS_FILTER_IDS.every((id) =>
+    RECURRING_CASHFLOW_STATUSES.length > 0 &&
+    RECURRING_CASHFLOW_STATUSES.every((id) =>
       selectedStatuses.includes(id),
     );
 
   const accountCount = selectedAccountIds.length;
-  const categoryCount = selectedCategoryCodes.length;
+  const primaryCategoryCount = selectedPfcPrimary.length;
   const statusCount = selectedStatuses.length;
 
   const triggerClassName = isSheet
@@ -128,41 +121,41 @@ export function RecurringCashflowsFilterForm({
 
   const setAllAccounts = () => {
     onChange({
-      ...filter,
+      ...filterState,
       accountIds: allAccountsSelected ? [] : [...allAccountIds],
     });
   };
 
-  const setAllCategories = () => {
+  const setAllPfcPrimary = () => {
     onChange({
-      ...filter,
-      pfcPrimaryList: allCategoriesSelected
+      ...filterState,
+      pfcPrimaryList: allPfcPrimarySelected
         ? []
-        : [...PFC_PRIMARY_CATEGORY_CODES],
+        : [...PFC_PRIMARY],
     });
   };
 
   const setAllStatuses = () => {
     onChange({
-      ...filter,
+      ...filterState,
       statusList: allStatusesSelected
         ? []
-        : [...RECURRING_CASHFLOW_STATUS_FILTER_IDS],
+        : [...RECURRING_CASHFLOW_STATUSES],
     });
   };
 
   const updateAccountSelection = (accountId: string, checked: boolean) => {
     onChange({
-      ...filter,
+      ...filterState,
       accountIds: toggleSelection(selectedAccountIds, accountId, checked),
     });
   };
 
   const updateCategorySelection = (categoryCode: string, checked: boolean) => {
     onChange({
-      ...filter,
+      ...filterState,
       pfcPrimaryList: toggleSelection(
-        selectedCategoryCodes,
+        selectedPfcPrimary,
         categoryCode,
         checked,
       ),
@@ -171,7 +164,7 @@ export function RecurringCashflowsFilterForm({
 
   const updateStatusSelection = (statusId: string, checked: boolean) => {
     onChange({
-      ...filter,
+      ...filterState,
       statusList: toggleSelection(selectedStatuses, statusId, checked),
     });
   };
@@ -238,11 +231,10 @@ export function RecurringCashflowsFilterForm({
 
                       {bank.accounts.map((account) => {
                         const checked = selectedAccountIds.includes(account.id);
-                        const label = `${
-                          account.officialName?.trim() ||
+                        const label = `${account.officialName?.trim() ||
                           account.accountName.trim() ||
                           "Account"
-                        }${account.mask ? ` ·•••${account.mask}` : ""}`;
+                          }${account.mask ? ` ·•••${account.mask}` : ""}`;
 
                         return (
                           <DropdownMenuItem
@@ -282,10 +274,10 @@ export function RecurringCashflowsFilterForm({
       >
         <Checkbox
           id="rcf-include-unlinked"
-          checked={filter.includeUnlinked ?? true}
+          checked={filterState.includeUnlinked ?? true}
           onCheckedChange={(checked) =>
             onChange({
-              ...filter,
+              ...filterState,
               includeUnlinked: checked === true,
             })
           }
@@ -302,17 +294,17 @@ export function RecurringCashflowsFilterForm({
         <DropdownMenu
           modal={false}
           onOpenChange={(open) => {
-            if (!open) setCategorySearch("");
+            if (!open) setPfcPrimarySearch("");
           }}
         >
           <DropdownMenuTrigger
             type="button"
             className={cn(
-              getSelectTriggerClassName(categoryCount > 0),
+              getSelectTriggerClassName(primaryCategoryCount > 0),
               triggerClassName,
             )}
           >
-            <span>Categories ({categoryCount})</span>
+            <span>Categories ({primaryCategoryCount})</span>
             <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
           </DropdownMenuTrigger>
 
@@ -324,13 +316,13 @@ export function RecurringCashflowsFilterForm({
             )}
           >
             <div
-              className="px-1 pb-1.5"
+              className="px-1 py-1.5"
               onPointerDown={(e) => e.stopPropagation()}
             >
               <Input
                 placeholder="Search categories…"
-                value={categorySearch}
-                onChange={(e) => setCategorySearch(e.target.value)}
+                value={pfcPrimarySearch}
+                onChange={(e) => setPfcPrimarySearch(e.target.value)}
                 className="h-8 text-sm"
                 autoComplete="off"
                 aria-label="Search categories"
@@ -344,14 +336,14 @@ export function RecurringCashflowsFilterForm({
 
             <DropdownMenuItem
               closeOnClick={false}
-              onClick={setAllCategories}
+              onClick={setAllPfcPrimary}
               className="cursor-pointer gap-2 py-1.5 pr-2 pl-1.5"
             >
               <span
                 className="pointer-events-none flex shrink-0 items-center"
                 aria-hidden
               >
-                <Checkbox checked={allCategoriesSelected} tabIndex={-1} />
+                <Checkbox checked={allPfcPrimarySelected} tabIndex={-1} />
               </span>
               <span className="min-w-0 flex-1 text-xs font-medium">
                 Select all
@@ -360,20 +352,20 @@ export function RecurringCashflowsFilterForm({
 
             <DropdownMenuSeparator />
 
-            {filteredCategoryCodes.length === 0 ? (
+            {filteredPfcPrimary.length === 0 ? (
               <p className="px-2 py-3 text-center text-sm text-muted-foreground">
                 No matches
               </p>
             ) : (
-              filteredCategoryCodes.map((code) => {
-                const meta = getPfcCategoryMeta(code);
-                const checked = selectedCategoryCodes.includes(code);
+              filteredPfcPrimary.map((pfcPrimary) => {
+                const meta = getPfcPrmaryMeta(pfcPrimary);
+                const checked = selectedPfcPrimary.includes(pfcPrimary);
 
                 return (
                   <DropdownMenuItem
-                    key={code}
+                    key={pfcPrimary}
                     closeOnClick={false}
-                    onClick={() => updateCategorySelection(code, !checked)}
+                    onClick={() => updateCategorySelection(pfcPrimary, !checked)}
                     className="cursor-pointer gap-2 py-1.5 pr-2 pl-1.5"
                   >
                     <span
@@ -435,7 +427,7 @@ export function RecurringCashflowsFilterForm({
 
             <DropdownMenuSeparator />
 
-            {RECURRING_CASHFLOW_STATUS_FILTER_IDS.map((id) => {
+            {RECURRING_CASHFLOW_STATUSES.map((id) => {
               const meta = STATUS_META[id];
               const checked = selectedStatuses.includes(id);
               const Icon = meta.Icon;

@@ -17,8 +17,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
-import type { UserProfile } from "@/interface/user";
-import { updateProfileAvatar } from "@/lib/api/users";
+import type { UserResponse } from "@/interface/user";
+import { updateProfileAvatar } from "@/lib/api/user";
 import { uploadAvatarObject } from "@/lib/supabase/avatar";
 import { useAuthStore } from "@/stores/auth-session";
 
@@ -142,7 +142,7 @@ async function compressAvatarBlob(blob: Blob): Promise<Blob> {
 export type AvatarUploadDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUploaded?: (profile: UserProfile) => void;
+  onUploaded?: (profile: UserResponse) => void;
 };
 
 export function AvatarUploadDialog({

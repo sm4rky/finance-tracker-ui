@@ -20,71 +20,71 @@ import {
 } from "@/components/recurring-cashflows-filter";
 import { SaveRecurringCashflowSheet } from "@/components/save-recurring-cashflow-sheet";
 import { Button } from "@/components/ui/button";
-import type {
-  ProfileRecurringCashflowResponse,
-  RecurringCashflowsFilterState,
-} from "@/interface/profile-recurring-cashflow";
+import type { ProfileRecurringCashflowResponse } from "@/interface/profile-recurring-cashflow";
 import { listPlaidConnections } from "@/lib/api/plaid";
+import type { RecurringCashflowsFilterState } from "@/lib/recurring-cashflow-filter";
 
 export function SubscriptionsView() {
   const [viewMode, setViewMode] = useState<SubscriptionsViewMode>("list");
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
-  const [editing, setEditing] =
+  const [saveSheetOpen, setSaveSheetOpen] = useState(false);
+  const [saveSheetMode, setSaveSheetMode] = useState<"create" | "edit">("create");
+  const [editingRecurringCashflow, setEditingRecurringCashflow] =
     useState<ProfileRecurringCashflowResponse | null>(null);
 
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const [storedFilter, setStoredFilter] = useState<RecurringCashflowsFilterState>(
-    getDefaultRecurringCashflowsFilter,
-  );
+  const [filterState, setFilterState] =
+    useState<RecurringCashflowsFilterState>(getDefaultRecurringCashflowsFilter);
 
   const { data: plaidConnections } = useQuery({
     queryKey: ["list-plaid-connections"],
     queryFn: listPlaidConnections,
   });
 
-  const allBanks = plaidConnections ?? [];
+  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
 
   const activeBanks = useMemo(
-    () => allBanks.filter((bank) => bank.status === "active" || bank.status === "relink_required"),
+    () =>
+      allBanks.filter(
+        (bank) => bank.status === "active" || bank.status === "relink_required",
+      ),
     [allBanks],
   );
 
   const appliedFilter = useMemo(
-    () => sanitizeRecurringCashflowsFilter(storedFilter, activeBanks),
-    [storedFilter, activeBanks],
+    () => sanitizeRecurringCashflowsFilter(filterState, activeBanks),
+    [filterState, activeBanks],
   );
 
   const handleApplyFilter = useCallback(
-    (next: RecurringCashflowsFilterState) => {
-      setStoredFilter(next);
+    (filterState: RecurringCashflowsFilterState) => {
+      setFilterState(filterState);
     },
     [],
   );
 
   const { triggerProps, panelsProps } = useRecurringCashflowsFilter({
     banks: activeBanks,
-    applied: appliedFilter,
-    onApply: handleApplyFilter,
+    appliedFilter,
+    onApplyFilter: handleApplyFilter,
   });
 
-  const openCreate = useCallback(() => {
-    setSheetMode("create");
-    setEditing(null);
-    setSheetOpen(true);
+  const openCreateRecurringCashflowSheet = useCallback(() => {
+    setSaveSheetMode("create");
+    setEditingRecurringCashflow(null);
+    setSaveSheetOpen(true);
   }, []);
 
-  const openEdit = useCallback((row: ProfileRecurringCashflowResponse) => {
-    setSheetMode("edit");
-    setEditing(row);
-    setSheetOpen(true);
+  const openEditRecurringCashflowSheet = useCallback((row: ProfileRecurringCashflowResponse) => {
+    setSaveSheetMode("edit");
+    setEditingRecurringCashflow(row);
+    setSaveSheetOpen(true);
   }, []);
 
-  const openDelete = useCallback((id: string) => {
+  const openDeleteRecurringCashflowDialog = useCallback((id: string) => {
     setDeleteId(id);
-    setDeleteOpen(true);
+    setDeleteDialogOpen(true);
   }, []);
 
   return (
@@ -96,33 +96,36 @@ export function SubscriptionsView() {
             type="button"
             variant="outline"
             className="gap-1.5"
-            onClick={openCreate}
+            onClick={openCreateRecurringCashflowSheet}
           >
             <Plus className="size-4 shrink-0" aria-hidden />
             Add subscription
           </Button>
-          <SubscriptionsViewModeToggle mode={viewMode} onModeChange={setViewMode} />
+          <SubscriptionsViewModeToggle
+            mode={viewMode}
+            onModeChange={setViewMode}
+          />
         </div>
         <RecurringCashflowsFilterPanels {...panelsProps} />
       </div>
 
       <DeleteRecurringCashflowDialog
-        open={deleteOpen}
+        open={deleteDialogOpen}
         onOpenChange={(next) => {
-          setDeleteOpen(next);
+          setDeleteDialogOpen(next);
           if (!next) setDeleteId(null);
         }}
         recurringId={deleteId}
       />
 
       <SaveRecurringCashflowSheet
-        open={sheetOpen}
+        open={saveSheetOpen}
         onOpenChange={(next) => {
-          setSheetOpen(next);
-          if (!next) setEditing(null);
+          setSaveSheetOpen(next);
+          if (!next) setEditingRecurringCashflow(null);
         }}
-        mode={sheetMode}
-        recurring={editing}
+        mode={saveSheetMode}
+        recurring={editingRecurringCashflow}
         banks={activeBanks}
       />
 
@@ -137,8 +140,8 @@ export function SubscriptionsView() {
         <SubscriptionsListView
           appliedFilter={appliedFilter}
           banks={allBanks}
-          onEdit={openEdit}
-          onDelete={openDelete}
+          onEdit={openEditRecurringCashflowSheet}
+          onDelete={openDeleteRecurringCashflowDialog}
         />
       )}
     </div>

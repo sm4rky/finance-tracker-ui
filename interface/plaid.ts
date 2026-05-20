@@ -10,21 +10,6 @@ export interface CreatePlaidLinkTokenResponse {
   linkSessionId: string;
 }
 
-export interface ExchangePlaidPublicTokenRequest {
-  publicToken: string;
-  linkSessionId: string;
-}
-
-export interface ExchangePlaidPublicTokenResponse {
-  linkedBankId: string;
-  plaidItemId: string;
-  institutionId: string | null;
-  institutionName: string | null;
-  accounts: LinkedBankAccountResponse[];
-  requiresAccountOptOutHandling: boolean;
-  pendingDeselectedAccounts: LinkedBankAccountResponse[];
-}
-
 export interface LinkedBankAccountResponse {
   id: string;
   linkedBankId: string;
@@ -41,6 +26,21 @@ export interface LinkedBankAccountResponse {
   unofficialCurrencyCode: string | null;
   balanceLastFetchedAt: string | null;
   isActive: boolean;
+}
+
+export interface ExchangePlaidPublicTokenRequest {
+  publicToken: string;
+  linkSessionId: string;
+}
+
+export interface ExchangePlaidPublicTokenResponse {
+  linkedBankId: string;
+  plaidItemId: string;
+  institutionId: string | null;
+  institutionName: string | null;
+  accounts: LinkedBankAccountResponse[];
+  requiresAccountOptOutHandling: boolean;
+  pendingDeselectedAccounts: LinkedBankAccountResponse[];
 }
 
 export type LinkedBankStatus = "active" | "disconnected" | "relink_required";

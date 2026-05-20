@@ -13,8 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { UserProfile } from "@/interface/user";
-import { updateProfileAvatar } from "@/lib/api/users";
+import type { UserResponse } from "@/interface/user";
+import { updateProfileAvatar } from "@/lib/api/user";
 import { removeAvatarObject } from "@/lib/supabase/avatar";
 import { useAuthStore } from "@/stores/auth-session";
 
@@ -23,7 +23,7 @@ export type DeleteProfileAvatarDialogProps = {
   onOpenChange: (open: boolean) => void;
   userId: string | null;
   avatarUrl: string | null;
-  onDeleted?: (profile: UserProfile) => void;
+  onDeleted?: (profile: UserResponse) => void;
   onDeletingChange?: (isDeleting: boolean) => void;
 };
 

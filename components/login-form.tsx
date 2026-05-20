@@ -39,9 +39,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
-  const [credentialsError, setCredentialsError] = useState<string | null>(
-    null,
-  );
+  const [credentialsError, setCredentialsError] = useState<string | null>(null);
   const oauthError = searchParams.get("error") === "oauth";
 
   const form = useForm<LoginFormValues>({
@@ -103,7 +101,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] w-full flex-1 flex-col bg-background px-4 py-10 md:min-h-screen md:py-12">
+    <div className="flex min-h-dvh w-full flex-1 flex-col bg-background px-4 py-10 md:min-h-screen md:py-12">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
         <MobileBrand />
 
@@ -236,9 +234,7 @@ export function LoginForm() {
               </Button>
             </form>
 
-            <FieldSeparator className="my-6">
-              Or continue with
-            </FieldSeparator>
+            <FieldSeparator className="my-6">Or continue with</FieldSeparator>
 
             <Button
               type="button"

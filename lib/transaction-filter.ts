@@ -1,4 +1,4 @@
-export type TransactionAnalyticsQueryRequest = {
+export type TransactionsFilterState = {
   accountIds?: string[];
   includeUnlinkedTransactions?: boolean;
   pfcPrimaryList?: string[];

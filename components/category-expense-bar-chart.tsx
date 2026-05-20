@@ -8,7 +8,6 @@ import { toast } from "sonner";
 
 import {
   getDefaultTransactionsFilter,
-  getPfcCategoryMeta,
   sanitizeTransactionsFilter,
 } from "@/components/transactions-filter";
 import {
@@ -19,21 +18,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { TimeGranularity } from "@/interface/granularity";
 import type {
   StackedExpensesByPfcPrimaryAmount,
   StackedExpensesByPfcPrimaryBucket,
-  TimeGranularity,
 } from "@/interface/stacked-expenses-by-pfc-primary";
 import { fetchStackedExpensesByPfcPrimary } from "@/lib/api/analytics";
 import { listPlaidConnections } from "@/lib/api/plaid";
+import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
+import { TIME_GRANULARITY_OPTIONS } from "@/lib/time-granularity";
 import { useTransactionsFilterStore } from "@/stores/transactions-filter";
 
-const TIME_GRANULARITY_OPTIONS: { value: TimeGranularity; label: string }[] = [
-  { value: "day", label: "Day" },
-  { value: "week", label: "Week" },
-  { value: "month", label: "Month" },
-  { value: "year", label: "Year" },
-];
+const UNCATEGORIZED_LABEL = "Uncategorized";
 
 function formatUsdTooltip(value: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -51,11 +47,11 @@ function formatUsdAxis(value: number): string {
   }).format(value);
 }
 
-function sliceDisplayName(pfcPrimary: string | null): string {
+function segmentDisplayName(pfcPrimary: string | null): string {
   if (pfcPrimary == null || pfcPrimary === "") {
-    return "Uncategorized";
+    return UNCATEGORIZED_LABEL;
   }
-  return getPfcCategoryMeta(pfcPrimary).displayName;
+  return getPfcPrmaryMeta(pfcPrimary).displayName;
 }
 
 function buildPfcKeysAcrossBuckets(
@@ -63,37 +59,37 @@ function buildPfcKeysAcrossBuckets(
 ): (string | null)[] {
   const totals = new Map<string | null, number>();
   for (const b of buckets) {
-    for (const s of b.stacks) {
-      const k = s.pfcPrimary;
-      totals.set(k, (totals.get(k) ?? 0) + s.amount);
+    for (const stack of b.stacks) {
+      const key = stack.pfcPrimary;
+      totals.set(key, (totals.get(key) ?? 0) + stack.amount);
     }
   }
   const keys = [...totals.keys()];
   keys.sort((a, b) => {
     const diff = (totals.get(b) ?? 0) - (totals.get(a) ?? 0);
     if (diff !== 0) return diff;
-    return sliceDisplayName(a).localeCompare(
-      sliceDisplayName(b),
+    return segmentDisplayName(a).localeCompare(
+      segmentDisplayName(b),
       undefined,
-      { sensitivity: "base" },
+      {
+        sensitivity: "base",
+      },
     );
   });
   return keys;
 }
 
 export function CategoryExpenseBarChart() {
-  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(false);
+  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(() => {
+    const persistApi = useTransactionsFilterStore.persist;
+    return !persistApi || persistApi.hasHydrated();
+  });
   const [timeGranularity, setTimeGranularity] =
     useState<TimeGranularity>("month");
 
   useEffect(() => {
     const persistApi = useTransactionsFilterStore.persist;
-    if (!persistApi) {
-      setIsFilterStoreHydrated(true);
-      return;
-    }
-    if (persistApi.hasHydrated()) {
-      setIsFilterStoreHydrated(true);
+    if (!persistApi || persistApi.hasHydrated()) {
       return;
     }
 
@@ -111,7 +107,15 @@ export function CategoryExpenseBarChart() {
     queryFn: listPlaidConnections,
   });
 
-  const banks = plaidConnections ?? [];
+  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
+
+  const activeBanks = useMemo(
+    () =>
+      allBanks.filter(
+        (bank) => bank.status === "active" || bank.status === "relink_required",
+      ),
+    [allBanks],
+  );
 
   const appliedFilter = useMemo(() => {
     if (!isFilterStoreHydrated) {
@@ -119,17 +123,17 @@ export function CategoryExpenseBarChart() {
     }
 
     return sanitizeTransactionsFilter(
-      storedAppliedFilter ?? getDefaultTransactionsFilter(banks),
-      banks,
+      storedAppliedFilter ?? getDefaultTransactionsFilter(activeBanks),
+      activeBanks,
     );
-  }, [isFilterStoreHydrated, storedAppliedFilter, banks]);
+  }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
 
   const filterKey = JSON.stringify(appliedFilter);
   const queryReady =
     isFilterStoreHydrated &&
     Boolean(appliedFilter.dateFrom?.trim() && appliedFilter.dateTo?.trim());
 
-  const stackedQuery = useQuery({
+  const { data, isPending, isError, error } = useQuery({
     queryKey: [
       "analytics-stacked-expense-pfc-primary",
       filterKey,
@@ -143,21 +147,16 @@ export function CategoryExpenseBarChart() {
     enabled: queryReady,
   });
 
-  const { isPending: isStackedPending, isError: isStackedError } = stackedQuery;
-
   useEffect(() => {
-    if (!isStackedError || !(stackedQuery.error instanceof Error)) {
+    if (!isError || !(error instanceof Error)) {
       return;
     }
-    toast.error(stackedQuery.error.message, {
+    toast.error(error.message, {
       id: "analytics-stacked-expense-pfc-primary-error",
     });
-  }, [isStackedError, stackedQuery.error]);
+  }, [isError, error]);
 
-  const buckets = useMemo(
-    () => stackedQuery.data?.buckets ?? [],
-    [stackedQuery.data?.buckets],
-  );
+  const buckets = useMemo(() => data?.buckets ?? [], [data?.buckets]);
 
   const chartOption = useMemo((): EChartsOption | null => {
     if (buckets.length === 0) return null;
@@ -175,14 +174,14 @@ export function CategoryExpenseBarChart() {
       return hit?.amount ?? 0;
     };
 
-    const series = pfcKeys.map((pfcKey) => ({
-      name: sliceDisplayName(pfcKey),
+    const series = pfcKeys.map((key) => ({
+      name: segmentDisplayName(key),
       type: "bar" as const,
       stack: "expense",
       barMaxWidth: 100,
       barCategoryGap: "40%",
       emphasis: { focus: "series" as const },
-      data: buckets.map((b) => amountForBucket(b.stacks, pfcKey)),
+      data: buckets.map((bucket) => amountForBucket(bucket.stacks, key)),
     }));
 
     return {
@@ -278,14 +277,10 @@ export function CategoryExpenseBarChart() {
     };
   }, [buckets]);
 
-  const showSkeleton =
-    !isFilterStoreHydrated || (queryReady && isStackedPending);
+  const showSkeleton = !isFilterStoreHydrated || (queryReady && isPending);
 
   const showEmpty =
-    queryReady &&
-    !isStackedPending &&
-    !isStackedError &&
-    buckets.length === 0;
+    queryReady && !isPending && !isError && buckets.length === 0;
 
   return (
     <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
@@ -303,15 +298,15 @@ export function CategoryExpenseBarChart() {
           >
             <SelectTrigger
               size="sm"
-              className="min-w-0 flex-1 sm:flex-initial sm:w-[7.5rem]"
+              className="min-w-0 flex-1 sm:flex-initial sm:w-30"
               aria-label="Time grouping"
             >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent align="end" className="min-w-[7.5rem]">
-              {TIME_GRANULARITY_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
+            <SelectContent align="end" className="min-w-30">
+              {TIME_GRANULARITY_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -322,11 +317,9 @@ export function CategoryExpenseBarChart() {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-2 sm:px-3 sm:pb-3">
         {showSkeleton ? (
           <Skeleton className="mx-auto min-h-60 w-full flex-1 rounded-lg sm:min-h-64 md:min-h-72" />
-        ) : isStackedError ? (
+        ) : isError ? (
           <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-destructive sm:min-h-64 md:min-h-72">
-            {stackedQuery.error instanceof Error
-              ? stackedQuery.error.message
-              : "Could not load chart."}
+            {error instanceof Error ? error.message : "Could not load chart."}
           </p>
         ) : showEmpty ? (
           <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-64 md:min-h-72">

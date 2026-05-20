@@ -6,11 +6,11 @@ export type NetWorthTrendItem = {
   createdAt: string;
 };
 
-export type NetWorthTrendResponse = {
-  items: readonly NetWorthTrendItem[];
-};
-
 export type NetWorthTrendQueryRequest = {
   dateFrom?: string;
   dateTo?: string;
+};
+
+export type NetWorthTrendResponse = {
+  items: readonly NetWorthTrendItem[];
 };

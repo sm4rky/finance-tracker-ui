@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { Table as TanStackTable } from "@tanstack/react-table";
+import Image from "next/image";
 
 import {
   AmountCell,
   formatDetailCategory,
   formatTxDate,
   getMerchantLabel,
-  getPaymentChannelMeta,
-  getPfcPrimaryMeta,
+  getTransactionAccountLabel,
   TransactionRowActions,
 } from "@/components/transactions-columns";
 import {
@@ -24,6 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TransactionResponse } from "@/interface/transaction";
+import { getPaymentChannelMeta } from "@/lib/payment-channel";
+import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
 import { cn } from "@/lib/utils";
 
 function MobileMerchantSummary({
@@ -35,21 +37,22 @@ function MobileMerchantSummary({
 }) {
   const [imgFailed, setImgFailed] = useState(false);
 
-  const meta = getPfcPrimaryMeta(row.pfcPrimary);
+  const meta = getPfcPrmaryMeta(row.pfcPrimary);
   const label = getMerchantLabel(row);
-  const logoUrl = row.logoUrl?.trim();
-  const shouldShowImage = Boolean(logoUrl) && !imgFailed;
-
+  const logoUrl = row.logoUrl?.trim() ?? "";
+  const shouldShowImage = logoUrl !== "" && !imgFailed;
   const Icon = meta.Icon;
 
   return (
     <div className="flex min-w-0 flex-1 items-start gap-3">
       {shouldShowImage ? (
-        <img
+        <Image
           src={logoUrl}
           alt=""
+          width={36}
+          height={36}
           className="size-9 shrink-0 rounded-lg border border-border/60 bg-muted object-contain"
-          loading="lazy"
+          unoptimized
           onError={() => setImgFailed(true)}
         />
       ) : (
@@ -77,7 +80,6 @@ function MobileMerchantSummary({
 export type TransactionsMobileListProps = {
   table: TanStackTable<TransactionResponse>;
   data: TransactionResponse[];
-  accountLabelMap: Map<string, string>;
   isLoading: boolean;
   emptyMessage: string;
   onEdit: (row: TransactionResponse) => void;
@@ -87,7 +89,6 @@ export type TransactionsMobileListProps = {
 export function TransactionsMobileList({
   table,
   data,
-  accountLabelMap,
   isLoading,
   emptyMessage,
   onEdit,
@@ -140,13 +141,10 @@ export function TransactionsMobileList({
           const selected = row?.getIsSelected() ?? false;
 
           const merchantLabel = getMerchantLabel(transaction);
+          const accountLabel = getTransactionAccountLabel(transaction);
 
-          const accountId = transaction.linkedBankAccountId;
-          const accountLabel = accountId
-            ? (accountLabelMap.get(accountId) ?? "—")
-            : "—";
-
-          const categoryMeta = getPfcPrimaryMeta(transaction.pfcPrimary);
+          const pfcPrimary = transaction.pfcPrimary?.trim();
+          const meta = getPfcPrmaryMeta(pfcPrimary);
           const detailCategoryMeta = formatDetailCategory(transaction.pfcDetailed);
           const channelMeta = getPaymentChannelMeta(transaction.paymentChannel);
 
@@ -156,7 +154,7 @@ export function TransactionsMobileList({
               value={transaction.id}
               className="overflow-hidden rounded-none border-0 border-t border-border first:border-t-0"
             >
-              <AccordionHeader className="flex min-h-[3.25rem] w-full items-center gap-2 border-0 px-4 py-1">
+              <AccordionHeader className="flex min-h-13 w-full items-center gap-2 border-0 px-4 py-1">
                 <div
                   className="flex shrink-0 items-center"
                   onClick={(e) => e.stopPropagation()}
@@ -171,7 +169,7 @@ export function TransactionsMobileList({
                   />
                 </div>
 
-                <AccordionTrigger className="min-h-0 min-w-0 flex-1 items-center gap-2 py-2 hover:no-underline [&[data-state=open]]:bg-transparent">
+                <AccordionTrigger className="min-h-0 min-w-0 flex-1 items-center gap-2 py-2 hover:no-underline data-[state=open]:bg-transparent">
                   <ChevronDown
                     className="chevron-accordion size-4 shrink-0 text-muted-foreground transition-transform"
                     aria-hidden
@@ -204,13 +202,13 @@ export function TransactionsMobileList({
                 <dl className="flex flex-col gap-3 pt-3">
                   <div className="space-y-0.5">
                     <dt className="text-muted-foreground text-xs">Merchant</dt>
-                    <dd className="min-w-0 break-words text-sm font-medium">
+                    <dd className="min-w-0 wrap-break-word text-sm font-medium">
                       {merchantLabel}
                     </dd>
                   </div>
                   <div className="space-y-0.5">
                     <dt className="text-muted-foreground text-xs">Account</dt>
-                    <dd className="min-w-0 break-words text-sm">{accountLabel}</dd>
+                    <dd className="min-w-0 wrap-break-word text-sm">{accountLabel}</dd>
                   </div>
                   <div className="space-y-0.5">
                     <dt className="text-muted-foreground text-xs">
@@ -221,10 +219,10 @@ export function TransactionsMobileList({
                         variant="outline"
                         className={cn(
                           "max-w-full truncate border font-normal text-xs",
-                          categoryMeta.badgeClassName,
+                          meta.badgeClassName,
                         )}
                       >
-                        {categoryMeta.displayName}
+                        {meta.displayName}
                       </Badge>
                     </dd>
                   </div>
