@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
 
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { ThemePreferenceSync } from "@/components/theme-preference-sync";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -132,6 +133,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         <ThemePreferenceSync />
+        <ServiceWorkerRegister />
         <TooltipProvider>
           {children}
           <Toaster />

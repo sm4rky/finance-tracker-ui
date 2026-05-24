@@ -18,11 +18,21 @@ const geistMono = Geist_Mono({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#252525" },
+  ],
 };
 
 export const metadata: Metadata = {
   title: "MoneyInsight",
   description: "Personal finance insights",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "MoneyInsight",
+    statusBarStyle: "default",
+  },
   icons: {
     icon: [
       "/money-insight-logo.svg",
@@ -31,6 +41,7 @@ export const metadata: Metadata = {
         media: "(prefers-color-scheme: dark)",
       },
     ],
+    apple: "/icon-180.png",
   },
 };
 
