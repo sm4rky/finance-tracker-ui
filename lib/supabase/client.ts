@@ -53,3 +53,12 @@ export async function signInWithEmailPassword(email: string, password: string) {
     password,
   });
 }
+
+export async function sendPasswordResetEmail(email: string) {
+  const supabase = createClient();
+  const redirectTo = `${oauthRedirectBase(window.location.origin)}?next=${encodeURIComponent("/reset-password")}`;
+
+  return supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo,
+  });
+}

@@ -36,6 +36,7 @@ export async function middleware(request: NextRequest) {
 
   const needsAuth =
     pathname === "/" ||
+    pathname === "/reset-password" ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/transactions") ||
     pathname.startsWith("/subscriptions") ||
@@ -48,6 +49,14 @@ export async function middleware(request: NextRequest) {
       `${pathname}${request.nextUrl.search}`,
     );
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (
+    user &&
+    pathname === "/reset-password" &&
+    request.cookies.get("password-recovery")?.value !== "1"
+  ) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   if (user && isAuthPage) {

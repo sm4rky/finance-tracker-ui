@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
+const PASSWORD_RECOVERY_MAX_AGE_SECONDS = 15 * 60;
+
 function safeNextPath(raw: string | null): string {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
   return raw;
@@ -51,6 +53,16 @@ export async function GET(request: NextRequest) {
         origin,
       ),
     );
+  }
+
+  if (next === "/reset-password") {
+    redirectResponse.cookies.set("password-recovery", "1", {
+      httpOnly: true,
+      maxAge: PASSWORD_RECOVERY_MAX_AGE_SECONDS,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
   }
 
   return redirectResponse;
