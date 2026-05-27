@@ -103,7 +103,7 @@ function amountForBucketBar(
   key: string,
 ): number {
   const hit = bars.find(
-    (bar) => bar.linkedBankAccountId ?? UNLINKED_KEY === key,
+    (bar) => (bar.linkedBankAccountId ?? UNLINKED_KEY) === key,
   );
   return hit?.amount ?? 0;
 }
