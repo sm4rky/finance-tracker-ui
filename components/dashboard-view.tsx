@@ -105,6 +105,9 @@ export function DashboardView() {
         <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <p className="min-w-0 flex-1 text-balance font-heading text-xl font-semibold leading-snug tracking-tight sm:text-2xl md:text-3xl">
             {displayLine ? `Hi ${displayLine}!` : "Hi!"}
+            <span aria-hidden="true" className="ml-2 inline-block">
+              👋
+            </span>
           </p>
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
             <TransactionsDateFilter

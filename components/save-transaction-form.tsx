@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
+import Image from "next/image";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -37,6 +38,10 @@ import {
   getPaymentChannelMeta,
   type PaymentChannel,
 } from "@/lib/payment-channel";
+import {
+  getPlaidInstitutionIcon,
+  type PlaidInstitutionIcon,
+} from "@/lib/plaid-institution-icons";
 import { cn } from "@/lib/utils";
 import {
   saveTransactionFormSchema,
@@ -187,18 +192,21 @@ export function SaveTransactionForm({
   const [pfcPrimarySearch, setPfcPrimarySearch] = useState("");
 
   const accountOptions = useMemo(() => {
-    const rows: { id: string; label: string }[] = [];
+    const rows: { id: string; label: string; icon: PlaidInstitutionIcon | null }[] =
+      [];
     const seen = new Set<string>();
     for (const bank of banks) {
+      const institutionName = bank.institutionName?.trim() || "Bank";
+      const institutionIcon = getPlaidInstitutionIcon(institutionName);
       for (const account of bank.accounts) {
         const base =
           account.officialName?.trim() ||
           account.accountName.trim() ||
           "Account";
         const label = account.mask
-          ? `${bank.institutionName ?? "Bank"} · ${base} ·•••${account.mask}`
-          : `${bank.institutionName ?? "Bank"} · ${base}`;
-        rows.push({ id: account.id, label });
+          ? `${institutionName} · ${base} ·•••${account.mask}`
+          : `${institutionName} · ${base}`;
+        rows.push({ id: account.id, label, icon: institutionIcon });
         seen.add(account.id);
       }
     }
@@ -207,6 +215,7 @@ export function SaveTransactionForm({
       rows.unshift({
         id: orphanId,
         label: "Opted out account",
+        icon: null,
       });
     }
     return rows;
@@ -302,7 +311,18 @@ export function SaveTransactionForm({
                     </SelectItem>
                     {accountOptions.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
-                        {a.label}
+                        <span className="flex min-w-0 items-center gap-2">
+                          {a.icon ? (
+                            <Image
+                              src={a.icon.src}
+                              alt={a.icon.alt}
+                              width={16}
+                              height={16}
+                              className="size-4 shrink-0 object-contain"
+                            />
+                          ) : null}
+                          <span className="min-w-0 truncate">{a.label}</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
