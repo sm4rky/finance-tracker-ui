@@ -33,6 +33,27 @@ function formatCurrencyUsd(amount: number): string {
   }
 }
 
+function parseISODateLocal(value: string): Date | null {
+  const datePart = value.trim().split("T")[0];
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
 function formatNextDueDisplay(iso: string | null | undefined): {
   dateLine: string;
   relative: string | null;
@@ -40,8 +61,8 @@ function formatNextDueDisplay(iso: string | null | undefined): {
   if (iso == null || iso === "") {
     return { dateLine: "—", relative: null };
   }
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) {
+  const d = parseISODateLocal(iso);
+  if (d == null) {
     return { dateLine: "—", relative: null };
   }
   const dateLine = d.toLocaleDateString(undefined, {
