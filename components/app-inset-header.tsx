@@ -16,6 +16,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Switch } from "@/components/ui/switch";
+import {
+  deleteMyPushSubscription,
+  listMyPushSubscriptions,
+} from "@/lib/api/push-subscriptions";
+import { unsubscribeCurrentPushSubscription } from "@/lib/pwa/push-subscription";
 import { createClient } from "@/lib/supabase/client";
 import { getStoredAvatarUrl } from "@/lib/supabase/avatar";
 import { useAuthStore } from "@/stores/auth-session";
@@ -66,6 +71,21 @@ export function AppInsetHeader() {
   async function handleSignOut() {
     setSigningOut(true);
     const supabase = createClient();
+    try {
+      const subscription = await unsubscribeCurrentPushSubscription();
+      if (subscription?.endpoint) {
+        const devices = await listMyPushSubscriptions();
+        const device = devices.find(
+          (item) => item.endpoint === subscription.endpoint,
+        );
+
+        if (device) {
+          await deleteMyPushSubscription(device.id);
+        }
+      }
+    } catch {
+
+    }
     await supabase.auth.signOut();
     useAuthStore.getState().clear();
     router.push("/login");
