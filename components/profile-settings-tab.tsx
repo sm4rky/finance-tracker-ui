@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { TabsContent } from "@/components/ui/tabs";
+import { ProfileNotificationPreferencesSection } from "@/components/profile-notification-preferences-section";
+import { ProfilePushDevicesSection } from "@/components/profile-push-devices-section";
 import { ProfileUsernameSection } from "@/components/profile-username-section";
 import { useAuthStore } from "@/stores/auth-session";
 import { ProfilePasswordSection } from "./profile-password-section";
@@ -22,7 +24,10 @@ export function ProfileSettingsTab() {
       className="rounded-xl border border-border bg-card/40 p-4 sm:p-6 focus-visible:outline-none"
     >
       <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
-        <UserRound className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <UserRound
+          className="size-4 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
         <span className="min-w-0">Personal Information</span>
       </div>
       <div className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
@@ -54,6 +59,14 @@ export function ProfileSettingsTab() {
       <Separator className="my-6 sm:my-8" />
 
       <ProfilePasswordSection />
+
+      <Separator className="my-6 sm:my-8" />
+
+      <ProfileNotificationPreferencesSection />
+
+      <Separator className="my-6 sm:my-8" />
+
+      <ProfilePushDevicesSection />
     </TabsContent>
   );
 }

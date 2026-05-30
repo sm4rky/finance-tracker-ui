@@ -2,6 +2,7 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { ChevronDown, Wallet } from "lucide-react";
+import Image from "next/image";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 } from "@/lib/payment-channel";
 import type { TransactionsFilterState } from "@/lib/transaction-filter";
 import { getAllAccountIds } from "@/lib/linked-bank-accounts";
+import { getPlaidInstitutionIcon } from "@/lib/plaid-institution-icons";
 import { cn } from "@/lib/utils";
 
 function parseOptionalAmount(raw: string): number | undefined {
@@ -224,46 +226,63 @@ export function TransactionsFilterForm({
 
                 <DropdownMenuSeparator />
 
-                {banks.map((bank, bankIndex) => (
-                  <Fragment key={bank.id}>
-                    {bankIndex > 0 ? <DropdownMenuSeparator /> : null}
+                {banks.map((bank, bankIndex) => {
+                  const institutionName = bank.institutionName?.trim() || "Bank";
+                  const institutionIcon =
+                    getPlaidInstitutionIcon(institutionName);
 
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide">
-                        {bank.institutionName?.trim() || "Bank"}
-                      </DropdownMenuLabel>
+                  return (
+                    <Fragment key={bank.id}>
+                      {bankIndex > 0 ? <DropdownMenuSeparator /> : null}
 
-                      {bank.accounts.map((account) => {
-                        const checked = selectedAccountIds.includes(account.id);
-                        const label = `${account.officialName?.trim() ||
-                          account.accountName.trim() ||
-                          "Account"
-                          }${account.mask ? ` ·•••${account.mask}` : ""}`;
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel className="flex min-w-0 items-center gap-2 text-[11px] font-semibold uppercase tracking-wide">
+                          {institutionIcon ? (
+                            <Image
+                              src={institutionIcon.src}
+                              alt={institutionIcon.alt}
+                              width={16}
+                              height={16}
+                              className="size-4 shrink-0 object-contain"
+                            />
+                          ) : null}
+                          <span className="min-w-0 truncate">
+                            {institutionName}
+                          </span>
+                        </DropdownMenuLabel>
 
-                        return (
-                          <DropdownMenuItem
-                            key={account.id}
-                            closeOnClick={false}
-                            onClick={() =>
-                              updateAccountSelection(account.id, !checked)
-                            }
-                            className="cursor-pointer gap-2 py-1.5 pr-2 pl-1.5"
-                          >
-                            <span
-                              className="pointer-events-none flex shrink-0 items-center"
-                              aria-hidden
+                        {bank.accounts.map((account) => {
+                          const checked = selectedAccountIds.includes(account.id);
+                          const label = `${account.officialName?.trim() ||
+                            account.accountName.trim() ||
+                            "Account"
+                            }${account.mask ? ` ·•••${account.mask}` : ""}`;
+
+                          return (
+                            <DropdownMenuItem
+                              key={account.id}
+                              closeOnClick={false}
+                              onClick={() =>
+                                updateAccountSelection(account.id, !checked)
+                              }
+                              className="cursor-pointer gap-2 py-1.5 pr-2 pl-1.5"
                             >
-                              <Checkbox checked={checked} tabIndex={-1} />
-                            </span>
-                            <span className="min-w-0 flex-1 truncate">
-                              {label}
-                            </span>
-                          </DropdownMenuItem>
-                        );
-                      })}
-                    </DropdownMenuGroup>
-                  </Fragment>
-                ))}
+                              <span
+                                className="pointer-events-none flex shrink-0 items-center"
+                                aria-hidden
+                              >
+                                <Checkbox checked={checked} tabIndex={-1} />
+                              </span>
+                              <span className="min-w-0 flex-1 truncate">
+                                {label}
+                              </span>
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuGroup>
+                    </Fragment>
+                  );
+                })}
               </>
             )}
           </DropdownMenuContent>

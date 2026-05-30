@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import {
   AlertTriangle,
   Building2,
@@ -41,6 +42,7 @@ import {
 } from "@/components/update-linked-accounts-dialog";
 import type { LinkedBankResponse, LinkedBankStatus } from "@/interface/plaid";
 import { syncPlaidTransactions } from "@/lib/api/plaid";
+import { getPlaidInstitutionIcon } from "@/lib/plaid-institution-icons";
 import { cn } from "@/lib/utils";
 
 const SYNC_COOLDOWN_MS = 30 * 60 * 1000;
@@ -193,6 +195,7 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
 
   const accountCount = bank.accounts.length;
   const institutionName = bank.institutionName?.trim() || "Linked institution";
+  const institutionIcon = getPlaidInstitutionIcon(institutionName);
   const currencyCode = bank.accounts[0]?.isoCurrencyCode ?? "USD";
   const totalBalance = bank.accounts.reduce(
     (sum, account) => sum + (account.currentBalance ?? 0),
@@ -213,10 +216,23 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
         >
           <div className="flex min-w-0 flex-1 basis-full items-center gap-3 sm:basis-auto sm:flex-row">
             <div
-              className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted"
+              className={cn(
+                "flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg",
+                institutionIcon ? null : "bg-muted",
+              )}
               aria-hidden
             >
-              <Building2 className="size-5 text-muted-foreground" />
+              {institutionIcon ? (
+                <Image
+                  src={institutionIcon.src}
+                  alt={institutionIcon.alt}
+                  width={32}
+                  height={32}
+                  className="size-8 object-contain"
+                />
+              ) : (
+                <Building2 className="size-5 text-muted-foreground" />
+              )}
             </div>
 
             <div className="min-w-0 flex-1 text-left">

@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
+import Image from "next/image";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -17,7 +18,9 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -31,6 +34,10 @@ import {
   UNCATEGORIZED_PFC_PRIMARY,
   getPfcPrmaryMeta,
 } from "@/lib/pfc-primary";
+import {
+  getPlaidInstitutionIcon,
+  type PlaidInstitutionIcon,
+} from "@/lib/plaid-institution-icons";
 import { cn } from "@/lib/utils";
 import {
   RECURRING_FREQUENCY_LABEL,
@@ -153,32 +160,49 @@ export function SaveRecurringCashflowForm({
   const directionRadioGroupName = useId();
   const [pfcPrimarySearch, setPfcPrimarySearch] = useState("");
 
-  const accountOptions = useMemo(() => {
-    const rows: { id: string; label: string }[] = [];
+  const accountOptionGroups = useMemo(() => {
+    const groups: {
+      id: string;
+      institutionName: string;
+      icon: PlaidInstitutionIcon | null;
+      accounts: { id: string; label: string }[];
+    }[] = [];
+    const orphanOptions: { id: string; label: string }[] = [];
     const seen = new Set<string>();
     for (const bank of banks) {
+      const institutionName = bank.institutionName?.trim() || "Bank";
+      const institutionIcon = getPlaidInstitutionIcon(institutionName);
+      const accounts: { id: string; label: string }[] = [];
       for (const account of bank.accounts) {
         const base =
           account.officialName?.trim() ||
           account.accountName.trim() ||
           "Account";
         const label = account.mask
-          ? `${bank.institutionName ?? "Bank"} · ${base} ·•••${account.mask}`
-          : `${bank.institutionName ?? "Bank"} · ${base}`;
-        rows.push({ id: account.id, label });
+          ? `${base} ·•••${account.mask}`
+          : base;
+        accounts.push({ id: account.id, label });
         seen.add(account.id);
+      }
+      if (accounts.length > 0) {
+        groups.push({
+          id: bank.id,
+          institutionName,
+          icon: institutionIcon,
+          accounts,
+        });
       }
     }
     const orphanId = recurring
       ? recurring.linkedBankAccount?.id ?? null
       : null;
     if (orphanId && recurring && !seen.has(orphanId)) {
-      rows.unshift({
+      orphanOptions.push({
         id: orphanId,
         label: "Opted out account",
       });
     }
-    return rows;
+    return { groups, orphanOptions };
   }, [banks, recurring]);
 
   const filteredPfcPrimary = useMemo(() => {
@@ -325,15 +349,44 @@ export function SaveRecurringCashflowForm({
                     align="start"
                     side="bottom"
                     sideOffset={4}
-                    className="max-h-72"
+                    className="max-h-72 w-[min(28rem,calc(100vw-2rem))]"
                   >
                     <SelectItem value={ACCOUNT_NONE_VALUE}>
                       No account (unlinked)
                     </SelectItem>
-                    {accountOptions.map((a) => (
+                    {accountOptionGroups.orphanOptions.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
                         {a.label}
                       </SelectItem>
+                    ))}
+                    {accountOptionGroups.groups.map((group) => (
+                      <SelectGroup key={group.id}>
+                        <SelectLabel className="flex min-w-0 items-center gap-2 text-[11px] font-semibold uppercase tracking-wide">
+                          {group.icon ? (
+                            <Image
+                              src={group.icon.src}
+                              alt={group.icon.alt}
+                              width={16}
+                              height={16}
+                              className="size-4 shrink-0 object-contain"
+                            />
+                          ) : null}
+                          <span className="min-w-0 truncate">
+                            {group.institutionName}
+                          </span>
+                        </SelectLabel>
+                        {group.accounts.map((a) => (
+                          <SelectItem
+                            key={a.id}
+                            value={a.id}
+                            className="overflow-hidden"
+                          >
+                            <span className="block w-[calc(100vw-6rem)] max-w-96 truncate">
+                              {a.label}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     ))}
                   </SelectContent>
                 </Select>

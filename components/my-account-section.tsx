@@ -3,6 +3,7 @@
 import { useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Building2, ChevronDown, Wallet } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 import {
@@ -20,6 +21,7 @@ import type {
   LinkedBankResponse,
 } from "@/interface/plaid";
 import { listPlaidConnections } from "@/lib/api/plaid";
+import { getPlaidInstitutionIcon } from "@/lib/plaid-institution-icons";
 import { useAuthStore } from "@/stores/auth-session";
 import { cn } from "@/lib/utils";
 
@@ -267,6 +269,7 @@ export function MyAccountSection() {
                     {activeBanks.map((bank) => {
                       const title =
                         bank.institutionName?.trim() || "Linked institution";
+                      const institutionIcon = getPlaidInstitutionIcon(title);
                       const needsAttention =
                         bank.status === "relink_required";
                       return (
@@ -275,9 +278,20 @@ export function MyAccountSection() {
                           className="space-y-2 py-4 first:pt-0"
                         >
                           <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <h3 className="text-sm font-semibold leading-tight">
-                              {title}
-                            </h3>
+                            <div className="flex min-w-0 items-center gap-2">
+                              {institutionIcon ? (
+                                <Image
+                                  src={institutionIcon.src}
+                                  alt={institutionIcon.alt}
+                                  width={20}
+                                  height={20}
+                                  className="size-5 shrink-0 object-contain"
+                                />
+                              ) : null}
+                              <h3 className="min-w-0 truncate text-sm font-semibold leading-tight">
+                                {title}
+                              </h3>
+                            </div>
                             <span className="shrink-0 text-sm font-medium tabular-nums text-muted-foreground">
                               {formatMoney(
                                 sumBankBalance(bank),
