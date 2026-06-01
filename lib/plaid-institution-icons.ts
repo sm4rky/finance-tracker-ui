@@ -7,6 +7,10 @@ const PLAID_INSTITUTION_ICON_BY_NORMALIZED_NAME: Record<
   string,
   PlaidInstitutionIcon
 > = {
+  academybank: {
+    src: "/plaid-academybank.png",
+    alt: "Academy Bank logo",
+  },
   americanexpress: {
     src: "/plaid-americanexpress.png",
     alt: "American Express logo",
@@ -46,6 +50,10 @@ const PLAID_INSTITUTION_ICON_BY_NORMALIZED_NAME: Record<
   citizensbank: {
     src: "/plaid-citizens.png",
     alt: "Citizens Bank logo",
+  },
+  discover: {
+    src: "/plaid-discover.png",
+    alt: "Discover logo",
   },
   frost: {
     src: "/plaid-frost.png",
