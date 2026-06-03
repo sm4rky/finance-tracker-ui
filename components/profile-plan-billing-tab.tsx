@@ -2,7 +2,7 @@
 
 import { Check } from "lucide-react";
 
-import { BILLING_PLANS } from "@/components/billing-plan";
+import { BILLING_PLANS } from "@/lib/billing-plan";
 import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";

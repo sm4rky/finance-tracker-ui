@@ -8,16 +8,16 @@ export const BILLING_PLANS: BillingPlan[] = [
   {
     id: "free",
     name: "Free",
-    features: ["2 bank accounts", "2 years history", "Basic charts"],
+    features: ["Unlimited accounts"],
   },
   {
     id: "pro",
     name: "Pro",
-    features: ["5 bank accounts", "5 years history", "PDF reports", "AI Support"],
+    features: ["Unlimited accounts"],
   },
   {
     id: "premium",
     name: "Premium",
-    features: ["Unlimited accounts", "Full history", "PDF reports", "AI Support"],
+    features: ["Unlimited accounts", "Dev will ask you for new features since lack of ideas"],
   },
 ];
