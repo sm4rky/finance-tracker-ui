@@ -132,7 +132,7 @@ export function CategoryEditorPanel({
                 <p className="text-xs font-medium text-muted-foreground">
                   {group.displayName}
                 </p>
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   {group.icons.map((iconName) => {
                     const iconMeta =
                       getProfileCustomCategoryIconMeta(iconName);
