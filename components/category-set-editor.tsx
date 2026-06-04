@@ -16,6 +16,7 @@ import {
   ReactFlow,
   type Connection,
   type Edge,
+  type EdgeMouseHandler,
   type FinalConnectionState,
   type HandleType,
   type NodeMouseHandler,
@@ -180,6 +181,7 @@ export function CategorySetEditor({
     "color" | "icon"
   >("color");
   const [categoryEditorSheetOpen, setCategoryEditorSheetOpen] = useState(false);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
   const isMobile = useIsMobile();
 
@@ -274,6 +276,7 @@ export function CategorySetEditor({
         ),
       );
       setSelectedNodeId(connection.source!);
+      setSelectedEdgeId(null);
     },
     [setEdges],
   );
@@ -304,6 +307,7 @@ export function CategorySetEditor({
         ),
       );
       setSelectedNodeId(oldEdge.source);
+      setSelectedEdgeId(null);
     },
     [setEdges],
   );
@@ -332,12 +336,22 @@ export function CategorySetEditor({
       if (!connectionState.isValid) {
         const edgeToDelete = reconnectingEdgeRef.current ?? edge;
         setEdges((eds) => eds.filter((e) => e.id !== edgeToDelete.id));
+        setSelectedEdgeId(null);
       }
 
       reconnectingEdgeRef.current = null;
     },
     [setEdges],
   );
+
+  const handleEdgeClick: EdgeMouseHandler = useCallback((event, edge) => {
+    event.stopPropagation();
+    setSelectedEdgeId(edge.id);
+  }, []);
+
+  const handlePaneClick = useCallback(() => {
+    setSelectedEdgeId(null);
+  }, []);
 
   const openCategoryEditor = useCallback(() => {
     if (isMobile) {
@@ -349,6 +363,7 @@ export function CategorySetEditor({
     (_, node) => {
       if (node.type === "customCategory") {
         setSelectedNodeId(node.id);
+        setSelectedEdgeId(null);
         openCategoryEditor();
       }
     },
@@ -372,6 +387,7 @@ export function CategorySetEditor({
 
     setNodes((prev) => [...prev, newNode]);
     setSelectedNodeId(newNode.id);
+    setSelectedEdgeId(null);
     openCategoryEditor();
   };
 
@@ -410,8 +426,16 @@ export function CategorySetEditor({
     setNodes((prev) => prev.filter((node) => node.id !== selectedNodeId));
     setEdges((prev) => prev.filter((edge) => edge.source !== selectedNodeId));
     setSelectedNodeId(nextSelectedNode?.id ?? null);
+    setSelectedEdgeId(null);
     setDeleteCustomCategoryDialogOpen(false);
   }, [customCategoryNodes, selectedNodeId, setNodes, setEdges]);
+
+  const deleteSelectedEdge = useCallback(() => {
+    if (!selectedEdgeId) return;
+
+    setEdges((prev) => prev.filter((edge) => edge.id !== selectedEdgeId));
+    setSelectedEdgeId(null);
+  }, [selectedEdgeId, setEdges]);
 
   const handleSaveCustomCategorySet = () => {
     const pfcPrimaryCodesByCategory = edges.reduce<Record<string, string[]>>(
@@ -466,7 +490,7 @@ export function CategorySetEditor({
         onDeleted={deleteCustomCategory}
       />
 
-      <div className="flex min-h-0 min-w-0 flex-1 gap-4 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 gap-4">
         <Card className="flex min-h-0 flex-1 flex-col p-0">
           <CardHeader className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
             <div className="space-y-2">
@@ -513,7 +537,18 @@ export function CategorySetEditor({
             </div>
           </CardHeader>
 
-          <CardContent className="min-h-0 flex-1 p-0">
+          <CardContent className="relative min-h-0 flex-1 p-0">
+            {selectedEdgeId ? (
+              <Button
+                type="button"
+                variant="destructive"
+                className="absolute top-4 right-4 z-10"
+                onClick={deleteSelectedEdge}
+              >
+                <Trash2 className="size-4" />
+                Delete edge
+              </Button>
+            ) : null}
             <ReactFlow
               nodes={flowNodes}
               edges={edges}
@@ -527,6 +562,8 @@ export function CategorySetEditor({
               onReconnect={handleReconnect}
               onReconnectStart={handleReconnectStart}
               onReconnectEnd={handleReconnectEnd}
+              onEdgeClick={handleEdgeClick}
+              onPaneClick={handlePaneClick}
               onNodeClick={handleNodeClick}
               isValidConnection={(connection) =>
                 isCustomCategoryNodeId(connection.source) &&
@@ -537,7 +574,6 @@ export function CategorySetEditor({
               panOnDrag
               panOnScroll
               zoomOnPinch
-              zoomOnDoubleClick={false}
               fitView
               fitViewOptions={{ padding: 0.18 }}
               proOptions={{ hideAttribution: true }}

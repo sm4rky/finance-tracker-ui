@@ -20,6 +20,7 @@ export function PfcPrimaryFlowNode({ data }: PfcPrimaryFlowNodeProps) {
       <Handle
         type="target"
         position={Position.Right}
+        isConnectableStart={false}
         className="size-3! border-background! bg-primary!"
       />
       <div className="flex items-center gap-2">
