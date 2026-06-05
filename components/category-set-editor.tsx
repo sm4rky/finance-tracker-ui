@@ -236,10 +236,32 @@ export function CategorySetEditor({
   }, [edges]);
 
   const flowNodes = useMemo(
-    () =>
-      nodes.map((node) =>
-        node.type === "customCategory"
-          ? {
+    () => {
+      const selectedCustomCategoryId = customCategoryNodes.some(
+        (node) => node.id === selectedNodeId,
+      )
+        ? selectedNodeId
+        : null;
+
+      const pfcPrimaryIdsConnectedToSelected = new Set(
+        selectedCustomCategoryId
+          ? edges
+            .filter((edge) => edge.source === selectedCustomCategoryId)
+            .map((edge) => edge.target)
+          : [],
+      );
+
+      const pfcPrimaryIdsConnectedToOtherCategories = new Set(
+        selectedCustomCategoryId
+          ? edges
+            .filter((edge) => edge.source !== selectedCustomCategoryId)
+            .map((edge) => edge.target)
+          : [],
+      );
+
+      return nodes.map((node) => {
+        if (node.type === "customCategory") {
+          return {
             ...node,
             data: {
               ...node.data,
@@ -248,10 +270,28 @@ export function CategorySetEditor({
               onDeleteCustomCategory: () =>
                 setDeleteCustomCategoryDialogOpen(true),
             },
-          }
-          : node,
-      ),
-    [mappedCountByCustomCategory, nodes, selectedNodeId],
+          };
+        }
+
+        if (node.type === "pfcPrimary") {
+          const selected = pfcPrimaryIdsConnectedToSelected.has(node.id);
+          const dimmed =
+            !selected && pfcPrimaryIdsConnectedToOtherCategories.has(node.id);
+
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              selected,
+              dimmed,
+            },
+          };
+        }
+
+        return node;
+      });
+    },
+    [customCategoryNodes, edges, mappedCountByCustomCategory, nodes, selectedNodeId],
   );
 
   const flowEdges = useMemo(
@@ -270,13 +310,14 @@ export function CategorySetEditor({
             filter: isSelected
               ? `drop-shadow(0 0 5px var(--destructive))`
               : undefined,
+            opacity: isSelected ? 1 : connectedToSelected ? 1 : 0.25,
           },
           markerEnd:
             isSelected || connectedToSelected
               ? {
-                  type: MarkerType.ArrowClosed,
-                  color: isSelected ? "var(--destructive)" : "var(--primary)",
-                }
+                type: MarkerType.ArrowClosed,
+                color: isSelected ? "var(--destructive)" : "var(--primary)",
+              }
               : edge.markerEnd,
         };
       }),

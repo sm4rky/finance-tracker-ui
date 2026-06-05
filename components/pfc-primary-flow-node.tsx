@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 
 export type PfcPrimaryNodeData = {
   code: string;
+  selected?: boolean;
+  dimmed?: boolean;
 } & Record<string, unknown>;
 
 export type PfcPrimaryNode = Node<PfcPrimaryNodeData, "pfcPrimary">;
@@ -16,7 +18,13 @@ export function PfcPrimaryFlowNode({ data }: PfcPrimaryFlowNodeProps) {
   const Icon = meta.Icon;
 
   return (
-    <div className="min-w-64 rounded-xl border bg-card px-3 py-2 text-card-foreground shadow-sm">
+    <div
+      className={cn(
+        "min-w-64 rounded-xl border bg-card px-3 py-2 text-card-foreground shadow-sm transition",
+        data.selected && "shadow-md ring-2 ring-primary",
+        data.dimmed && "opacity-25",
+      )}
+    >
       <Handle
         type="target"
         position={Position.Right}
