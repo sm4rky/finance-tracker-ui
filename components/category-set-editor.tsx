@@ -254,6 +254,35 @@ export function CategorySetEditor({
     [mappedCountByCustomCategory, nodes, selectedNodeId],
   );
 
+  const flowEdges = useMemo(
+    () =>
+      edges.map((edge) => {
+        const connectedToSelected =
+          selectedNodeId != null && edge.source === selectedNodeId;
+        const isSelected = edge.id === selectedEdgeId;
+
+        return {
+          ...edge,
+          animated: connectedToSelected && !isSelected,
+          style: {
+            ...edge.style,
+            stroke: isSelected ? "var(--destructive)" : connectedToSelected ? "var(--primary)" : undefined,
+            filter: isSelected
+              ? `drop-shadow(0 0 5px var(--destructive))`
+              : undefined,
+          },
+          markerEnd:
+            isSelected || connectedToSelected
+              ? {
+                  type: MarkerType.ArrowClosed,
+                  color: isSelected ? "var(--destructive)" : "var(--primary)",
+                }
+              : edge.markerEnd,
+        };
+      }),
+    [edges, selectedEdgeId, selectedNodeId],
+  );
+
   const handleConnect = useCallback(
     (connection: Connection) => {
       if (
@@ -551,7 +580,7 @@ export function CategorySetEditor({
             ) : null}
             <ReactFlow
               nodes={flowNodes}
-              edges={edges}
+              edges={flowEdges}
               nodeTypes={{
                 pfcPrimary: PfcPrimaryFlowNode,
                 customCategory: CustomCategoryFlowNode,
