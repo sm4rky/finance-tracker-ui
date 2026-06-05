@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { LinkedBankResponse } from "@/interface/plaid";
 import {
   DATE_PRESET_LABELS,
   DATE_PRESET_ORDER,
@@ -25,19 +24,12 @@ import {
   getTodayISODate,
   inferDatePreset,
 } from "@/lib/transactions-date-range";
+import { useAppliedTransactionsFilter } from "@/hooks/use-applied-transactions-filter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { TransactionsFilterState } from "@/lib/transaction-filter";
 import { cn } from "@/lib/utils";
-import { useTransactionsFilterStore } from "@/stores/transactions-filter";
-
-import {
-  getDefaultTransactionsFilter,
-  sanitizeTransactionsFilter,
-} from "./transactions-filter";
 
 type TransactionsDateFilterProps = {
-  banks: LinkedBankResponse[] | undefined;
-  isStoreReady: boolean;
   onFilterChange?: () => void;
 };
 
@@ -54,32 +46,14 @@ function mergeAppliedDates(
 }
 
 export function TransactionsDateFilter({
-  banks,
-  isStoreReady,
   onFilterChange,
-}: TransactionsDateFilterProps) {
+}: TransactionsDateFilterProps = {}) {
   const isMobile = useIsMobile();
+  const { appliedFilter, isFilterStoreHydrated, setAppliedFilter } =
+    useAppliedTransactionsFilter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-
-  const storedAppliedFilter = useTransactionsFilterStore(
-    (state) => state.appliedFilter,
-  );
-  const setAppliedFilter = useTransactionsFilterStore(
-    (state) => state.setAppliedFilter,
-  );
-
-  const appliedFilter = useMemo(() => {
-    if (!isStoreReady) {
-      return getDefaultTransactionsFilter(banks);
-    }
-
-    return sanitizeTransactionsFilter(
-      storedAppliedFilter ?? getDefaultTransactionsFilter(banks),
-      banks,
-    );
-  }, [isStoreReady, storedAppliedFilter, banks]);
 
   const maxDate = useMemo(() => getTodayISODate(), []);
 
@@ -100,13 +74,10 @@ export function TransactionsDateFilter({
 
   const applyDateRange = useCallback(
     (dateFrom: string | undefined, dateTo: string | undefined) => {
-      setAppliedFilter(
-        mergeAppliedDates(appliedFilter, dateFrom, dateTo),
-        banks,
-      );
+      setAppliedFilter(mergeAppliedDates(appliedFilter, dateFrom, dateTo));
       onFilterChange?.();
     },
-    [appliedFilter, banks, onFilterChange, setAppliedFilter],
+    [appliedFilter, onFilterChange, setAppliedFilter],
   );
 
   const handleSelectPreset = useCallback(
@@ -141,7 +112,7 @@ export function TransactionsDateFilter({
     <DropdownMenu open={menuOpen} onOpenChange={handleOpenChange} modal={false}>
       <DropdownMenuTrigger
         type="button"
-        disabled={!isStoreReady}
+        disabled={!isFilterStoreHydrated}
         aria-label="Date range"
         className={cn(
           buttonVariants({

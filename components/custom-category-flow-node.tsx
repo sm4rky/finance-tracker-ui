@@ -2,8 +2,8 @@ import { Trash2 } from "lucide-react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 
 import { Button } from "@/components/ui/button";
-import { getProfileCustomCategoryColorSet } from "@/lib/profile-custom-category-colors";
-import { getProfileCustomCategoryIconMeta } from "@/lib/profile-custom-category-icons";
+import { getCustomCategoryColorSet } from "@/lib/custom-category-colors";
+import { getCustomCategoryIconMeta } from "@/lib/custom-category-icons";
 import { cn } from "@/lib/utils";
 import type { ProfileCustomCategoryResponse } from "@/interface/profile-custom-category";
 
@@ -19,8 +19,8 @@ export type CustomCategoryNode = Node<CustomCategoryNodeData, "customCategory">;
 export type CustomCategoryFlowNodeProps = NodeProps<CustomCategoryNode>;
 
 export function CustomCategoryFlowNode({ data }: CustomCategoryFlowNodeProps) {
-  const colorSet = getProfileCustomCategoryColorSet(data.category.colorSet);
-  const iconMeta = getProfileCustomCategoryIconMeta(data.category.iconName);
+  const colorSet = getCustomCategoryColorSet(data.category.colorSet);
+  const iconMeta = getCustomCategoryIconMeta(data.category.iconName);
   const Icon = iconMeta.Icon;
 
   return (

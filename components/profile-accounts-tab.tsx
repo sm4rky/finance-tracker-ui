@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
 
 import { LinkBankDialog } from "@/components/link-bank-dialog";
@@ -10,7 +10,7 @@ import { Accordion } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TabsContent } from "@/components/ui/tabs";
-import { listPlaidConnections } from "@/lib/api/plaid";
+import { useLinkedBanks } from "@/hooks/use-linked-banks";
 
 export type ProfileAccountsTabProps = {
   active: boolean;
@@ -20,39 +20,13 @@ export function ProfileAccountsTab({ active }: ProfileAccountsTabProps) {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const {
-    data: plaidConnections,
-    isPending,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: ["list-plaid-connections"],
-    queryFn: listPlaidConnections,
-    enabled: active,
-  });
-
-  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
-
-  const activeBanks = useMemo(
-    () =>
-      allBanks.filter(
-        (bank) => bank.status === "active" || bank.status === "relink_required",
-      ),
-    [allBanks],
-  );
+  const { banks, isLoading } = useLinkedBanks();
 
   const handleLinked = () => {
     queryClient.invalidateQueries({
       queryKey: ["list-plaid-connections"],
     });
   };
-
-  const errorMessage =
-    isError && error instanceof Error
-      ? error.message
-      : isError
-        ? "Could not load linked accounts."
-        : null;
 
   return (
     <TabsContent
@@ -79,20 +53,18 @@ export function ProfileAccountsTab({ active }: ProfileAccountsTabProps) {
         </Button>
       </div>
 
-      {!active ? null : isPending ? (
+      {!active ? null : isLoading ? (
         <div className="space-y-2">
           <Skeleton className="h-14 w-full rounded-lg" />
           <Skeleton className="h-14 w-full rounded-lg" />
         </div>
-      ) : errorMessage ? (
-        <p className="text-sm text-destructive">{errorMessage}</p>
-      ) : activeBanks.length === 0 ? (
+      ) : banks.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No linked accounts yet. Use Link Bank to connect a bank.
         </p>
       ) : (
         <Accordion type="multiple" className="flex flex-col gap-3">
-          {activeBanks.map((bank) => (
+          {banks.map((bank) => (
             <LinkedBankRow key={bank.id} bank={bank} />
           ))}
         </Accordion>

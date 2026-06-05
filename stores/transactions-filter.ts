@@ -1,5 +1,3 @@
-import { sanitizeTransactionsFilter } from "@/components/transactions-filter";
-import type { LinkedBankResponse } from "@/interface/plaid";
 import type { TransactionsFilterState } from "@/lib/transaction-filter";
 import { create } from "zustand";
 import {
@@ -16,10 +14,7 @@ const noopSessionStorageFallback: StateStorage = {
 
 type TransactionsFilterStoreState = {
   appliedFilter: TransactionsFilterState | null;
-  setAppliedFilter: (
-    filterState: TransactionsFilterState,
-    linkedBanks: LinkedBankResponse[] | undefined,
-  ) => void;
+  setAppliedFilter: (filterState: TransactionsFilterState) => void;
   clearAppliedFilter: () => void;
 };
 
@@ -27,10 +22,8 @@ export const useTransactionsFilterStore = create<TransactionsFilterStoreState>()
   persist(
     (set) => ({
       appliedFilter: null,
-      setAppliedFilter: (filterState, linkedBanks) => {
-        set({
-          appliedFilter: sanitizeTransactionsFilter(filterState, linkedBanks),
-        });
+      setAppliedFilter: (filterState) => {
+        set({ appliedFilter: filterState });
       },
       clearAppliedFilter: () => {
         set({ appliedFilter: null });

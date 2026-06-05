@@ -16,8 +16,10 @@ import {
   ReactFlow,
   type Connection,
   type Edge,
+  type EdgeMouseHandler,
   type FinalConnectionState,
   type HandleType,
+  type IsValidConnection,
   type NodeMouseHandler,
   useEdgesState,
   useNodesState,
@@ -44,8 +46,8 @@ import type {
 } from "@/interface/profile-custom-category";
 import { upsertProfileCustomCategorySet } from "@/lib/api/profile-custom-category";
 import { PFC_PRIMARY_METAS } from "@/lib/pfc-primary";
-import { DEFAULT_PROFILE_CUSTOM_CATEGORY_COLOR } from "@/lib/profile-custom-category-colors";
-import { DEFAULT_PROFILE_CUSTOM_CATEGORY_ICON } from "@/lib/profile-custom-category-icons";
+import { DEFAULT_CUSTOM_CATEGORY_COLOR } from "@/lib/custom-category-colors";
+import { DEFAULT_CUSTOM_CATEGORY_ICON } from "@/lib/custom-category-icons";
 
 import { CategoryEditorPanel } from "@/components/category-editor-panel";
 import {
@@ -59,7 +61,7 @@ import {
 } from "@/components/pfc-primary-flow-node";
 import { DeleteCategorySetDialog } from "@/components/delete-category-set-dialog";
 
-const PFC_VERSION = "v2";
+const PFC_VERSION = "V2";
 const PFC_PRIMARY_NODE_ID_PREFIX = "pfc:";
 const CUSTOM_CATEGORY_NODE_ID_PREFIX = "category:";
 const DRAFT_CUSTOM_CATEGORY_NODE_ID_PREFIX = "draft-category:";
@@ -180,6 +182,7 @@ export function CategorySetEditor({
     "color" | "icon"
   >("color");
   const [categoryEditorSheetOpen, setCategoryEditorSheetOpen] = useState(false);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
   const isMobile = useIsMobile();
 
@@ -234,10 +237,32 @@ export function CategorySetEditor({
   }, [edges]);
 
   const flowNodes = useMemo(
-    () =>
-      nodes.map((node) =>
-        node.type === "customCategory"
-          ? {
+    () => {
+      const selectedCustomCategoryId = customCategoryNodes.some(
+        (node) => node.id === selectedNodeId,
+      )
+        ? selectedNodeId
+        : null;
+
+      const pfcPrimaryIdsConnectedToSelected = new Set(
+        selectedCustomCategoryId
+          ? edges
+            .filter((edge) => edge.source === selectedCustomCategoryId)
+            .map((edge) => edge.target)
+          : [],
+      );
+
+      const pfcPrimaryIdsConnectedToOtherCategories = new Set(
+        selectedCustomCategoryId
+          ? edges
+            .filter((edge) => edge.source !== selectedCustomCategoryId)
+            .map((edge) => edge.target)
+          : [],
+      );
+
+      return nodes.map((node) => {
+        if (node.type === "customCategory") {
+          return {
             ...node,
             data: {
               ...node.data,
@@ -246,10 +271,83 @@ export function CategorySetEditor({
               onDeleteCustomCategory: () =>
                 setDeleteCustomCategoryDialogOpen(true),
             },
-          }
-          : node,
-      ),
-    [mappedCountByCustomCategory, nodes, selectedNodeId],
+          };
+        }
+
+        if (node.type === "pfcPrimary") {
+          const selected = pfcPrimaryIdsConnectedToSelected.has(node.id);
+          const dimmed =
+            !selected && pfcPrimaryIdsConnectedToOtherCategories.has(node.id);
+
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              selected,
+              dimmed,
+            },
+          };
+        }
+
+        return node;
+      });
+    },
+    [customCategoryNodes, edges, mappedCountByCustomCategory, nodes, selectedNodeId],
+  );
+
+  const flowEdges = useMemo(
+    () =>
+      edges.map((edge) => {
+        const connectedToSelected =
+          selectedNodeId != null && edge.source === selectedNodeId;
+        const isSelected = edge.id === selectedEdgeId;
+
+        return {
+          ...edge,
+          animated: connectedToSelected && !isSelected,
+          style: {
+            ...edge.style,
+            stroke: isSelected ? "var(--destructive)" : connectedToSelected ? "var(--primary)" : undefined,
+            filter: isSelected
+              ? `drop-shadow(0 0 5px var(--destructive))`
+              : undefined,
+            opacity: isSelected ? 1 : connectedToSelected ? 1 : 0.25,
+          },
+          markerEnd:
+            isSelected || connectedToSelected
+              ? {
+                type: MarkerType.ArrowClosed,
+                color: isSelected ? "var(--destructive)" : "var(--primary)",
+              }
+              : edge.markerEnd,
+        };
+      }),
+    [edges, selectedEdgeId, selectedNodeId],
+  );
+
+  const isPfcPrimaryTargetOwned = useCallback(
+    (target?: string | null, ignoredEdgeId?: string) =>
+      target != null &&
+      edges.some((edge) => edge.target === target && edge.id !== ignoredEdgeId),
+    [edges],
+  );
+
+  const isValidFlowConnection: IsValidConnection = useCallback(
+    (connection) => {
+      if (
+        !isCustomCategoryNodeId(connection.source) ||
+        !isPfcPrimaryNodeId(connection.target)
+      ) {
+        return false;
+      }
+
+      if (reconnectingEdgeRef.current) {
+        return true;
+      }
+
+      return !isPfcPrimaryTargetOwned(connection.target);
+    },
+    [isPfcPrimaryTargetOwned],
   );
 
   const handleConnect = useCallback(
@@ -262,20 +360,18 @@ export function CategorySetEditor({
         return;
       }
 
+      if (isPfcPrimaryTargetOwned(connection.target)) return;
+
       const newEdge = createCustomCategoryPfcPrimaryEdge(
         connection.source!,
         connection.target!,
       );
 
-      setEdges((edges) =>
-        addEdge(
-          newEdge,
-          edges.filter((edge) => edge.target !== connection.target),
-        ),
-      );
+      setEdges((edges) => addEdge(newEdge, edges));
       setSelectedNodeId(connection.source!);
+      setSelectedEdgeId(null);
     },
-    [setEdges],
+    [isPfcPrimaryTargetOwned, setEdges],
   );
 
   const handleReconnect = useCallback(
@@ -288,6 +384,8 @@ export function CategorySetEditor({
         return;
       }
 
+      if (isPfcPrimaryTargetOwned(connection.target, oldEdge.id)) return;
+
       reconnectSucceededRef.current = true;
 
       const newEdge = createCustomCategoryPfcPrimaryEdge(
@@ -298,14 +396,13 @@ export function CategorySetEditor({
       setEdges((eds) =>
         addEdge(
           newEdge,
-          eds.filter(
-            (e) => e.id !== oldEdge.id && e.target !== connection.target,
-          ),
+          eds.filter((e) => e.id !== oldEdge.id),
         ),
       );
       setSelectedNodeId(oldEdge.source);
+      setSelectedEdgeId(null);
     },
-    [setEdges],
+    [isPfcPrimaryTargetOwned, setEdges],
   );
 
   const handleReconnectStart = useCallback(
@@ -332,12 +429,22 @@ export function CategorySetEditor({
       if (!connectionState.isValid) {
         const edgeToDelete = reconnectingEdgeRef.current ?? edge;
         setEdges((eds) => eds.filter((e) => e.id !== edgeToDelete.id));
+        setSelectedEdgeId(null);
       }
 
       reconnectingEdgeRef.current = null;
     },
     [setEdges],
   );
+
+  const handleEdgeClick: EdgeMouseHandler = useCallback((event, edge) => {
+    event.stopPropagation();
+    setSelectedEdgeId(edge.id);
+  }, []);
+
+  const handlePaneClick = useCallback(() => {
+    setSelectedEdgeId(null);
+  }, []);
 
   const openCategoryEditor = useCallback(() => {
     if (isMobile) {
@@ -349,6 +456,7 @@ export function CategorySetEditor({
     (_, node) => {
       if (node.type === "customCategory") {
         setSelectedNodeId(node.id);
+        setSelectedEdgeId(null);
         openCategoryEditor();
       }
     },
@@ -359,8 +467,8 @@ export function CategorySetEditor({
     const newCustomCategory: ProfileCustomCategoryResponse = {
       id: "",
       name: `Category ${customCategoryNodes.length + 1}`,
-      colorSet: DEFAULT_PROFILE_CUSTOM_CATEGORY_COLOR,
-      iconName: DEFAULT_PROFILE_CUSTOM_CATEGORY_ICON,
+      colorSet: DEFAULT_CUSTOM_CATEGORY_COLOR,
+      iconName: DEFAULT_CUSTOM_CATEGORY_ICON,
       pfcPrimaries: [],
     };
 
@@ -372,6 +480,7 @@ export function CategorySetEditor({
 
     setNodes((prev) => [...prev, newNode]);
     setSelectedNodeId(newNode.id);
+    setSelectedEdgeId(null);
     openCategoryEditor();
   };
 
@@ -410,8 +519,16 @@ export function CategorySetEditor({
     setNodes((prev) => prev.filter((node) => node.id !== selectedNodeId));
     setEdges((prev) => prev.filter((edge) => edge.source !== selectedNodeId));
     setSelectedNodeId(nextSelectedNode?.id ?? null);
+    setSelectedEdgeId(null);
     setDeleteCustomCategoryDialogOpen(false);
   }, [customCategoryNodes, selectedNodeId, setNodes, setEdges]);
+
+  const deleteSelectedEdge = useCallback(() => {
+    if (!selectedEdgeId) return;
+
+    setEdges((prev) => prev.filter((edge) => edge.id !== selectedEdgeId));
+    setSelectedEdgeId(null);
+  }, [selectedEdgeId, setEdges]);
 
   const handleSaveCustomCategorySet = () => {
     const pfcPrimaryCodesByCategory = edges.reduce<Record<string, string[]>>(
@@ -466,7 +583,7 @@ export function CategorySetEditor({
         onDeleted={deleteCustomCategory}
       />
 
-      <div className="flex min-h-0 min-w-0 flex-1 gap-4 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 gap-4">
         <Card className="flex min-h-0 flex-1 flex-col p-0">
           <CardHeader className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
             <div className="space-y-2">
@@ -513,10 +630,21 @@ export function CategorySetEditor({
             </div>
           </CardHeader>
 
-          <CardContent className="min-h-0 flex-1 p-0">
+          <CardContent className="relative min-h-0 flex-1 p-0">
+            {selectedEdgeId ? (
+              <Button
+                type="button"
+                variant="destructive"
+                className="absolute top-4 right-4 z-10"
+                onClick={deleteSelectedEdge}
+              >
+                <Trash2 className="size-4" />
+                Delete edge
+              </Button>
+            ) : null}
             <ReactFlow
               nodes={flowNodes}
-              edges={edges}
+              edges={flowEdges}
               nodeTypes={{
                 pfcPrimary: PfcPrimaryFlowNode,
                 customCategory: CustomCategoryFlowNode,
@@ -527,17 +655,15 @@ export function CategorySetEditor({
               onReconnect={handleReconnect}
               onReconnectStart={handleReconnectStart}
               onReconnectEnd={handleReconnectEnd}
+              onEdgeClick={handleEdgeClick}
+              onPaneClick={handlePaneClick}
               onNodeClick={handleNodeClick}
-              isValidConnection={(connection) =>
-                isCustomCategoryNodeId(connection.source) &&
-                isPfcPrimaryNodeId(connection.target)
-              }
+              isValidConnection={isValidFlowConnection}
               edgesReconnectable
               reconnectRadius={12}
               panOnDrag
               panOnScroll
               zoomOnPinch
-              zoomOnDoubleClick={false}
               fitView
               fitViewOptions={{ padding: 0.18 }}
               proOptions={{ hideAttribution: true }}

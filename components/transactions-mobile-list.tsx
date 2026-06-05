@@ -10,6 +10,7 @@ import {
   formatDetailCategory,
   formatTxDate,
   getMerchantLabel,
+  getTransactionCategoryMeta,
   getTransactionAccountLabel,
   TransactionRowActions,
 } from "@/components/transactions-columns";
@@ -25,7 +26,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TransactionResponse } from "@/interface/transaction";
 import { getPaymentChannelMeta } from "@/lib/payment-channel";
-import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
 import { cn } from "@/lib/utils";
 
 function MobileMerchantSummary({
@@ -37,7 +37,7 @@ function MobileMerchantSummary({
 }) {
   const [imgFailed, setImgFailed] = useState(false);
 
-  const meta = getPfcPrmaryMeta(row.pfcPrimary);
+  const meta = getTransactionCategoryMeta(row);
   const label = getMerchantLabel(row);
   const logoUrl = row.logoUrl?.trim() ?? "";
   const shouldShowImage = logoUrl !== "" && !imgFailed;
@@ -143,8 +143,7 @@ export function TransactionsMobileList({
           const merchantLabel = getMerchantLabel(transaction);
           const accountLabel = getTransactionAccountLabel(transaction);
 
-          const pfcPrimary = transaction.pfcPrimary?.trim();
-          const meta = getPfcPrmaryMeta(pfcPrimary);
+          const categoryMeta = getTransactionCategoryMeta(transaction);
           const detailCategoryMeta = formatDetailCategory(transaction.pfcDetailed);
           const channelMeta = getPaymentChannelMeta(transaction.paymentChannel);
 
@@ -219,10 +218,10 @@ export function TransactionsMobileList({
                         variant="outline"
                         className={cn(
                           "max-w-full truncate border font-normal text-xs",
-                          meta.badgeClassName,
+                          categoryMeta.badgeClassName,
                         )}
                       >
-                        {meta.displayName}
+                        {categoryMeta.displayName}
                       </Badge>
                     </dd>
                   </div>

@@ -1,15 +1,15 @@
-export type ProfileCustomCategoryColorMeta = {
+export type CustomCategoryColorMeta = {
   displayName: string;
   badgeClassName: string;
   fallbackIconClassName: string;
   calendarDotClassName: string;
 };
 
-export const DEFAULT_PROFILE_CUSTOM_CATEGORY_COLOR = "slate";
+export const DEFAULT_CUSTOM_CATEGORY_COLOR = "slate";
 
-export const PROFILE_CUSTOM_CATEGORY_COLOR_METAS: Record<
+export const CUSTOM_CATEGORY_COLOR_METAS: Record<
   string,
-  ProfileCustomCategoryColorMeta
+  CustomCategoryColorMeta
 > = {
   slate: {
     displayName: "Slate",
@@ -160,23 +160,23 @@ export const PROFILE_CUSTOM_CATEGORY_COLOR_METAS: Record<
   },
 };
 
-export const DEFAULT_PROFILE_CUSTOM_CATEGORY_COLOR_META =
-  PROFILE_CUSTOM_CATEGORY_COLOR_METAS[DEFAULT_PROFILE_CUSTOM_CATEGORY_COLOR];
+export const DEFAULT_CUSTOM_CATEGORY_COLOR_META =
+  CUSTOM_CATEGORY_COLOR_METAS[DEFAULT_CUSTOM_CATEGORY_COLOR];
 
-export const PROFILE_CUSTOM_CATEGORY_COLORS = Object.keys(
-  PROFILE_CUSTOM_CATEGORY_COLOR_METAS,
+export const CUSTOM_CATEGORY_COLORS = Object.keys(
+  CUSTOM_CATEGORY_COLOR_METAS,
 );
 
-export function getProfileCustomCategoryColorSet(
+export function getCustomCategoryColorSet(
   colorSet: string | null | undefined,
-): ProfileCustomCategoryColorMeta {
+): CustomCategoryColorMeta {
   const normalized = colorSet?.trim().toLowerCase();
   if (!normalized) {
-    return DEFAULT_PROFILE_CUSTOM_CATEGORY_COLOR_META;
+    return DEFAULT_CUSTOM_CATEGORY_COLOR_META;
   }
 
   return (
-    PROFILE_CUSTOM_CATEGORY_COLOR_METAS[normalized] ??
-    DEFAULT_PROFILE_CUSTOM_CATEGORY_COLOR_META
+    CUSTOM_CATEGORY_COLOR_METAS[normalized] ??
+    DEFAULT_CUSTOM_CATEGORY_COLOR_META
   );
 }

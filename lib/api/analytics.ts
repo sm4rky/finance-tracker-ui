@@ -4,15 +4,15 @@ import type {
   NetWorthTrendResponse,
 } from "@/interface/net-worth-trend";
 import type { NetWorthResponse } from "@/interface/net-worth";
-import type { PfcPrimaryExpenseDistributionResponse } from "@/interface/pfc-primary-expense-distribution";
+import type { CategoryExpenseDistributionResponse } from "@/interface/category-expense-distribution";
 import type {
   GroupedExpensesByAccountRequest,
   GroupedExpensesByAccountResponse,
 } from "@/interface/grouped-expenses-by-account";
 import type {
-  StackedExpensesByPfcPrimaryRequest,
-  StackedExpensesByPfcPrimaryResponse,
-} from "@/interface/stacked-expenses-by-pfc-primary";
+  StackedExpensesByCategoryRequest,
+  StackedExpensesByCategoryResponse,
+} from "@/interface/stacked-expenses-by-category";
 import type { TransactionAnalyticsQueryRequest } from "@/interface/transaction-analytics";
 
 import { apiFetch, parseApiErrorMessage } from "./client";
@@ -78,11 +78,11 @@ export async function fetchCashflow(
   return (await res.json()) as CashflowResponse;
 }
 
-export async function fetchPfcPrimaryExpenseDistribution(
+export async function fetchCategoryExpenseDistribution(
   request: TransactionAnalyticsQueryRequest,
-): Promise<PfcPrimaryExpenseDistributionResponse> {
+): Promise<CategoryExpenseDistributionResponse> {
   const res = await apiFetch(
-    `${BASE_URL}/expense/pfcprimary-distribution?${buildTransactionAnalyticsQuery(request)}`,
+    `${BASE_URL}/expense/category-distribution?${buildTransactionAnalyticsQuery(request)}`,
     { method: "GET" },
   );
 
@@ -90,14 +90,14 @@ export async function fetchPfcPrimaryExpenseDistribution(
     throw new Error(await parseApiErrorMessage(res));
   }
 
-  return (await res.json()) as PfcPrimaryExpenseDistributionResponse;
+  return (await res.json()) as CategoryExpenseDistributionResponse;
 }
 
-export async function fetchStackedExpensesByPfcPrimary(
-  request: StackedExpensesByPfcPrimaryRequest,
-): Promise<StackedExpensesByPfcPrimaryResponse> {
+export async function fetchStackedExpensesByCategory(
+  request: StackedExpensesByCategoryRequest,
+): Promise<StackedExpensesByCategoryResponse> {
   const res = await apiFetch(
-    `${BASE_URL}/expense/stacked-by-pfcprimary?${buildTransactionAnalyticsQuery(request)}`,
+    `${BASE_URL}/expense/stacked-by-category?${buildTransactionAnalyticsQuery(request)}`,
     { method: "GET" },
   );
 
@@ -105,7 +105,7 @@ export async function fetchStackedExpensesByPfcPrimary(
     throw new Error(await parseApiErrorMessage(res));
   }
 
-  return (await res.json()) as StackedExpensesByPfcPrimaryResponse;
+  return (await res.json()) as StackedExpensesByCategoryResponse;
 }
 
 export async function fetchGroupedExpensesByAccount(

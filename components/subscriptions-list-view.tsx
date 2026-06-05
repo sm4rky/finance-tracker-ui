@@ -3,13 +3,16 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { filterRecurringCashflows } from "@/components/recurring-cashflows-filter";
 import { RecurringCashflowRow } from "@/components/recurring-cashflow-row";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LinkedBankResponse } from "@/interface/plaid";
+import type { ProfileCustomCategorySetResponse } from "@/interface/profile-custom-category";
 import type { ProfileRecurringCashflowResponse } from "@/interface/profile-recurring-cashflow";
 import { listProfileRecurringCashflows } from "@/lib/api/profile-recurring-cashflow";
-import type { RecurringCashflowsFilterState } from "@/lib/recurring-cashflow-filter";
+import {
+  filterRecurringCashflows,
+  type RecurringCashflowsFilterState,
+} from "@/lib/recurring-cashflow-filter";
 
 function getRecurringCashflowAccountLabel(row: ProfileRecurringCashflowResponse): string {
   const account = row.linkedBankAccount;
@@ -26,6 +29,7 @@ function getRecurringCashflowAccountLabel(row: ProfileRecurringCashflowResponse)
 export type SubscriptionsListViewProps = {
   appliedFilter: RecurringCashflowsFilterState;
   banks: LinkedBankResponse[] | undefined;
+  categorySet: ProfileCustomCategorySetResponse | null;
   onEdit: (row: ProfileRecurringCashflowResponse) => void;
   onDelete: (id: string) => void;
 };
@@ -33,6 +37,7 @@ export type SubscriptionsListViewProps = {
 export function SubscriptionsListView({
   appliedFilter,
   banks,
+  categorySet,
   onEdit,
   onDelete,
 }: SubscriptionsListViewProps) {
@@ -42,8 +47,8 @@ export function SubscriptionsListView({
   });
 
   const filteredRows = useMemo(
-    () => filterRecurringCashflows(data ?? [], appliedFilter, banks),
-    [data, appliedFilter, banks],
+    () => filterRecurringCashflows(data ?? [], appliedFilter, banks, categorySet),
+    [data, appliedFilter, banks, categorySet],
   );
 
   return (
@@ -85,6 +90,7 @@ export function SubscriptionsListView({
               key={row.id}
               row={row}
               accountLine={accountLine}
+              categorySet={categorySet}
               onEdit={onEdit}
               onDelete={onDelete}
             />

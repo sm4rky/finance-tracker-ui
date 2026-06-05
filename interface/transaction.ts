@@ -1,3 +1,5 @@
+import type { ProfileCustomCategoryResponse } from "@/interface/profile-custom-category";
+
 export type SortDirection = "asc" | "desc";
 
 export type TransactionSortField =
@@ -27,6 +29,8 @@ export type QueryTransactionsRequest = {
   accountIds?: string[];
   includeUnlinkedTransactions?: boolean;
   pfcPrimaryList?: string[];
+  customCategorySetId?: string;
+  customCategoryIds?: string[];
   paymentChannels?: string[];
   pending?: boolean;
   dateFrom?: string;
@@ -50,6 +54,7 @@ export interface TransactionResponse {
   paymentChannel: string | null;
   pfcPrimary: string | null;
   pfcDetailed: string | null;
+  customCategory?: ProfileCustomCategoryResponse | null;
   logoUrl: string | null;
   website?: string | null;
   status: string;

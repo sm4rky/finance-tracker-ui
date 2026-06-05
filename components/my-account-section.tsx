@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Building2, ChevronDown, Wallet } from "lucide-react";
 import Image from "next/image";
@@ -15,12 +15,12 @@ import {
 } from "@/components/ui/accordion";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLinkedBanks } from "@/hooks/use-linked-banks";
 import { fetchNetWorth } from "@/lib/api/analytics";
 import type {
   LinkedBankAccountResponse,
   LinkedBankResponse,
 } from "@/interface/plaid";
-import { listPlaidConnections } from "@/lib/api/plaid";
 import { getPlaidInstitutionIcon } from "@/lib/plaid-institution-icons";
 import { useAuthStore } from "@/stores/auth-session";
 import { cn } from "@/lib/utils";
@@ -113,29 +113,15 @@ export function MyAccountSection() {
     enabled: Boolean(accessToken),
   });
 
-  const { data: plaidConnections, isPending: isConnectionsPending } = useQuery({
-    queryKey: ["list-plaid-connections"],
-    queryFn: listPlaidConnections,
-    enabled: Boolean(accessToken),
-  });
-
-  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
-
-  const activeBanks = useMemo(
-    () =>
-      allBanks.filter(
-        (bank) => bank.status === "active" || bank.status === "relink_required",
-      ),
-    [allBanks],
-  );
+  const { banks, isLoading: isConnectionsPending } = useLinkedBanks();
 
   const netWorthDisplay = netWorth?.netWorth ?? 0;
   const assetsDisplay = netWorth?.totalAssets ?? 0;
   const liabilitiesDisplay = netWorth?.totalLiabilities ?? 0;
 
-  const aggregate = sumAllBanksBalance(activeBanks);
+  const aggregate = sumAllBanksBalance(banks);
   const banksCurrency =
-    activeBanks.find((b) => b.accounts[0]?.isoCurrencyCode)?.accounts[0]
+    banks.find((b) => b.accounts[0]?.isoCurrencyCode)?.accounts[0]
       ?.isoCurrencyCode ?? "USD";
 
   return (
@@ -233,7 +219,7 @@ export function MyAccountSection() {
                 <span className="shrink-0 tabular-nums text-sm font-semibold">
                   {isConnectionsPending ? (
                     <Skeleton className="inline-block h-5 w-24 rounded" />
-                  ) : activeBanks.length === 0 ? (
+                  ) : banks.length === 0 ? (
                     "—"
                   ) : (
                     formatMoney(aggregate, banksCurrency)
@@ -253,7 +239,7 @@ export function MyAccountSection() {
                     <Skeleton className="h-16 w-full rounded-lg" />
                     <Skeleton className="h-16 w-full rounded-lg" />
                   </div>
-                ) : activeBanks.length === 0 ? (
+                ) : banks.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     No linked banks yet.{" "}
                     <Link
@@ -266,7 +252,7 @@ export function MyAccountSection() {
                   </p>
                 ) : (
                   <div className="flex flex-col divide-y divide-border/80">
-                    {activeBanks.map((bank) => {
+                    {banks.map((bank) => {
                       const title =
                         bank.institutionName?.trim() || "Linked institution";
                       const institutionIcon = getPlaidInstitutionIcon(title);

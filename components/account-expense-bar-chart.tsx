@@ -7,10 +7,6 @@ import ReactECharts from "echarts-for-react";
 import { toast } from "sonner";
 
 import {
-  getDefaultTransactionsFilter,
-  sanitizeTransactionsFilter,
-} from "@/components/transactions-filter";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -18,15 +14,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAppliedTransactionsFilter } from "@/hooks/use-applied-transactions-filter";
 import type { TimeGranularity } from "@/interface/granularity";
 import type {
   GroupedExpenseByAccountBar,
   GroupedExpenseByAccountBucket,
 } from "@/interface/grouped-expenses-by-account";
 import { fetchGroupedExpensesByAccount } from "@/lib/api/analytics";
-import { listPlaidConnections } from "@/lib/api/plaid";
 import { TIME_GRANULARITY_OPTIONS } from "@/lib/time-granularity";
-import { useTransactionsFilterStore } from "@/stores/transactions-filter";
 
 const UNLINKED_KEY = "unlinked";
 
@@ -125,55 +120,10 @@ function uniqueSeriesNames(
 }
 
 export function AccountExpenseBarChart() {
-  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(() => {
-    const persistApi = useTransactionsFilterStore.persist;
-    return !persistApi || persistApi.hasHydrated();
-  });
   const [timeGranularity, setTimeGranularity] =
     useState<TimeGranularity>("month");
-
-  useEffect(() => {
-    const persistApi = useTransactionsFilterStore.persist;
-    if (!persistApi || persistApi.hasHydrated()) {
-      return;
-    }
-
-    return persistApi.onFinishHydration(() => {
-      setIsFilterStoreHydrated(true);
-    });
-  }, []);
-
-  const storedAppliedFilter = useTransactionsFilterStore(
-    (state) => state.appliedFilter,
-  );
-
-  const { data: plaidConnections } = useQuery({
-    queryKey: ["list-plaid-connections"],
-    queryFn: listPlaidConnections,
-  });
-
-  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
-
-  const activeBanks = useMemo(
-    () =>
-      allBanks.filter(
-        (bank) => bank.status === "active" || bank.status === "relink_required",
-      ),
-    [allBanks],
-  );
-
-  const appliedFilter = useMemo(() => {
-    if (!isFilterStoreHydrated) {
-      return getDefaultTransactionsFilter(undefined);
-    }
-
-    return sanitizeTransactionsFilter(
-      storedAppliedFilter ?? getDefaultTransactionsFilter(activeBanks),
-      activeBanks,
-    );
-  }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
-
-  const filterKey = JSON.stringify(appliedFilter);
+  const { appliedFilter, filterKey, isFilterStoreHydrated } =
+    useAppliedTransactionsFilter();
   const queryReady =
     isFilterStoreHydrated &&
     Boolean(appliedFilter.dateFrom?.trim() && appliedFilter.dateTo?.trim());

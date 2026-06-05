@@ -12,10 +12,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { LinkedBankResponse } from "@/interface/plaid";
+import { useLinkedBanks } from "@/hooks/use-linked-banks";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { syncPlaidTransactions } from "@/lib/api/plaid";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const SYNC_COOLDOWN_MS = 30 * 60 * 1000;
 
@@ -65,17 +65,9 @@ function formatRelativeLastSync(iso: string | null | undefined): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(d);
 }
 
-export type TransactionsSyncMenuProps = {
-  banks: LinkedBankResponse[] | undefined;
-  className?: string;
-};
-
-export function TransactionsSyncMenu({
-  banks,
-  className,
-}: TransactionsSyncMenuProps) {
+export function TransactionsSyncMenu() {
   const isMobile = useIsMobile();
-  const list = banks ?? [];
+  const { banks } = useLinkedBanks();
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -94,10 +86,10 @@ export function TransactionsSyncMenu({
         }),
         queryClient.invalidateQueries({ queryKey: ["analytics-cashflow"] }),
         queryClient.invalidateQueries({
-          queryKey: ["analytics-pfc-expense-distribution"],
+          queryKey: ["analytics-category-expense-distribution"],
         }),
         queryClient.invalidateQueries({
-          queryKey: ["analytics-stacked-expense-pfc-primary"],
+          queryKey: ["analytics-stacked-expense-category"],
         }),
         queryClient.invalidateQueries({
           queryKey: ["analytics-grouped-expense-by-account"],
@@ -129,7 +121,6 @@ export function TransactionsSyncMenu({
             variant: !isMobile && open ? "secondary" : "outline",
           }),
           "gap-1.5",
-          className,
         )}
       >
         <RefreshCw className="size-4" aria-hidden />
@@ -146,12 +137,12 @@ export function TransactionsSyncMenu({
         align="start"
         className="w-92 max-w-[calc(100vw-2rem)] p-1"
       >
-        {list.length === 0 ? (
+        {banks.length === 0 ? (
           <div className="px-3 py-6 text-center text-sm text-muted-foreground">
             No linked banks
           </div>
         ) : (
-          list.map((bank) => {
+          banks.map((bank) => {
             const title = (
               bank.institutionName?.trim() || "Linked bank"
             ).toUpperCase();

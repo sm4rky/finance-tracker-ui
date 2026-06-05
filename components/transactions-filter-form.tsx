@@ -19,19 +19,42 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { LinkedBankResponse } from "@/interface/plaid";
+import type { ProfileCustomCategorySetResponse } from "@/interface/profile-custom-category";
 import {
-  PFC_PRIMARY,
-  getPfcPrmaryMeta,
-} from "@/lib/pfc-primary";
+  getCustomCategoryMeta,
+  type CustomCategoryMeta,
+} from "@/lib/custom-category";
 import {
   PAYMENT_CHANNELS,
   getPaymentChannelMeta,
   type PaymentChannel,
 } from "@/lib/payment-channel";
+import {
+  getPfcPrmaryMeta,
+  PFC_PRIMARY,
+  type PfcPrimaryMeta,
+} from "@/lib/pfc-primary";
 import type { TransactionsFilterState } from "@/lib/transaction-filter";
 import { getAllAccountIds } from "@/lib/linked-bank-accounts";
 import { getPlaidInstitutionIcon } from "@/lib/plaid-institution-icons";
 import { cn } from "@/lib/utils";
+
+function getFilterCategoryMeta(
+  categorySet: ProfileCustomCategorySetResponse | null,
+  categoryId: string,
+): CustomCategoryMeta | PfcPrimaryMeta {
+  if (categorySet) {
+    const category = categorySet.categories.find(
+      (item) => item.id === categoryId,
+    );
+
+    if (category) {
+      return getCustomCategoryMeta(category);
+    }
+  }
+
+  return getPfcPrmaryMeta(categoryId);
+}
 
 function parseOptionalAmount(raw: string): number | undefined {
   const value = raw.trim();
@@ -54,17 +77,11 @@ function toggleSelection(
   return [...next];
 }
 
-function getSelectTriggerClassName(active: boolean): string {
-  return cn(
-    buttonVariants({ variant: active ? "secondary" : "outline", size: "sm" }),
-    "h-8 gap-1.5 border-dashed font-normal",
-  );
-}
-
 export type TransactionsFilterFormProps = {
   filterState: TransactionsFilterState;
   onChange: (next: TransactionsFilterState) => void;
   banks: LinkedBankResponse[] | undefined;
+  categorySet: ProfileCustomCategorySetResponse | null;
   variant?: "default" | "sheet";
 };
 
@@ -72,34 +89,48 @@ export function TransactionsFilterForm({
   filterState,
   onChange,
   banks,
+  categorySet,
   variant = "default",
 }: TransactionsFilterFormProps) {
   const isSheet = variant === "sheet";
-  const [pfcPrimarySearch, setPfcPrimarySearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
+  const categoryIds = useMemo(
+    () =>
+      categorySet
+        ? categorySet.categories.map((category) => category.id)
+        : [...PFC_PRIMARY],
+    [categorySet],
+  );
+  const isCustomCategorySet = categorySet !== null;
+  const customCategorySetId = categorySet?.id;
 
   const allAccountIds = useMemo(() => getAllAccountIds(banks), [banks]);
   const selectedAccountIds =
     filterState.accountIds === undefined ? allAccountIds : filterState.accountIds;
-  const selectedPfcPrimary = filterState.pfcPrimaryList ?? [];
+  const selectedCategoryIds = isCustomCategorySet
+    ? (filterState.customCategoryIds ?? [])
+    : (filterState.pfcPrimaryList ?? []);
   const selectedPaymentChannels = filterState.paymentChannels ?? [];
 
-  const filteredPfcPrimary = useMemo(() => {
-    const keyword = pfcPrimarySearch.trim().toLowerCase();
-    if (!keyword) return PFC_PRIMARY;
+  const filteredCategoryIds = useMemo(() => {
+    const keyword = categorySearch.trim().toLowerCase();
+    if (!keyword) return categoryIds;
 
-    return PFC_PRIMARY.filter((pfcPrimary) =>
-      pfcPrimary.toLowerCase().includes(keyword)
+    return categoryIds.filter((categoryId) =>
+      getFilterCategoryMeta(categorySet, categoryId)
+        .displayName.toLowerCase()
+        .includes(keyword)
     );
-  }, [pfcPrimarySearch]);
+  }, [categoryIds, categorySearch, categorySet]);
 
   const allAccountsSelected =
     allAccountIds.length > 0 &&
     allAccountIds.every((id) => selectedAccountIds.includes(id));
 
-  const allPfcPrimarySelected =
-    PFC_PRIMARY.length > 0 &&
-    PFC_PRIMARY.every((pfcPrimary) =>
-      selectedPfcPrimary.includes(pfcPrimary),
+  const allCategoriesSelected =
+    categoryIds.length > 0 &&
+    categoryIds.every((categoryId) =>
+      selectedCategoryIds.includes(categoryId),
     );
 
   const allChannelsSelected =
@@ -114,14 +145,8 @@ export function TransactionsFilterForm({
     (filterState.amountFlow != null && filterState.amountFlow !== "");
 
   const accountsCount = selectedAccountIds.length;
-  const pfcPrimaryCount = selectedPfcPrimary.length;
+  const categoriesCount = selectedCategoryIds.length;
   const channelsCount = selectedPaymentChannels.length;
-
-  const triggerClassName = isSheet
-    ? "h-10 w-full min-w-0 justify-between"
-    : "";
-
-  const rowClassName = isSheet ? "w-full" : "";
 
   const setAllAccounts = () => {
     onChange({
@@ -130,12 +155,13 @@ export function TransactionsFilterForm({
     });
   };
 
-  const setAllPfcPrimary = () => {
+  const setAllCategories = () => {
+    const nextCategoryIds = allCategoriesSelected ? [] : categoryIds;
     onChange({
       ...filterState,
-      pfcPrimaryList: allPfcPrimarySelected
-        ? []
-        : [...PFC_PRIMARY],
+      pfcPrimaryList: isCustomCategorySet ? undefined : nextCategoryIds,
+      customCategorySetId,
+      customCategoryIds: isCustomCategorySet ? nextCategoryIds : undefined,
     });
   };
 
@@ -153,14 +179,18 @@ export function TransactionsFilterForm({
     });
   };
 
-  const updatePfcPrimarySelection = (pfcPrimary: string, checked: boolean) => {
+  const updateCategorySelection = (categoryId: string, checked: boolean) => {
+    const nextCategoryIds = toggleSelection(
+      selectedCategoryIds,
+      categoryId,
+      checked,
+    );
+
     onChange({
       ...filterState,
-      pfcPrimaryList: toggleSelection(
-        selectedPfcPrimary,
-        pfcPrimary,
-        checked,
-      ),
+      pfcPrimaryList: isCustomCategorySet ? undefined : nextCategoryIds,
+      customCategorySetId,
+      customCategoryIds: isCustomCategorySet ? nextCategoryIds : undefined,
     });
   };
 
@@ -186,11 +216,18 @@ export function TransactionsFilterForm({
           : "flex flex-row flex-wrap items-center content-start gap-2",
       )}
     >
-      <div className={rowClassName}>
+      <div className={cn(isSheet && "w-full")}>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
             type="button"
-            className={cn(getSelectTriggerClassName(accountsCount > 0), triggerClassName)}
+            className={cn(
+              buttonVariants({
+                variant: accountsCount > 0 ? "secondary" : "outline",
+                size: "sm",
+              }),
+              "h-8 gap-1.5 border-dashed font-normal",
+              isSheet && "h-10 w-full min-w-0 justify-between",
+            )}
           >
             <span>Accounts ({accountsCount})</span>
             <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
@@ -313,18 +350,25 @@ export function TransactionsFilterForm({
         </label>
       </div>
 
-      <div className={rowClassName}>
+      <div className={cn(isSheet && "w-full")}>
         <DropdownMenu
           modal={false}
           onOpenChange={(open) => {
-            if (!open) setPfcPrimarySearch("");
+            if (!open) setCategorySearch("");
           }}
         >
           <DropdownMenuTrigger
             type="button"
-            className={cn(getSelectTriggerClassName(pfcPrimaryCount > 0), triggerClassName)}
+            className={cn(
+              buttonVariants({
+                variant: categoriesCount > 0 ? "secondary" : "outline",
+                size: "sm",
+              }),
+              "h-8 gap-1.5 border-dashed font-normal",
+              isSheet && "h-10 w-full min-w-0 justify-between",
+            )}
           >
-            <span>Categories ({pfcPrimaryCount})</span>
+            <span>Categories ({categoriesCount})</span>
             <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
           </DropdownMenuTrigger>
 
@@ -341,8 +385,8 @@ export function TransactionsFilterForm({
             >
               <Input
                 placeholder="Search categories…"
-                value={pfcPrimarySearch}
-                onChange={(e) => setPfcPrimarySearch(e.target.value)}
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
                 className="h-8 text-sm"
                 autoComplete="off"
                 aria-label="Search categories"
@@ -356,14 +400,14 @@ export function TransactionsFilterForm({
 
             <DropdownMenuItem
               closeOnClick={false}
-              onClick={setAllPfcPrimary}
+              onClick={setAllCategories}
               className="cursor-pointer gap-2 py-1.5 pr-2 pl-1.5"
             >
               <span
                 className="pointer-events-none flex shrink-0 items-center"
                 aria-hidden
               >
-                <Checkbox checked={allPfcPrimarySelected} tabIndex={-1} />
+                <Checkbox checked={allCategoriesSelected} tabIndex={-1} />
               </span>
               <span className="min-w-0 flex-1 text-xs font-medium">
                 Select all
@@ -372,20 +416,20 @@ export function TransactionsFilterForm({
 
             <DropdownMenuSeparator />
 
-            {filteredPfcPrimary.length === 0 ? (
+            {filteredCategoryIds.length === 0 ? (
               <p className="px-2 py-3 text-center text-sm text-muted-foreground">
                 No matches
               </p>
             ) : (
-              filteredPfcPrimary.map((code) => {
-                const meta = getPfcPrmaryMeta(code);
-                const checked = selectedPfcPrimary.includes(code);
+              filteredCategoryIds.map((categoryId) => {
+                const meta = getFilterCategoryMeta(categorySet, categoryId);
+                const checked = selectedCategoryIds.includes(categoryId);
 
                 return (
                   <DropdownMenuItem
-                    key={code}
+                    key={categoryId}
                     closeOnClick={false}
-                    onClick={() => updatePfcPrimarySelection(code, !checked)}
+                    onClick={() => updateCategorySelection(categoryId, !checked)}
                     className="cursor-pointer gap-2 py-1.5 pr-2 pl-1.5"
                   >
                     <span
@@ -412,11 +456,18 @@ export function TransactionsFilterForm({
         </DropdownMenu>
       </div>
 
-      <div className={rowClassName}>
+      <div className={cn(isSheet && "w-full")}>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
             type="button"
-            className={cn(getSelectTriggerClassName(channelsCount > 0), triggerClassName)}
+            className={cn(
+              buttonVariants({
+                variant: channelsCount > 0 ? "secondary" : "outline",
+                size: "sm",
+              }),
+              "h-8 gap-1.5 border-dashed font-normal",
+              isSheet && "h-10 w-full min-w-0 justify-between",
+            )}
           >
             <span>Channel ({channelsCount})</span>
             <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />
@@ -502,11 +553,18 @@ export function TransactionsFilterForm({
         </label>
       </div>
 
-      <div className={rowClassName}>
+      <div className={cn(isSheet && "w-full")}>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
             type="button"
-            className={cn(getSelectTriggerClassName(hasAmountFilter), triggerClassName)}
+            className={cn(
+              buttonVariants({
+                variant: hasAmountFilter ? "secondary" : "outline",
+                size: "sm",
+              }),
+              "h-8 gap-1.5 border-dashed font-normal",
+              isSheet && "h-10 w-full min-w-0 justify-between",
+            )}
           >
             <span className="inline-flex items-center gap-1">
               <Wallet className="size-3.5 shrink-0 opacity-70" aria-hidden />

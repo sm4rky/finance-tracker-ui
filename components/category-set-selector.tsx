@@ -1,4 +1,4 @@
-import { ChevronDown, Loader2, Plus } from "lucide-react";
+import { ChevronDown, Loader2, Plus, Tags } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +54,7 @@ export function CategorySetSelector({
         type="button"
         className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-sm font-medium whitespace-nowrap transition-all outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50"
       >
+        <Tags className="size-4 shrink-0" aria-hidden />
         <span className="max-w-64 truncate">
           {selectedCategorySet?.id
             ? selectedCategorySet.name

@@ -58,16 +58,16 @@ import {
   Wrench,
 } from "lucide-react";
 
-export type ProfileCustomCategoryIconMeta = {
+export type CustomCategoryIconMeta = {
   displayName: string;
   Icon: LucideIcon;
 };
 
-export const DEFAULT_PROFILE_CUSTOM_CATEGORY_ICON = "tag";
+export const DEFAULT_CUSTOM_CATEGORY_ICON = "tag";
 
-export const PROFILE_CUSTOM_CATEGORY_ICON_METAS: Record<
+export const CUSTOM_CATEGORY_ICON_METAS: Record<
   string,
-  ProfileCustomCategoryIconMeta
+  CustomCategoryIconMeta
 > = {
   tag: {
     displayName: "Tag",
@@ -295,12 +295,12 @@ export const PROFILE_CUSTOM_CATEGORY_ICON_METAS: Record<
   },
 };
 
-export type ProfileCustomCategoryIconGroup = {
+export type CustomCategoryIconGroup = {
   displayName: string;
   icons: string[];
 };
 
-export const PROFILE_CUSTOM_CATEGORY_ICON_GROUPS = [
+export const CUSTOM_CATEGORY_ICON_GROUPS = [
   {
     displayName: "Money",
     icons: [
@@ -382,25 +382,25 @@ export const PROFILE_CUSTOM_CATEGORY_ICON_GROUPS = [
     displayName: "Other",
     icons: ["tag", "help"],
   },
-] satisfies ProfileCustomCategoryIconGroup[];
+] satisfies CustomCategoryIconGroup[];
 
-export const DEFAULT_PROFILE_CUSTOM_CATEGORY_ICON_META =
-  PROFILE_CUSTOM_CATEGORY_ICON_METAS[DEFAULT_PROFILE_CUSTOM_CATEGORY_ICON];
+export const DEFAULT_CUSTOM_CATEGORY_ICON_META =
+  CUSTOM_CATEGORY_ICON_METAS[DEFAULT_CUSTOM_CATEGORY_ICON];
 
-export const PROFILE_CUSTOM_CATEGORY_ICONS = Object.keys(
-  PROFILE_CUSTOM_CATEGORY_ICON_METAS,
+export const CUSTOM_CATEGORY_ICONS = Object.keys(
+  CUSTOM_CATEGORY_ICON_METAS,
 );
 
-export function getProfileCustomCategoryIconMeta(
+export function getCustomCategoryIconMeta(
   iconName: string | null | undefined,
-): ProfileCustomCategoryIconMeta {
+): CustomCategoryIconMeta {
   const normalized = iconName?.trim().toLowerCase();
   if (!normalized) {
-    return DEFAULT_PROFILE_CUSTOM_CATEGORY_ICON_META;
+    return DEFAULT_CUSTOM_CATEGORY_ICON_META;
   }
 
   return (
-    PROFILE_CUSTOM_CATEGORY_ICON_METAS[normalized] ??
-    DEFAULT_PROFILE_CUSTOM_CATEGORY_ICON_META
+    CUSTOM_CATEGORY_ICON_METAS[normalized] ??
+    DEFAULT_CUSTOM_CATEGORY_ICON_META
   );
 }

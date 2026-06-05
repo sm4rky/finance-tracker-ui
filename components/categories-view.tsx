@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { CategorySetSelector } from "@/components/category-set-selector";
@@ -17,6 +17,7 @@ const DEFAULT_CATEGORY_SET: ProfileCustomCategorySetResponse = {
 };
 
 export function CategoriesView() {
+  const handledAddCategorySetFromUrlRef = useRef(false);
   const [selectedCategorySet, setSelectedCategorySet] =
     useState<ProfileCustomCategorySetResponse | null>(null);
 
@@ -45,6 +46,24 @@ export function CategoriesView() {
 
   const handleAddCategorySet = useCallback(() => {
     setSelectedCategorySet(DEFAULT_CATEGORY_SET);
+  }, []);
+
+  useEffect(() => {
+    if (handledAddCategorySetFromUrlRef.current) return;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("newCategorySet") !== "1") return;
+
+    handledAddCategorySetFromUrlRef.current = true;
+    handleAddCategorySet();
+
+    searchParams.delete("newCategorySet");
+    const query = searchParams.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}`,
+    );
   }, []);
 
   const handleSelectCategorySet = useCallback(

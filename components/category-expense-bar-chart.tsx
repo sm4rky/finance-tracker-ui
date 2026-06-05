@@ -7,10 +7,6 @@ import ReactECharts from "echarts-for-react";
 import { toast } from "sonner";
 
 import {
-  getDefaultTransactionsFilter,
-  sanitizeTransactionsFilter,
-} from "@/components/transactions-filter";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -18,16 +14,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAppliedTransactionsFilter } from "@/hooks/use-applied-transactions-filter";
 import type { TimeGranularity } from "@/interface/granularity";
 import type {
-  StackedExpensesByPfcPrimaryAmount,
-  StackedExpensesByPfcPrimaryBucket,
-} from "@/interface/stacked-expenses-by-pfc-primary";
-import { fetchStackedExpensesByPfcPrimary } from "@/lib/api/analytics";
-import { listPlaidConnections } from "@/lib/api/plaid";
+  StackedExpensesByCategoryAmount,
+  StackedExpensesByCategoryBucket,
+} from "@/interface/stacked-expenses-by-category";
+import { fetchStackedExpensesByCategory } from "@/lib/api/analytics";
 import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
 import { TIME_GRANULARITY_OPTIONS } from "@/lib/time-granularity";
-import { useTransactionsFilterStore } from "@/stores/transactions-filter";
 
 const UNCATEGORIZED_LABEL = "Uncategorized";
 
@@ -47,100 +42,79 @@ function formatUsdAxis(value: number): string {
   }).format(value);
 }
 
-function segmentDisplayName(pfcPrimary: string | null): string {
-  if (pfcPrimary == null || pfcPrimary === "") {
-    return UNCATEGORIZED_LABEL;
+type CategorySeriesMeta = {
+  key: string;
+  name: string;
+};
+
+function getStackKey(stack: StackedExpensesByCategoryAmount): string {
+  if (stack.customCategory?.id) {
+    return `custom:${stack.customCategory.id}`;
   }
-  return getPfcPrmaryMeta(pfcPrimary).displayName;
+  if (stack.pfcPrimary == null || stack.pfcPrimary === "") {
+    return "uncategorized";
+  }
+  return `pfc:${stack.pfcPrimary}`;
 }
 
-function buildPfcKeysAcrossBuckets(
-  buckets: readonly StackedExpensesByPfcPrimaryBucket[],
-): (string | null)[] {
-  const totals = new Map<string | null, number>();
-  for (const b of buckets) {
-    for (const stack of b.stacks) {
-      const key = stack.pfcPrimary;
-      totals.set(key, (totals.get(key) ?? 0) + stack.amount);
+function segmentDisplayName(stack: StackedExpensesByCategoryAmount): string {
+  if (stack.customCategory?.name) {
+    return stack.customCategory.name;
+  }
+  if (stack.pfcPrimary == null || stack.pfcPrimary === "") {
+    return UNCATEGORIZED_LABEL;
+  }
+  return getPfcPrmaryMeta(stack.pfcPrimary).displayName;
+}
+
+function buildCategorySeriesMeta(
+  buckets: readonly StackedExpensesByCategoryBucket[],
+): CategorySeriesMeta[] {
+  const totals = new Map<string, { total: number; name: string }>();
+
+  for (const bucket of buckets) {
+    for (const stack of bucket.stacks) {
+      const key = getStackKey(stack);
+      const existing = totals.get(key);
+      totals.set(key, {
+        total: (existing?.total ?? 0) + stack.amount,
+        name: existing?.name ?? segmentDisplayName(stack),
+      });
     }
   }
-  const keys = [...totals.keys()];
-  keys.sort((a, b) => {
-    const diff = (totals.get(b) ?? 0) - (totals.get(a) ?? 0);
+
+  const seriesMeta = [...totals.entries()].map(([key, { total, name }]) => ({
+    key,
+    name,
+    total,
+  }));
+
+  seriesMeta.sort((a, b) => {
+    const diff = b.total - a.total;
     if (diff !== 0) return diff;
-    return segmentDisplayName(a).localeCompare(
-      segmentDisplayName(b),
-      undefined,
-      {
-        sensitivity: "base",
-      },
-    );
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
   });
-  return keys;
+
+  return seriesMeta.map(({ key, name }) => ({ key, name }));
 }
 
 export function CategoryExpenseBarChart() {
-  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(() => {
-    const persistApi = useTransactionsFilterStore.persist;
-    return !persistApi || persistApi.hasHydrated();
-  });
   const [timeGranularity, setTimeGranularity] =
     useState<TimeGranularity>("month");
-
-  useEffect(() => {
-    const persistApi = useTransactionsFilterStore.persist;
-    if (!persistApi || persistApi.hasHydrated()) {
-      return;
-    }
-
-    return persistApi.onFinishHydration(() => {
-      setIsFilterStoreHydrated(true);
-    });
-  }, []);
-
-  const storedAppliedFilter = useTransactionsFilterStore(
-    (state) => state.appliedFilter,
-  );
-
-  const { data: plaidConnections } = useQuery({
-    queryKey: ["list-plaid-connections"],
-    queryFn: listPlaidConnections,
-  });
-
-  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
-
-  const activeBanks = useMemo(
-    () =>
-      allBanks.filter(
-        (bank) => bank.status === "active" || bank.status === "relink_required",
-      ),
-    [allBanks],
-  );
-
-  const appliedFilter = useMemo(() => {
-    if (!isFilterStoreHydrated) {
-      return getDefaultTransactionsFilter(undefined);
-    }
-
-    return sanitizeTransactionsFilter(
-      storedAppliedFilter ?? getDefaultTransactionsFilter(activeBanks),
-      activeBanks,
-    );
-  }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
-
-  const filterKey = JSON.stringify(appliedFilter);
+  const { appliedFilter, filterKey, isFilterStoreHydrated } =
+    useAppliedTransactionsFilter();
   const queryReady =
     isFilterStoreHydrated &&
     Boolean(appliedFilter.dateFrom?.trim() && appliedFilter.dateTo?.trim());
 
   const { data, isPending, isError, error } = useQuery({
     queryKey: [
-      "analytics-stacked-expense-pfc-primary",
+      "analytics-stacked-expense-category",
       filterKey,
       timeGranularity,
     ],
     queryFn: () =>
-      fetchStackedExpensesByPfcPrimary({
+      fetchStackedExpensesByCategory({
         ...appliedFilter,
         timeGranularity,
       }),
@@ -152,7 +126,7 @@ export function CategoryExpenseBarChart() {
       return;
     }
     toast.error(error.message, {
-      id: "analytics-stacked-expense-pfc-primary-error",
+      id: "analytics-stacked-expense-category-error",
     });
   }, [isError, error]);
 
@@ -161,21 +135,21 @@ export function CategoryExpenseBarChart() {
   const chartOption = useMemo((): EChartsOption | null => {
     if (buckets.length === 0) return null;
 
-    const pfcKeys = buildPfcKeysAcrossBuckets(buckets);
-    if (pfcKeys.length === 0) return null;
+    const seriesMeta = buildCategorySeriesMeta(buckets);
+    if (seriesMeta.length === 0) return null;
 
     const categories = buckets.map((b) => b.period);
 
     const amountForBucket = (
-      stacks: readonly StackedExpensesByPfcPrimaryAmount[],
-      key: string | null,
+      stacks: readonly StackedExpensesByCategoryAmount[],
+      key: string,
     ): number => {
-      const hit = stacks.find((s) => s.pfcPrimary === key);
+      const hit = stacks.find((s) => getStackKey(s) === key);
       return hit?.amount ?? 0;
     };
 
-    const series = pfcKeys.map((key) => ({
-      name: segmentDisplayName(key),
+    const series = seriesMeta.map(({ key, name }) => ({
+      name,
       type: "bar" as const,
       stack: "expense",
       barMaxWidth: 100,
