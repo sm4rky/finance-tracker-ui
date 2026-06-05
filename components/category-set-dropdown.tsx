@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, Loader2, Tags } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, ChevronDown, Loader2, Plus, Tags } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -27,6 +28,7 @@ export function CategorySetDropdown({
   onCategorySetChange,
 }: CategorySetDropdownProps = {}) {
   const isMobile = useIsMobile();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const {
     categorySets,
@@ -73,6 +75,16 @@ export function CategorySetDropdown({
           <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide">
             Category set
           </DropdownMenuLabel>
+          <DropdownMenuItem
+            onClick={() => {
+              setMenuOpen(false);
+              router.push("/categories?newCategorySet=1");
+            }}
+          >
+            <Plus className="size-4" aria-hidden />
+            Add Category Set
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             className={cn(
               "cursor-pointer gap-2",
