@@ -165,10 +165,10 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
         queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] }),
         queryClient.invalidateQueries({ queryKey: ["analytics-cashflow"] }),
         queryClient.invalidateQueries({
-          queryKey: ["analytics-pfc-expense-distribution"],
+          queryKey: ["analytics-category-expense-distribution"],
         }),
         queryClient.invalidateQueries({
-          queryKey: ["analytics-stacked-expense-pfc-primary"],
+          queryKey: ["analytics-stacked-expense-category"],
         }),
         queryClient.invalidateQueries({
           queryKey: ["analytics-grouped-expense-by-account"],

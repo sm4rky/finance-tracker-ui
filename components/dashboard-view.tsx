@@ -1,79 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { TransactionsDateFilter } from "@/components/transactions-date-filter";
 import {
-  getDefaultTransactionsFilter,
-  sanitizeTransactionsFilter,
   TransactionsFilterPanels,
   TransactionsFilterTrigger,
-  useTransactionsFilter,
 } from "@/components/transactions-filter";
 import { CategoryExpensePieChart } from "@/components/category-expense-pie-chart";
 import { MyAccountSection } from "@/components/my-account-section";
 import { NetWorthTrendChart } from "@/components/net-worth-trend-chart";
+import { CategorySetDropdown } from "@/components/category-set-dropdown";
 import { RecentTransactionsSection } from "@/components/recent-transactions-section";
 import { AccountExpenseBarChart } from "@/components/account-expense-bar-chart";
 import { CategoryExpenseBarChart } from "@/components/category-expense-bar-chart";
 import { fetchCashflow } from "@/lib/api/analytics";
-import { listPlaidConnections } from "@/lib/api/plaid";
-import type { TransactionsFilterState } from "@/lib/transaction-filter";
+import { useAppliedTransactionsFilter } from "@/hooks/use-applied-transactions-filter";
 import { useAuthStore } from "@/stores/auth-session";
-import { useTransactionsFilterStore } from "@/stores/transactions-filter";
 
 export function DashboardView() {
-  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(() => {
-    const persistApi = useTransactionsFilterStore.persist;
-    return !persistApi || persistApi.hasHydrated();
-  });
-
-  useEffect(() => {
-    const persistApi = useTransactionsFilterStore.persist;
-    if (!persistApi || persistApi.hasHydrated()) {
-      return;
-    }
-
-    return persistApi.onFinishHydration(() => {
-      setIsFilterStoreHydrated(true);
-    });
-  }, []);
-
-  const storedAppliedFilter = useTransactionsFilterStore(
-    (state) => state.appliedFilter,
-  );
-  const setAppliedFilter = useTransactionsFilterStore(
-    (state) => state.setAppliedFilter,
-  );
-
-  const { data: plaidConnections } = useQuery({
-    queryKey: ["list-plaid-connections"],
-    queryFn: listPlaidConnections,
-  });
-
-  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
-
-  const activeBanks = useMemo(
-    () =>
-      allBanks.filter(
-        (bank) => bank.status === "active" || bank.status === "relink_required",
-      ),
-    [allBanks],
-  );
-
-  const appliedFilter = useMemo(() => {
-    if (!isFilterStoreHydrated) {
-      return getDefaultTransactionsFilter(undefined);
-    }
-
-    return sanitizeTransactionsFilter(
-      storedAppliedFilter ?? getDefaultTransactionsFilter(activeBanks),
-      activeBanks,
-    );
-  }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
-
-  const filterKey = JSON.stringify(appliedFilter);
+  const {
+    appliedFilter,
+    filterKey,
+    isFilterStoreHydrated,
+  } = useAppliedTransactionsFilter();
 
   const { data: cashflow, isPending: isCashflowPending } = useQuery({
     queryKey: ["analytics-cashflow", filterKey],
@@ -83,18 +34,7 @@ export function DashboardView() {
       Boolean(appliedFilter.dateFrom?.trim() && appliedFilter.dateTo?.trim()),
   });
 
-  const handleApplyFilter = useCallback(
-    (nextFilter: TransactionsFilterState) => {
-      setAppliedFilter(nextFilter, activeBanks);
-    },
-    [setAppliedFilter, activeBanks],
-  );
-
-  const { triggerProps, panelsProps } = useTransactionsFilter({
-    banks: activeBanks,
-    appliedFilter,
-    onApplyFilter: handleApplyFilter,
-  });
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const profile = useAuthStore((state) => state.userProfile);
   const displayLine = profile?.fullName?.trim() || "";
@@ -110,14 +50,18 @@ export function DashboardView() {
             </span>
           </p>
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-            <TransactionsDateFilter
-              banks={activeBanks}
-              isStoreReady={isFilterStoreHydrated}
+            <TransactionsDateFilter />
+            <CategorySetDropdown />
+            <TransactionsFilterTrigger
+              open={filtersOpen}
+              onOpenChange={setFiltersOpen}
             />
-            <TransactionsFilterTrigger {...triggerProps} />
           </div>
         </div>
-        <TransactionsFilterPanels {...panelsProps} />
+        <TransactionsFilterPanels
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+        />
       </div>
 
       <div className="grid w-full min-w-0 shrink-0 grid-cols-1 gap-3 lg:grid-cols-[20rem_1fr] lg:items-stretch lg:gap-5 *:min-w-0">

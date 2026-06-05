@@ -15,8 +15,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { TransactionResponse } from "@/interface/transaction";
+import {
+  getCustomCategoryMeta,
+  type CustomCategoryMeta,
+} from "@/lib/custom-category";
 import { getPaymentChannelMeta } from "@/lib/payment-channel";
-import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
+import { getPfcPrmaryMeta, type PfcPrimaryMeta } from "@/lib/pfc-primary";
 import {
   formatMoneyAbs,
   getTransactionCashFlow,
@@ -53,10 +57,20 @@ export function getTransactionAccountLabel(row: TransactionResponse): string {
   return account.mask ? `${baseLabel} ·•••${account.mask}` : baseLabel;
 }
 
+export function getTransactionCategoryMeta(
+  row: TransactionResponse,
+): CustomCategoryMeta | PfcPrimaryMeta {
+  if (row.customCategory) {
+    return getCustomCategoryMeta(row.customCategory);
+  }
+
+  return getPfcPrmaryMeta(row.pfcPrimary);
+}
+
 export function MerchantCell({ row }: { row: TransactionResponse }) {
   const [imgFailed, setImgFailed] = useState(false);
 
-  const meta = getPfcPrmaryMeta(row.pfcPrimary);
+  const meta = getTransactionCategoryMeta(row);
   const label = getMerchantLabel(row);
   const logoUrl = row.logoUrl?.trim() ?? "";
   const shouldShowImage = logoUrl !== "" && !imgFailed;
@@ -218,12 +232,12 @@ export function createTransactionColumns(
     },
     {
       id: "category",
-      accessorKey: "pfcPrimary",
+      accessorFn: (row) => row.customCategory?.name ?? row.pfcPrimary ?? "",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Category" />
       ),
       cell: ({ row }) => {
-        const meta = getPfcPrmaryMeta(row.original.pfcPrimary);
+        const meta = getTransactionCategoryMeta(row.original);
 
         return (
           <Badge

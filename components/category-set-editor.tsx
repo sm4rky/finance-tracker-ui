@@ -45,8 +45,8 @@ import type {
 } from "@/interface/profile-custom-category";
 import { upsertProfileCustomCategorySet } from "@/lib/api/profile-custom-category";
 import { PFC_PRIMARY_METAS } from "@/lib/pfc-primary";
-import { DEFAULT_PROFILE_CUSTOM_CATEGORY_COLOR } from "@/lib/profile-custom-category-colors";
-import { DEFAULT_PROFILE_CUSTOM_CATEGORY_ICON } from "@/lib/profile-custom-category-icons";
+import { DEFAULT_CUSTOM_CATEGORY_COLOR } from "@/lib/custom-category-colors";
+import { DEFAULT_CUSTOM_CATEGORY_ICON } from "@/lib/custom-category-icons";
 
 import { CategoryEditorPanel } from "@/components/category-editor-panel";
 import {
@@ -60,7 +60,7 @@ import {
 } from "@/components/pfc-primary-flow-node";
 import { DeleteCategorySetDialog } from "@/components/delete-category-set-dialog";
 
-const PFC_VERSION = "v2";
+const PFC_VERSION = "V2";
 const PFC_PRIMARY_NODE_ID_PREFIX = "pfc:";
 const CUSTOM_CATEGORY_NODE_ID_PREFIX = "category:";
 const DRAFT_CUSTOM_CATEGORY_NODE_ID_PREFIX = "draft-category:";
@@ -374,8 +374,8 @@ export function CategorySetEditor({
     const newCustomCategory: ProfileCustomCategoryResponse = {
       id: "",
       name: `Category ${customCategoryNodes.length + 1}`,
-      colorSet: DEFAULT_PROFILE_CUSTOM_CATEGORY_COLOR,
-      iconName: DEFAULT_PROFILE_CUSTOM_CATEGORY_ICON,
+      colorSet: DEFAULT_CUSTOM_CATEGORY_COLOR,
+      iconName: DEFAULT_CUSTOM_CATEGORY_ICON,
       pfcPrimaries: [],
     };
 

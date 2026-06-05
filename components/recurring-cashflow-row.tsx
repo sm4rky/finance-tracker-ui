@@ -14,10 +14,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  getCustomCategoryMeta,
+  type CustomCategoryMeta,
+} from "@/lib/custom-category";
+import type { ProfileCustomCategorySetResponse } from "@/interface/profile-custom-category";
+import type { ProfileRecurringCashflowResponse } from "@/interface/profile-recurring-cashflow";
+import {
   getPfcPrmaryMeta,
+  type PfcPrimaryMeta,
   UNCATEGORIZED_PFC_PRIMARY,
 } from "@/lib/pfc-primary";
-import type { ProfileRecurringCashflowResponse } from "@/interface/profile-recurring-cashflow";
 import { getRecurringCashflowStatusMeta } from "@/lib/recurring-cashflow-status";
 import { cn } from "@/lib/utils";
 import { RECURRING_FREQUENCY_LABEL } from "@/schema/save-recurring-cashflow.schema";
@@ -98,9 +104,26 @@ function recurringCashflowTitle(row: ProfileRecurringCashflowResponse): string {
   return "—";
 }
 
+function getRecurringCashflowCategoryMeta(
+  categorySet: ProfileCustomCategorySetResponse | null,
+  pfcPrimary: string | null | undefined,
+): CustomCategoryMeta | PfcPrimaryMeta {
+  const normalized = pfcPrimary?.trim() || UNCATEGORIZED_PFC_PRIMARY;
+  const customCategory = categorySet?.categories.find((category) =>
+    category.pfcPrimaries.some(
+      (mapping) => mapping.pfcPrimaryCode === normalized,
+    ),
+  );
+
+  return customCategory
+    ? getCustomCategoryMeta(customCategory)
+    : getPfcPrmaryMeta(normalized);
+}
+
 export type RecurringCashflowRowProps = {
   row: ProfileRecurringCashflowResponse;
   accountLine: string;
+  categorySet: ProfileCustomCategorySetResponse | null;
   onEdit: (row: ProfileRecurringCashflowResponse) => void;
   onDelete: (id: string) => void;
 };
@@ -108,6 +131,7 @@ export type RecurringCashflowRowProps = {
 export function RecurringCashflowRow({
   row,
   accountLine,
+  categorySet,
   onEdit,
   onDelete,
 }: RecurringCashflowRowProps) {
@@ -115,10 +139,8 @@ export function RecurringCashflowRow({
   const statusConfig = getRecurringCashflowStatusMeta(row.status);
   const StatusIcon = statusConfig.Icon;
 
-  const pfcPrimary =
-    row.pfcPrimary?.trim() || UNCATEGORIZED_PFC_PRIMARY;
-  const meta = getPfcPrmaryMeta(pfcPrimary);
-  const PfcPrimaryIcon = meta.Icon;
+  const meta = getRecurringCashflowCategoryMeta(categorySet, row.pfcPrimary);
+  const CategoryIcon = meta.Icon;
 
   const { dateLine, relative } = formatNextDueDisplay(row.predictedNextDate);
   const freqLabel =
@@ -146,7 +168,7 @@ export function RecurringCashflowRow({
           )}
           aria-hidden
         >
-          <PfcPrimaryIcon className="size-4 shrink-0 opacity-90" />
+          <CategoryIcon className="size-4 shrink-0 opacity-90" />
         </div>
 
         <div className="min-w-0 flex-[1_1_12rem]">

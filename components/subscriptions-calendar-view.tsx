@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { filterRecurringCalendarOccurrences } from "@/components/recurring-cashflows-filter";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -14,10 +13,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LinkedBankResponse } from "@/interface/plaid";
+import type { ProfileCustomCategorySetResponse } from "@/interface/profile-custom-category";
 import type { ProfileRecurringCashflowCalendarOccurrenceResponse } from "@/interface/profile-recurring-cashflow";
 import { listProfileRecurringCashflowsCalendar } from "@/lib/api/profile-recurring-cashflow";
-import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
-import type { RecurringCashflowsFilterState } from "@/lib/recurring-cashflow-filter";
+import {
+  getCustomCategoryMeta,
+  type CustomCategoryMeta,
+} from "@/lib/custom-category";
+import {
+  getPfcPrmaryMeta,
+  type PfcPrimaryMeta,
+  UNCATEGORIZED_PFC_PRIMARY,
+} from "@/lib/pfc-primary";
+import {
+  filterRecurringCalendarOccurrences,
+  type RecurringCashflowsFilterState,
+} from "@/lib/recurring-cashflow-filter";
 import { cn } from "@/lib/utils";
 
 type CalendarCell = {
@@ -103,6 +114,22 @@ function recurringCashflowDescription(
   return d || "—";
 }
 
+function getRecurringCalendarCategoryMeta(
+  categorySet: ProfileCustomCategorySetResponse | null,
+  pfcPrimary: string | null | undefined,
+): CustomCategoryMeta | PfcPrimaryMeta {
+  const normalized = pfcPrimary?.trim() || UNCATEGORIZED_PFC_PRIMARY;
+  const customCategory = categorySet?.categories.find((category) =>
+    category.pfcPrimaries.some(
+      (mapping) => mapping.pfcPrimaryCode === normalized,
+    ),
+  );
+
+  return customCategory
+    ? getCustomCategoryMeta(customCategory)
+    : getPfcPrmaryMeta(normalized);
+}
+
 function formatHeaderDate(date: Date): string {
   return new Intl.DateTimeFormat("en-US", {
     weekday: "long",
@@ -128,11 +155,13 @@ function formatCurrencyUsd(amount: number): string {
 export type SubscriptionsCalendarViewProps = {
   appliedFilter: RecurringCashflowsFilterState;
   banks: LinkedBankResponse[] | undefined;
+  categorySet: ProfileCustomCategorySetResponse | null;
 };
 
 export function SubscriptionsCalendarView({
   appliedFilter,
   banks,
+  categorySet,
 }: SubscriptionsCalendarViewProps) {
   const todayIso = toIsoDate(new Date());
   const [viewMonth, setViewMonth] = useState(() => {
@@ -164,6 +193,7 @@ export function SubscriptionsCalendarView({
       data ?? [],
       appliedFilter,
       banks,
+      categorySet,
     );
     const map = new Map<
       string,
@@ -176,7 +206,7 @@ export function SubscriptionsCalendarView({
       map.get(dateKey)!.push(occurrence);
     }
     return map;
-  }, [data, appliedFilter, banks]);
+  }, [data, appliedFilter, banks, categorySet]);
 
   const occurrencesGroupsByDate = useMemo(() => {
     if (selectedDateKey) {
@@ -339,8 +369,10 @@ export function SubscriptionsCalendarView({
                             aria-hidden
                           >
                             {dayItems?.slice(0, 4).map((item, index) => {
-                              const pfcPrimary = item.pfcPrimary?.trim();
-                              const meta = getPfcPrmaryMeta(pfcPrimary);
+                              const meta = getRecurringCalendarCategoryMeta(
+                                categorySet,
+                                item.pfcPrimary,
+                              );
 
                               return (
                                 <span
@@ -407,7 +439,10 @@ export function SubscriptionsCalendarView({
                 ) : (
                   <ul className="pb-2">
                     {rows.map((row, index) => {
-                      const meta = getPfcPrmaryMeta(row.pfcPrimary);
+                      const meta = getRecurringCalendarCategoryMeta(
+                        categorySet,
+                        row.pfcPrimary,
+                      );
                       const Icon = meta.Icon;
                       const merchantLine = recurringCashflowMerchantName(row);
                       const descriptionLine = recurringCashflowDescription(row);

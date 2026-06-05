@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback, useState } from "react";
 import { Plus } from "lucide-react";
 
 import { DeleteRecurringCashflowDialog } from "@/components/delete-recurring-cashflow-dialog";
@@ -12,17 +11,14 @@ import {
   type SubscriptionsViewMode,
 } from "@/components/subscriptions-view-mode-toggle";
 import {
-  getDefaultRecurringCashflowsFilter,
   RecurringCashflowsFilterPanels,
   RecurringCashflowsFilterTrigger,
-  sanitizeRecurringCashflowsFilter,
-  useRecurringCashflowsFilter,
 } from "@/components/recurring-cashflows-filter";
+import { CategorySetDropdown } from "@/components/category-set-dropdown";
 import { SaveRecurringCashflowSheet } from "@/components/save-recurring-cashflow-sheet";
 import { Button } from "@/components/ui/button";
+import { useAppliedRecurringCashflowsFilter } from "@/hooks/use-applied-recurring-cashflows-filter";
 import type { ProfileRecurringCashflowResponse } from "@/interface/profile-recurring-cashflow";
-import { listPlaidConnections } from "@/lib/api/plaid";
-import type { RecurringCashflowsFilterState } from "@/lib/recurring-cashflow-filter";
 
 export function SubscriptionsView() {
   const [viewMode, setViewMode] = useState<SubscriptionsViewMode>("list");
@@ -33,42 +29,9 @@ export function SubscriptionsView() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  const [filterState, setFilterState] =
-    useState<RecurringCashflowsFilterState>(getDefaultRecurringCashflowsFilter);
-
-  const { data: plaidConnections } = useQuery({
-    queryKey: ["list-plaid-connections"],
-    queryFn: listPlaidConnections,
-  });
-
-  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
-
-  const activeBanks = useMemo(
-    () =>
-      allBanks.filter(
-        (bank) => bank.status === "active" || bank.status === "relink_required",
-      ),
-    [allBanks],
-  );
-
-  const appliedFilter = useMemo(
-    () => sanitizeRecurringCashflowsFilter(filterState, activeBanks),
-    [filterState, activeBanks],
-  );
-
-  const handleApplyFilter = useCallback(
-    (filterState: RecurringCashflowsFilterState) => {
-      setFilterState(filterState);
-    },
-    [],
-  );
-
-  const { triggerProps, panelsProps } = useRecurringCashflowsFilter({
-    banks: activeBanks,
-    appliedFilter,
-    onApplyFilter: handleApplyFilter,
-  });
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const { banks, appliedFilter, selectedCategorySet } =
+    useAppliedRecurringCashflowsFilter();
 
   const openCreateRecurringCashflowSheet = useCallback(() => {
     setSaveSheetMode("create");
@@ -91,7 +54,11 @@ export function SubscriptionsView() {
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6 p-6 md:p-8">
       <div className="flex w-full flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <RecurringCashflowsFilterTrigger {...triggerProps} />
+          <CategorySetDropdown />
+          <RecurringCashflowsFilterTrigger
+            open={filtersOpen}
+            onOpenChange={setFiltersOpen}
+          />
           <Button
             type="button"
             variant="outline"
@@ -106,7 +73,10 @@ export function SubscriptionsView() {
             onModeChange={setViewMode}
           />
         </div>
-        <RecurringCashflowsFilterPanels {...panelsProps} />
+        <RecurringCashflowsFilterPanels
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+        />
       </div>
 
       <DeleteRecurringCashflowDialog
@@ -126,20 +96,22 @@ export function SubscriptionsView() {
         }}
         mode={saveSheetMode}
         recurring={editingRecurringCashflow}
-        banks={activeBanks}
+        banks={banks}
       />
 
       {viewMode === "calendar" ? (
         <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
           <SubscriptionsCalendarView
             appliedFilter={appliedFilter}
-            banks={allBanks}
+            banks={banks}
+            categorySet={selectedCategorySet}
           />
         </div>
       ) : (
         <SubscriptionsListView
           appliedFilter={appliedFilter}
-          banks={allBanks}
+          banks={banks}
+          categorySet={selectedCategorySet}
           onEdit={openEditRecurringCashflowSheet}
           onDelete={openDeleteRecurringCashflowDialog}
         />

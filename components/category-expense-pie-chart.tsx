@@ -1,20 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { EChartsOption } from "echarts";
 import ReactECharts from "echarts-for-react";
 
-import {
-  getDefaultTransactionsFilter,
-  sanitizeTransactionsFilter,
-} from "@/components/transactions-filter";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchPfcPrimaryExpenseDistribution } from "@/lib/api/analytics";
-import { listPlaidConnections } from "@/lib/api/plaid";
+import type { CategoryExpenseSlice } from "@/interface/category-expense-distribution";
+import { useAppliedTransactionsFilter } from "@/hooks/use-applied-transactions-filter";
+import { fetchCategoryExpenseDistribution } from "@/lib/api/analytics";
 import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
 import { cn } from "@/lib/utils";
-import { useTransactionsFilterStore } from "@/stores/transactions-filter";
 
 const UNCATEGORIZED_LABEL = "Uncategorized";
 
@@ -30,11 +26,14 @@ function formatSignedPercent(roundedToOneDecimal: number): string {
   return `${sign}${roundedToOneDecimal.toFixed(1)}%`;
 }
 
-function sliceDisplayName(pfcPrimary: string | null): string {
-  if (pfcPrimary == null || pfcPrimary === "") {
+function sliceDisplayName(slice: CategoryExpenseSlice): string {
+  if (slice.customCategory?.name) {
+    return slice.customCategory.name;
+  }
+  if (slice.pfcPrimary == null || slice.pfcPrimary === "") {
     return UNCATEGORIZED_LABEL;
   }
-  return getPfcPrmaryMeta(pfcPrimary).displayName;
+  return getPfcPrmaryMeta(slice.pfcPrimary).displayName;
 }
 
 export type CategoryExpensePieChartProps = {
@@ -48,57 +47,12 @@ export function CategoryExpensePieChart({
   expensesChangePercentFromPrevious,
   cashflowLoading = false,
 }: CategoryExpensePieChartProps = {}) {
-  const [isFilterStoreHydrated, setIsFilterStoreHydrated] = useState(() => {
-    const persistApi = useTransactionsFilterStore.persist;
-    return !persistApi || persistApi.hasHydrated();
-  });
-
-  useEffect(() => {
-    const persistApi = useTransactionsFilterStore.persist;
-    if (!persistApi || persistApi.hasHydrated()) {
-      return;
-    }
-
-    return persistApi.onFinishHydration(() => {
-      setIsFilterStoreHydrated(true);
-    });
-  }, []);
-
-  const storedAppliedFilter = useTransactionsFilterStore(
-    (state) => state.appliedFilter,
-  );
-
-  const { data: plaidConnections } = useQuery({
-    queryKey: ["list-plaid-connections"],
-    queryFn: listPlaidConnections,
-  });
-
-  const allBanks = useMemo(() => plaidConnections ?? [], [plaidConnections]);
-
-  const activeBanks = useMemo(
-    () =>
-      allBanks.filter(
-        (bank) => bank.status === "active" || bank.status === "relink_required",
-      ),
-    [allBanks],
-  );
-
-  const appliedFilter = useMemo(() => {
-    if (!isFilterStoreHydrated) {
-      return getDefaultTransactionsFilter(undefined);
-    }
-
-    return sanitizeTransactionsFilter(
-      storedAppliedFilter ?? getDefaultTransactionsFilter(activeBanks),
-      activeBanks,
-    );
-  }, [isFilterStoreHydrated, storedAppliedFilter, activeBanks]);
-
-  const filterKey = JSON.stringify(appliedFilter);
+  const { appliedFilter, filterKey, isFilterStoreHydrated } =
+    useAppliedTransactionsFilter();
 
   const { data, isPending, isError, error } = useQuery({
-    queryKey: ["analytics-pfc-expense-distribution", filterKey],
-    queryFn: () => fetchPfcPrimaryExpenseDistribution(appliedFilter),
+    queryKey: ["analytics-category-expense-distribution", filterKey],
+    queryFn: () => fetchCategoryExpenseDistribution(appliedFilter),
     enabled: isFilterStoreHydrated,
   });
 
@@ -109,7 +63,7 @@ export function CategoryExpensePieChart({
 
   const chartOption = useMemo((): EChartsOption | null => {
     const series = expenseSlices.map((s) => ({
-      name: sliceDisplayName(s.pfcPrimary),
+      name: sliceDisplayName(s),
       value: s.totalExpenses,
     }));
 

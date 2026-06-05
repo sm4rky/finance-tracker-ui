@@ -5,8 +5,6 @@ import {
   useCallback,
   useEffect,
   useState,
-  type Dispatch,
-  type SetStateAction,
 } from "react";
 import { Check, ChevronDown, FilterX, SlidersHorizontal } from "lucide-react";
 
@@ -19,107 +17,86 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { TransactionsFilterForm } from "@/components/transactions-filter-form";
+import { useAppliedTransactionsFilter } from "@/hooks/use-applied-transactions-filter";
+import { useSelectedCategorySet } from "@/hooks/use-selected-category-set";
 import { useIsMobile } from "@/hooks/use-mobile";
-import type { LinkedBankResponse } from "@/interface/plaid";
-import { getAllAccountIds } from "@/lib/linked-bank-accounts";
-import { PAYMENT_CHANNELS } from "@/lib/payment-channel";
-import { PFC_PRIMARY } from "@/lib/pfc-primary";
-import type { TransactionsFilterState } from "@/lib/transaction-filter";
-import { getDateRangeForPreset } from "@/lib/transactions-date-range";
+import {
+  areTransactionsFiltersEqual,
+  getDefaultTransactionsFilter,
+  sanitizeTransactionsFilter,
+  type TransactionsFilterState,
+} from "@/lib/transaction-filter";
 import { cn } from "@/lib/utils";
 
-
-export function getDefaultTransactionsFilter(
-  banks: LinkedBankResponse[] | undefined,
-): TransactionsFilterState {
-  const { dateFrom, dateTo } = getDateRangeForPreset("this_month");
-  return {
-    accountIds: getAllAccountIds(banks),
-    includeUnlinkedTransactions: true,
-    pfcPrimaryList: [...PFC_PRIMARY],
-    paymentChannels: [...PAYMENT_CHANNELS],
-    pending: undefined,
-    dateFrom,
-    dateTo,
-    amountMin: undefined,
-    amountMax: undefined,
-    amountFlow: null,
-  };
-}
-
-export function sanitizeTransactionsFilter(
-  filter: TransactionsFilterState,
-  banks: LinkedBankResponse[] | undefined,
-): TransactionsFilterState {
-  const validAccountIds = new Set(getAllAccountIds(banks));
-  const validPfcPrimary = new Set(PFC_PRIMARY);
-  const validChannelIds = new Set<string>(PAYMENT_CHANNELS);
-
-  const accountIds =
-    filter.accountIds === undefined
-      ? validAccountIds.size > 0
-        ? [...validAccountIds]
-        : []
-      : filter.accountIds.filter((id) => validAccountIds.has(id));
-
-  const pfcPrimaryList =
-    filter.pfcPrimaryList === undefined
-      ? [...PFC_PRIMARY]
-      : filter.pfcPrimaryList.filter((code) => validPfcPrimary.has(code));
-
-  const paymentChannels =
-    filter.paymentChannels === undefined
-      ? [...PAYMENT_CHANNELS]
-      : filter.paymentChannels.filter((channel) =>
-        validChannelIds.has(channel),
-      );
-
-  return {
-    ...filter,
-    accountIds,
-    includeUnlinkedTransactions: filter.includeUnlinkedTransactions ?? true,
-    pfcPrimaryList,
-    paymentChannels,
-  };
-}
-
-function areTransactionsFiltersEqual(
-  a: TransactionsFilterState,
-  b: TransactionsFilterState,
-): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
-type UseTransactionsFilterOptions = {
-  banks: LinkedBankResponse[] | undefined;
-  appliedFilter: TransactionsFilterState;
-  onApplyFilter: (filter: TransactionsFilterState) => void;
+export type TransactionsFilterTriggerProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
-export function useTransactionsFilter({
-  banks,
-  appliedFilter,
-  onApplyFilter,
-}: UseTransactionsFilterOptions) {
-  const [isFilterControlsOpen, setIsFilterControlsOpen] = useState(false);
+export function TransactionsFilterTrigger({
+  open,
+  onOpenChange,
+}: TransactionsFilterTriggerProps) {
+  const isMobile = useIsMobile();
+
+  return (
+    <Button
+      type="button"
+      variant={open && !isMobile ? "secondary" : "outline"}
+      onClick={() => onOpenChange(!open)}
+      aria-expanded={open}
+    >
+      <SlidersHorizontal className="size-4" aria-hidden />
+      Filters
+      {!isMobile ? (
+        <ChevronDown
+          className={cn(
+            "size-4 transition-transform",
+            open && "rotate-180",
+          )}
+          aria-hidden
+        />
+      ) : null}
+    </Button>
+  );
+}
+
+export type TransactionsFilterPanelsProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+export function TransactionsFilterPanels({
+  open,
+  onOpenChange,
+}: TransactionsFilterPanelsProps) {
+  const isMobile = useIsMobile();
+  const { banks, appliedFilter, setAppliedFilter } =
+    useAppliedTransactionsFilter();
+  const { selectedCategorySet } = useSelectedCategorySet();
+
   const [filterState, setFilterState] =
     useState<TransactionsFilterState>(appliedFilter);
 
   useEffect(() => {
-    if (isFilterControlsOpen) {
+    if (open) {
       startTransition(() => {
         setFilterState((current) => {
-          if (
-            current.dateFrom === appliedFilter.dateFrom &&
-            current.dateTo === appliedFilter.dateTo
-          ) {
+          const next = sanitizeTransactionsFilter(
+            {
+              ...current,
+              dateFrom: appliedFilter.dateFrom,
+              dateTo: appliedFilter.dateTo,
+            },
+            banks,
+            selectedCategorySet,
+          );
+
+          if (areTransactionsFiltersEqual(current, next)) {
             return current;
           }
-          return {
-            ...current,
-            dateFrom: appliedFilter.dateFrom,
-            dateTo: appliedFilter.dateTo,
-          };
+
+          return next;
         });
       });
       return;
@@ -132,102 +109,29 @@ export function useTransactionsFilter({
           : appliedFilter,
       );
     });
-  }, [appliedFilter, isFilterControlsOpen]);
+  }, [appliedFilter, banks, open, selectedCategorySet]);
 
   const handleClearFilter = useCallback(() => {
-    const defaults = getDefaultTransactionsFilter(banks);
+    const defaults = getDefaultTransactionsFilter(banks, selectedCategorySet);
     setFilterState({
       ...defaults,
       dateFrom: appliedFilter.dateFrom,
       dateTo: appliedFilter.dateTo,
     });
-  }, [banks, appliedFilter.dateFrom, appliedFilter.dateTo]);
+  }, [
+    appliedFilter.dateFrom,
+    appliedFilter.dateTo,
+    banks,
+    selectedCategorySet,
+  ]);
 
   const handleApplyFilter = useCallback(() => {
-    onApplyFilter(filterState);
-  }, [onApplyFilter, filterState]);
-
-  const handleOpenFilterControls = useCallback(() => {
-    setIsFilterControlsOpen((open) => !open);
-  }, []);
-
-  return {
-    triggerProps: {
-      isFilterControlsOpen,
-      onOpenFilterControls: handleOpenFilterControls,
-    } satisfies TransactionsFilterTriggerProps,
-    panelsProps: {
-      banks,
-      filterState,
-      setFilterState,
-      isFilterControlsOpen,
-      onFilterControlsOpenChange: setIsFilterControlsOpen,
-      onClearFilter: handleClearFilter,
-      onApplyFilter: handleApplyFilter,
-    } satisfies TransactionsFilterPanelsProps,
-  };
-}
-
-export type TransactionsFilterTriggerProps = {
-  isFilterControlsOpen: boolean;
-  onOpenFilterControls: () => void;
-  className?: string;
-};
-
-export function TransactionsFilterTrigger({
-  isFilterControlsOpen,
-  onOpenFilterControls: onToggleFilterControls,
-  className,
-}: TransactionsFilterTriggerProps) {
-  const isMobile = useIsMobile();
-
-  return (
-    <Button
-      type="button"
-      variant={isFilterControlsOpen && !isMobile ? "secondary" : "outline"}
-      className={className}
-      onClick={onToggleFilterControls}
-      aria-expanded={isFilterControlsOpen}
-    >
-      <SlidersHorizontal className="size-4" aria-hidden />
-      Filters
-      {!isMobile ? (
-        <ChevronDown
-          className={cn(
-            "size-4 transition-transform",
-            isFilterControlsOpen && "rotate-180",
-          )}
-          aria-hidden
-        />
-      ) : null}
-    </Button>
-  );
-}
-
-export type TransactionsFilterPanelsProps = {
-  banks: LinkedBankResponse[] | undefined;
-  filterState: TransactionsFilterState;
-  setFilterState: Dispatch<SetStateAction<TransactionsFilterState>>;
-  isFilterControlsOpen: boolean;
-  onFilterControlsOpenChange: (open: boolean) => void;
-  onClearFilter: () => void;
-  onApplyFilter: () => void;
-};
-
-export function TransactionsFilterPanels({
-  banks,
-  filterState,
-  setFilterState,
-  isFilterControlsOpen,
-  onFilterControlsOpenChange,
-  onClearFilter,
-  onApplyFilter,
-}: TransactionsFilterPanelsProps) {
-  const isMobile = useIsMobile();
+    setAppliedFilter(filterState);
+  }, [filterState, setAppliedFilter]);
 
   return (
     <>
-      {!isMobile && isFilterControlsOpen ? (
+      {!isMobile && open ? (
         <div
           className="rounded-xl border border-border bg-card p-4 shadow-sm"
           id="transactions-filters-panel"
@@ -236,21 +140,19 @@ export function TransactionsFilterPanels({
             filterState={filterState}
             onChange={setFilterState}
             banks={banks}
+            categorySet={selectedCategorySet}
             variant="default"
           />
           <div className="mt-4 border-t border-border pt-4">
             <FilterActions
-              onClearFilter={onClearFilter}
-              onApplyFilter={onApplyFilter}
+              onClearFilter={handleClearFilter}
+              onApplyFilter={handleApplyFilter}
             />
           </div>
         </div>
       ) : null}
 
-      <Sheet
-        open={isMobile && isFilterControlsOpen}
-        onOpenChange={onFilterControlsOpenChange}
-      >
+      <Sheet open={isMobile && open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
           className="max-h-[85vh] gap-0 overflow-hidden p-0"
@@ -265,15 +167,15 @@ export function TransactionsFilterPanels({
               filterState={filterState}
               onChange={setFilterState}
               banks={banks}
+              categorySet={selectedCategorySet}
               variant="sheet"
             />
           </div>
 
           <SheetFooter className="border-t border-border px-5 py-4">
             <FilterActions
-              className="gap-4"
-              onClearFilter={onClearFilter}
-              onApplyFilter={onApplyFilter}
+              onClearFilter={handleClearFilter}
+              onApplyFilter={handleApplyFilter}
             />
           </SheetFooter>
         </SheetContent>
@@ -285,16 +187,14 @@ export function TransactionsFilterPanels({
 type FilterActionsProps = {
   onClearFilter?: () => void;
   onApplyFilter: () => void;
-  className?: string;
 };
 
 function FilterActions({
   onClearFilter,
   onApplyFilter,
-  className,
 }: FilterActionsProps) {
   return (
-    <div className={cn("flex flex-wrap justify-end gap-2", className)}>
+    <div className="flex flex-wrap justify-end gap-2">
       {onClearFilter ? (
         <Button
           type="button"

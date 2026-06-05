@@ -11,13 +11,13 @@ import type { CustomCategoryNode } from "@/components/custom-category-flow-node"
 import type { ProfileCustomCategoryResponse } from "@/interface/profile-custom-category";
 import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
 import {
-  getProfileCustomCategoryColorSet as getProfileCustomCategoryColorMeta,
-  PROFILE_CUSTOM_CATEGORY_COLORS,
-} from "@/lib/profile-custom-category-colors";
+  getCustomCategoryColorSet,
+  CUSTOM_CATEGORY_COLORS,
+} from "@/lib/custom-category-colors";
 import {
-  getProfileCustomCategoryIconMeta,
-  PROFILE_CUSTOM_CATEGORY_ICON_GROUPS,
-} from "@/lib/profile-custom-category-icons";
+  getCustomCategoryIconMeta,
+  CUSTOM_CATEGORY_ICON_GROUPS,
+} from "@/lib/custom-category-icons";
 import { cn } from "@/lib/utils";
 
 type CategoryEditorPanelProps = {
@@ -46,8 +46,8 @@ export function CategoryEditorPanel({
   }
 
   const category = categoryNode.data.category;
-  const colorSet = getProfileCustomCategoryColorMeta(category.colorSet);
-  const iconMeta = getProfileCustomCategoryIconMeta(category.iconName);
+  const colorSet = getCustomCategoryColorSet(category.colorSet);
+  const iconMeta = getCustomCategoryIconMeta(category.iconName);
   const Icon = iconMeta.Icon;
 
   return (
@@ -103,8 +103,8 @@ export function CategoryEditorPanel({
 
         <TabsContent value="color">
           <div className="grid grid-cols-4 gap-4">
-            {PROFILE_CUSTOM_CATEGORY_COLORS.map((colorSet) => {
-              const colorMeta = getProfileCustomCategoryColorMeta(colorSet);
+            {CUSTOM_CATEGORY_COLORS.map((colorSet) => {
+              const colorMeta = getCustomCategoryColorSet(colorSet);
               const selected = colorSet === category.colorSet;
               return (
                 <button
@@ -127,7 +127,7 @@ export function CategoryEditorPanel({
 
         <TabsContent value="icon">
           <div className="flex flex-col gap-4">
-            {PROFILE_CUSTOM_CATEGORY_ICON_GROUPS.map((group) => (
+            {CUSTOM_CATEGORY_ICON_GROUPS.map((group) => (
               <div key={group.displayName} className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">
                   {group.displayName}
@@ -135,7 +135,7 @@ export function CategoryEditorPanel({
                 <div className="grid grid-cols-4 gap-2">
                   {group.icons.map((iconName) => {
                     const iconMeta =
-                      getProfileCustomCategoryIconMeta(iconName);
+                      getCustomCategoryIconMeta(iconName);
                     const selected = iconName === category.iconName;
                     const Icon = iconMeta.Icon;
                     return (

@@ -5,8 +5,6 @@ import {
   useCallback,
   useEffect,
   useState,
-  type Dispatch,
-  type SetStateAction,
 } from "react";
 import { Check, ChevronDown, FilterX, SlidersHorizontal } from "lucide-react";
 
@@ -19,189 +17,33 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { RecurringCashflowsFilterForm } from "@/components/recurring-cashflows-filter-form";
+import { useAppliedRecurringCashflowsFilter } from "@/hooks/use-applied-recurring-cashflows-filter";
 import { useIsMobile } from "@/hooks/use-mobile";
-import type { LinkedBankResponse } from "@/interface/plaid";
 import {
-  type ProfileRecurringCashflowCalendarOccurrenceResponse,
-  type ProfileRecurringCashflowResponse,
-} from "@/interface/profile-recurring-cashflow";
-import type { RecurringCashflowsFilterState } from "@/lib/recurring-cashflow-filter";
-import { RECURRING_CASHFLOW_STATUSES } from "@/lib/recurring-cashflow-status";
-import {
-  PFC_PRIMARY,
-  UNCATEGORIZED_PFC_PRIMARY,
-} from "@/lib/pfc-primary";
-import { getAllAccountIds } from "@/lib/linked-bank-accounts";
+  areRecurringCashflowsFiltersEqual,
+  getDefaultRecurringCashflowsFilter,
+  sanitizeRecurringCashflowsFilter,
+  type RecurringCashflowsFilterState,
+} from "@/lib/recurring-cashflow-filter";
 import { cn } from "@/lib/utils";
 
-export function getDefaultRecurringCashflowsFilter(): RecurringCashflowsFilterState {
-  return {
-    accountIds: undefined,
-    includeUnlinked: true,
-    pfcPrimaryList: [...PFC_PRIMARY],
-    statusList: [...RECURRING_CASHFLOW_STATUSES],
-  };
-}
-
-export function sanitizeRecurringCashflowsFilter(
-  filter: RecurringCashflowsFilterState,
-  banks: LinkedBankResponse[] | undefined,
-): RecurringCashflowsFilterState {
-  const validAccountIds = new Set(getAllAccountIds(banks));
-  const validPfcPrimary = new Set(PFC_PRIMARY);
-  const validStatuses = new Set<string>(RECURRING_CASHFLOW_STATUSES);
-
-  const accountIds =
-    filter.accountIds === undefined
-      ? validAccountIds.size > 0
-        ? [...validAccountIds]
-        : []
-      : filter.accountIds.filter((accountId) => validAccountIds.has(accountId));
-
-  const pfcPrimaryList = (
-    filter.pfcPrimaryList === undefined
-      ? [...PFC_PRIMARY]
-      : [...filter.pfcPrimaryList]
-  ).filter((pfcPrimary) => validPfcPrimary.has(pfcPrimary));
-
-  const statusList = (
-    filter.statusList === undefined
-      ? [...RECURRING_CASHFLOW_STATUSES]
-      : [...filter.statusList]
-  ).filter((status) => validStatuses.has(status));
-
-  return {
-    ...filter,
-    accountIds,
-    includeUnlinked: filter.includeUnlinked ?? true,
-    pfcPrimaryList,
-    statusList,
-  };
-}
-
-export function filterRecurringCashflows(
-  rows: ProfileRecurringCashflowResponse[],
-  filterState: RecurringCashflowsFilterState,
-  banks: LinkedBankResponse[] | undefined,
-): ProfileRecurringCashflowResponse[] {
-  return rows.filter((row) =>
-    matchesRecurringCashflowFilter(row, filterState, banks),
-  );
-}
-
-export function filterRecurringCalendarOccurrences(
-  occurrences: ProfileRecurringCashflowCalendarOccurrenceResponse[],
-  filterState: RecurringCashflowsFilterState,
-  banks: LinkedBankResponse[] | undefined,
-): ProfileRecurringCashflowCalendarOccurrenceResponse[] {
-  return occurrences.filter((occurrence) =>
-    matchesRecurringCashflowFilter(occurrence, filterState, banks),
-  );
-}
-
-type ProfileRecurringCashflowItem =
-  | ProfileRecurringCashflowResponse
-  | ProfileRecurringCashflowCalendarOccurrenceResponse;
-
-function matchesRecurringCashflowFilter(
-  item: ProfileRecurringCashflowItem,
-  filterState: RecurringCashflowsFilterState,
-  banks: LinkedBankResponse[] | undefined,
-): boolean {
-  const accountIds = filterState.accountIds ?? getAllAccountIds(banks);
-  const includeUnlinked = filterState.includeUnlinked ?? true;
-  const pfcPrimaryList = filterState.pfcPrimaryList ?? [...PFC_PRIMARY];
-  const statusList = filterState.statusList ?? [...RECURRING_CASHFLOW_STATUSES];
-  const linkedBankAccountId = item.linkedBankAccount?.id.trim() || null;
-
-  if (linkedBankAccountId == null) {
-    if (!includeUnlinked) return false;
-  } else if (!accountIds.includes(linkedBankAccountId)) {
-    return false;
-  }
-
-  const pfcPrimary = item.pfcPrimary?.trim() || UNCATEGORIZED_PFC_PRIMARY;
-  if (!pfcPrimaryList.includes(pfcPrimary)) return false;
-
-  const status = item.status.trim().toLowerCase();
-  if (!statusList.includes(status)) return false;
-
-  return true;
-}
-
-type UseRecurringCashflowsFilterProps = {
-  banks: LinkedBankResponse[] | undefined;
-  appliedFilter: RecurringCashflowsFilterState;
-  onApplyFilter: (filter: RecurringCashflowsFilterState) => void;
-};
-
-export function useRecurringCashflowsFilter({
-  banks,
-  appliedFilter,
-  onApplyFilter,
-}: UseRecurringCashflowsFilterProps) {
-  const [isFilterControlsOpen, setIsFilterControlsOpen] = useState(false);
-  const [filterState, setFilterState] =
-    useState<RecurringCashflowsFilterState>(appliedFilter);
-
-  useEffect(() => {
-    if (isFilterControlsOpen) return;
-
-    startTransition(() => {
-      setFilterState(appliedFilter);
-    });
-  }, [appliedFilter, isFilterControlsOpen]);
-
-  const handleClearFilter = useCallback(() => {
-    setFilterState(getDefaultRecurringCashflowsFilter());
-  }, []);
-
-  const handleApplyFilter = useCallback(() => {
-    onApplyFilter(sanitizeRecurringCashflowsFilter(filterState, banks));
-  }, [filterState, onApplyFilter, banks]);
-
-  const handleOpenFilterControls = useCallback(() => {
-    setFilterState(appliedFilter);
-    setIsFilterControlsOpen((open) => !open);
-  }, [appliedFilter]);
-
-  return {
-    triggerProps: {
-      isFilterControlsOpen,
-      onOpenFilterControls: handleOpenFilterControls,
-    } satisfies RecurringCashflowsFilterTriggerProps,
-    panelsProps: {
-      banks,
-      filterState,
-      setFilterState,
-      isFilterControlsOpen,
-      onFilterControlsOpenChange: setIsFilterControlsOpen,
-      onClearFilter: handleClearFilter,
-      onApplyFilter: handleApplyFilter,
-    } satisfies RecurringCashflowsFilterPanelsProps,
-  };
-}
-
 export type RecurringCashflowsFilterTriggerProps = {
-  isFilterControlsOpen: boolean;
-  onOpenFilterControls: () => void;
-  className?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 export function RecurringCashflowsFilterTrigger({
-  isFilterControlsOpen,
-  onOpenFilterControls,
-  className,
+  open,
+  onOpenChange,
 }: RecurringCashflowsFilterTriggerProps) {
   const isMobile = useIsMobile();
 
   return (
     <Button
       type="button"
-      variant={isFilterControlsOpen && !isMobile ? "secondary" : "outline"}
-      className={className}
-      onClick={onOpenFilterControls}
-      aria-expanded={isFilterControlsOpen}
+      variant={open && !isMobile ? "secondary" : "outline"}
+      onClick={() => onOpenChange(!open)}
+      aria-expanded={open}
     >
       <SlidersHorizontal className="size-4" aria-hidden />
       Filters
@@ -209,7 +51,7 @@ export function RecurringCashflowsFilterTrigger({
         <ChevronDown
           className={cn(
             "size-4 transition-transform",
-            isFilterControlsOpen && "rotate-180",
+            open && "rotate-180",
           )}
           aria-hidden
         />
@@ -219,29 +61,65 @@ export function RecurringCashflowsFilterTrigger({
 }
 
 export type RecurringCashflowsFilterPanelsProps = {
-  banks: LinkedBankResponse[] | undefined;
-  filterState: RecurringCashflowsFilterState;
-  setFilterState: Dispatch<SetStateAction<RecurringCashflowsFilterState>>;
-  isFilterControlsOpen: boolean;
-  onFilterControlsOpenChange: (open: boolean) => void;
-  onClearFilter: () => void;
-  onApplyFilter: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 export function RecurringCashflowsFilterPanels({
-  banks,
-  filterState,
-  setFilterState,
-  isFilterControlsOpen,
-  onFilterControlsOpenChange,
-  onClearFilter,
-  onApplyFilter,
+  open,
+  onOpenChange,
 }: RecurringCashflowsFilterPanelsProps) {
   const isMobile = useIsMobile();
+  const {
+    banks,
+    appliedFilter,
+    selectedCategorySet,
+    setAppliedFilter,
+  } = useAppliedRecurringCashflowsFilter();
+
+  const [filterState, setFilterState] =
+    useState<RecurringCashflowsFilterState>(appliedFilter);
+
+  useEffect(() => {
+    if (open) {
+      startTransition(() => {
+        setFilterState((current) => {
+          const next = sanitizeRecurringCashflowsFilter(
+            current,
+            banks,
+            selectedCategorySet,
+          );
+
+          return areRecurringCashflowsFiltersEqual(current, next)
+            ? current
+            : next;
+        });
+      });
+      return;
+    }
+
+    startTransition(() => {
+      setFilterState((current) =>
+        areRecurringCashflowsFiltersEqual(current, appliedFilter)
+          ? current
+          : appliedFilter,
+      );
+    });
+  }, [appliedFilter, banks, open, selectedCategorySet]);
+
+  const handleClearFilter = useCallback(() => {
+    setFilterState(
+      getDefaultRecurringCashflowsFilter(banks, selectedCategorySet),
+    );
+  }, [banks, selectedCategorySet]);
+
+  const handleApplyFilter = useCallback(() => {
+    setAppliedFilter(filterState);
+  }, [filterState, setAppliedFilter]);
 
   return (
     <>
-      {!isMobile && isFilterControlsOpen ? (
+      {!isMobile && open ? (
         <div
           className="rounded-xl border border-border bg-card p-4 shadow-sm"
           id="recurring-cashflows-filters-panel"
@@ -250,20 +128,21 @@ export function RecurringCashflowsFilterPanels({
             filterState={filterState}
             onChange={setFilterState}
             banks={banks}
+            categorySet={selectedCategorySet}
             variant="default"
           />
           <div className="mt-4 border-t border-border pt-4">
             <FilterActions
-              onClearFilter={onClearFilter}
-              onApplyFilter={onApplyFilter}
+              onClearFilter={handleClearFilter}
+              onApplyFilter={handleApplyFilter}
             />
           </div>
         </div>
       ) : null}
 
       <Sheet
-        open={isMobile && isFilterControlsOpen}
-        onOpenChange={onFilterControlsOpenChange}
+        open={isMobile && open}
+        onOpenChange={onOpenChange}
       >
         <SheetContent
           side="bottom"
@@ -279,15 +158,15 @@ export function RecurringCashflowsFilterPanels({
               filterState={filterState}
               onChange={setFilterState}
               banks={banks}
+              categorySet={selectedCategorySet}
               variant="sheet"
             />
           </div>
 
           <SheetFooter className="border-t border-border px-5 py-4">
             <FilterActions
-              className="gap-4"
-              onClearFilter={onClearFilter}
-              onApplyFilter={onApplyFilter}
+              onClearFilter={handleClearFilter}
+              onApplyFilter={handleApplyFilter}
             />
           </SheetFooter>
         </SheetContent>
@@ -299,16 +178,14 @@ export function RecurringCashflowsFilterPanels({
 type FilterActionsProps = {
   onClearFilter: () => void;
   onApplyFilter: () => void;
-  className?: string;
 };
 
 function FilterActions({
   onClearFilter,
   onApplyFilter,
-  className,
 }: FilterActionsProps) {
   return (
-    <div className={cn("flex flex-wrap justify-end gap-2", className)}>
+    <div className="flex flex-wrap justify-end gap-2">
       <Button
         type="button"
         variant="outline"
