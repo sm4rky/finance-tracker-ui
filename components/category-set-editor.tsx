@@ -19,6 +19,7 @@ import {
   type EdgeMouseHandler,
   type FinalConnectionState,
   type HandleType,
+  type IsValidConnection,
   type NodeMouseHandler,
   useEdgesState,
   useNodesState,
@@ -324,6 +325,31 @@ export function CategorySetEditor({
     [edges, selectedEdgeId, selectedNodeId],
   );
 
+  const isPfcPrimaryTargetOwned = useCallback(
+    (target?: string | null, ignoredEdgeId?: string) =>
+      target != null &&
+      edges.some((edge) => edge.target === target && edge.id !== ignoredEdgeId),
+    [edges],
+  );
+
+  const isValidFlowConnection: IsValidConnection = useCallback(
+    (connection) => {
+      if (
+        !isCustomCategoryNodeId(connection.source) ||
+        !isPfcPrimaryNodeId(connection.target)
+      ) {
+        return false;
+      }
+
+      if (reconnectingEdgeRef.current) {
+        return true;
+      }
+
+      return !isPfcPrimaryTargetOwned(connection.target);
+    },
+    [isPfcPrimaryTargetOwned],
+  );
+
   const handleConnect = useCallback(
     (connection: Connection) => {
       if (
@@ -334,21 +360,18 @@ export function CategorySetEditor({
         return;
       }
 
+      if (isPfcPrimaryTargetOwned(connection.target)) return;
+
       const newEdge = createCustomCategoryPfcPrimaryEdge(
         connection.source!,
         connection.target!,
       );
 
-      setEdges((edges) =>
-        addEdge(
-          newEdge,
-          edges.filter((edge) => edge.target !== connection.target),
-        ),
-      );
+      setEdges((edges) => addEdge(newEdge, edges));
       setSelectedNodeId(connection.source!);
       setSelectedEdgeId(null);
     },
-    [setEdges],
+    [isPfcPrimaryTargetOwned, setEdges],
   );
 
   const handleReconnect = useCallback(
@@ -361,6 +384,8 @@ export function CategorySetEditor({
         return;
       }
 
+      if (isPfcPrimaryTargetOwned(connection.target, oldEdge.id)) return;
+
       reconnectSucceededRef.current = true;
 
       const newEdge = createCustomCategoryPfcPrimaryEdge(
@@ -371,15 +396,13 @@ export function CategorySetEditor({
       setEdges((eds) =>
         addEdge(
           newEdge,
-          eds.filter(
-            (e) => e.id !== oldEdge.id && e.target !== connection.target,
-          ),
+          eds.filter((e) => e.id !== oldEdge.id),
         ),
       );
       setSelectedNodeId(oldEdge.source);
       setSelectedEdgeId(null);
     },
-    [setEdges],
+    [isPfcPrimaryTargetOwned, setEdges],
   );
 
   const handleReconnectStart = useCallback(
@@ -635,10 +658,7 @@ export function CategorySetEditor({
               onEdgeClick={handleEdgeClick}
               onPaneClick={handlePaneClick}
               onNodeClick={handleNodeClick}
-              isValidConnection={(connection) =>
-                isCustomCategoryNodeId(connection.source) &&
-                isPfcPrimaryNodeId(connection.target)
-              }
+              isValidConnection={isValidFlowConnection}
               edgesReconnectable
               reconnectRadius={12}
               panOnDrag
