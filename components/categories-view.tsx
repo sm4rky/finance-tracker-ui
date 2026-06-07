@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { CategorySetSelector } from "@/components/category-set-selector";
@@ -17,9 +17,14 @@ const DEFAULT_CATEGORY_SET: ProfileCustomCategorySetResponse = {
 };
 
 export function CategoriesView() {
-  const handledAddCategorySetFromUrlRef = useRef(false);
   const [selectedCategorySet, setSelectedCategorySet] =
-    useState<ProfileCustomCategorySetResponse | null>(null);
+    useState<ProfileCustomCategorySetResponse | null>(() => {
+      if (typeof window === "undefined") return null;
+      const searchParams = new URLSearchParams(window.location.search);
+      return searchParams.get("newCategorySet") === "1"
+        ? DEFAULT_CATEGORY_SET
+        : null;
+    });
 
   const { data: categorySets = [], isLoading } = useQuery({
     queryKey: ["profile-custom-category-sets"],
@@ -49,13 +54,8 @@ export function CategoriesView() {
   }, []);
 
   useEffect(() => {
-    if (handledAddCategorySetFromUrlRef.current) return;
-
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get("newCategorySet") !== "1") return;
-
-    handledAddCategorySetFromUrlRef.current = true;
-    handleAddCategorySet();
 
     searchParams.delete("newCategorySet");
     const query = searchParams.toString();
