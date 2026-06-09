@@ -145,7 +145,7 @@ export function RecentTransactionsSection() {
         </Link>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col px-2 pb-2 sm:px-3 sm:pb-3">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto no-scrollbar px-2 pb-2 sm:px-3 sm:pb-3">
         {isPending ? (
           <ul className="space-y-0" aria-hidden>
             {Array.from({ length: RECENT_LIMIT }, (_, i) => (

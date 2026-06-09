@@ -101,26 +101,9 @@ export function NetWorthTrendChart() {
         left: 20,
         right: 20,
         top: 20,
-        bottom: 40,
+        bottom: 20,
         containLabel: true,
       },
-      dataZoom: [
-        {
-          type: "slider",
-          xAxisIndex: 0,
-          height: 20,
-          bottom: 5,
-          left: 30,
-          right: 30,
-          showDetail: false,
-          handleSize: 10,
-          moveHandleSize: 6,
-        },
-        {
-          type: "inside",
-          xAxisIndex: 0,
-        },
-      ],
       tooltip: {
         trigger: "axis",
         renderMode: "html",

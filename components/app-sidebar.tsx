@@ -5,10 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeftRight,
-  Book,
+  BarChart3,
   LayoutDashboard,
   PiggyBank,
   Repeat,
+  Tags,
 } from "lucide-react";
 
 import {
@@ -27,9 +28,10 @@ import {
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/subscriptions", label: "Subscriptions", icon: Repeat },
   { href: "/budgets", label: "Budgets", icon: PiggyBank },
-  { href: "/categories", label: "Categories", icon: Book },
+  { href: "/categories", label: "Categories", icon: Tags },
 ] as const;
 
 export function AppSidebar() {
