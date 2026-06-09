@@ -387,9 +387,7 @@ export const CUSTOM_CATEGORY_ICON_GROUPS = [
 export const DEFAULT_CUSTOM_CATEGORY_ICON_META =
   CUSTOM_CATEGORY_ICON_METAS[DEFAULT_CUSTOM_CATEGORY_ICON];
 
-export const CUSTOM_CATEGORY_ICONS = Object.keys(
-  CUSTOM_CATEGORY_ICON_METAS,
-);
+export const CUSTOM_CATEGORY_ICONS = Object.keys(CUSTOM_CATEGORY_ICON_METAS);
 
 export function getCustomCategoryIconMeta(
   iconName: string | null | undefined,
@@ -400,7 +398,6 @@ export function getCustomCategoryIconMeta(
   }
 
   return (
-    CUSTOM_CATEGORY_ICON_METAS[normalized] ??
-    DEFAULT_CUSTOM_CATEGORY_ICON_META
+    CUSTOM_CATEGORY_ICON_METAS[normalized] ?? DEFAULT_CUSTOM_CATEGORY_ICON_META
   );
 }

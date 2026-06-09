@@ -51,7 +51,12 @@ export function CategoryEditorPanel({
   const Icon = iconMeta.Icon;
 
   return (
-    <Card className={cn("min-h-0 p-4 flex flex-col gap-5 overflow-auto no-scrollbar", isMobile ? "w-full rounded-none" : "w-90")}>
+    <Card
+      className={cn(
+        "min-h-0 p-4 flex flex-col gap-5 overflow-auto no-scrollbar",
+        isMobile ? "w-full rounded-none" : "w-90",
+      )}
+    >
       <div className="flex items-center gap-3">
         <span
           className={cn(
@@ -134,8 +139,7 @@ export function CategoryEditorPanel({
                 </p>
                 <div className="grid grid-cols-4 gap-2">
                   {group.icons.map((iconName) => {
-                    const iconMeta =
-                      getCustomCategoryIconMeta(iconName);
+                    const iconMeta = getCustomCategoryIconMeta(iconName);
                     const selected = iconName === category.iconName;
                     const Icon = iconMeta.Icon;
                     return (
@@ -196,11 +200,7 @@ export function CategoryEditorPanel({
 
       <Separator />
 
-      <Button
-        type="button"
-        variant="destructive"
-        onClick={onDeleteCategory}
-      >
+      <Button type="button" variant="destructive" onClick={onDeleteCategory}>
         <Trash2 className="size-4" aria-hidden />
         Delete this category
       </Button>

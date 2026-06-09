@@ -6,7 +6,6 @@ import type {
 import { apiFetch, parseApiErrorMessage } from "./client";
 
 const BASE_URL = "/api/profile-custom-category-sets" as const;
-const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 
 export async function listProfileCustomCategorySets(): Promise<
   ProfileCustomCategorySetResponse[]
@@ -18,7 +17,9 @@ export async function listProfileCustomCategorySets(): Promise<
   }
 
   const json: unknown = await res.json();
-  return Array.isArray(json) ? (json as ProfileCustomCategorySetResponse[]) : [];
+  return Array.isArray(json)
+    ? (json as ProfileCustomCategorySetResponse[])
+    : [];
 }
 
 export async function upsertProfileCustomCategorySet(
@@ -26,7 +27,7 @@ export async function upsertProfileCustomCategorySet(
 ): Promise<ProfileCustomCategorySetResponse> {
   const res = await apiFetch(`${BASE_URL}/upsert`, {
     method: "POST",
-    headers: JSON_HEADERS,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 
@@ -37,7 +38,9 @@ export async function upsertProfileCustomCategorySet(
   return (await res.json()) as ProfileCustomCategorySetResponse;
 }
 
-export async function deleteProfileCustomCategorySet(id: string): Promise<void> {
+export async function deleteProfileCustomCategorySet(
+  id: string,
+): Promise<void> {
   const res = await apiFetch(`${BASE_URL}/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });

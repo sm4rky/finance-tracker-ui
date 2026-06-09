@@ -18,6 +18,9 @@ export const BILLING_PLANS: BillingPlan[] = [
   {
     id: "premium",
     name: "Premium",
-    features: ["Unlimited accounts", "Dev will ask you for new features since lack of ideas"],
+    features: [
+      "Unlimited accounts",
+      "Dev will ask you for new features since lack of ideas",
+    ],
   },
 ];

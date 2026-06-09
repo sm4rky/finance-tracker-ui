@@ -13,7 +13,9 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
-function buildTransactionsQuery(request: QueryTransactionsRequest = {}): string {
+function buildTransactionsQuery(
+  request: QueryTransactionsRequest = {},
+): string {
   const params = new URLSearchParams();
 
   params.set("page", String(Math.max(1, request.page ?? DEFAULT_PAGE)));

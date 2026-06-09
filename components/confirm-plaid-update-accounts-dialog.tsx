@@ -37,10 +37,10 @@ function formatSubtype(subtype: string | null | undefined): string | null {
     .join(" ");
 }
 
-function accountNameAndMask(a: LinkedBankAccountResponse): string {
-  const name = a.officialName?.trim() || a.accountName?.trim() || "Account";
-  const mask = a.mask?.trim();
-  return mask ? `${name} · ${mask}` : name;
+function getAccountLabel(account: LinkedBankAccountResponse): string {
+  const base =
+    account.officialName?.trim() || account.accountName?.trim() || "Account";
+  return account.mask ? `${base} ••••${account.mask}` : base;
 }
 
 function accountSummaryForAria(
@@ -49,7 +49,7 @@ function accountSummaryForAria(
 ): string {
   const bank = institutionLabel.trim() || "Bank";
   const sub = formatSubtype(a.subtype);
-  const who = accountNameAndMask(a);
+  const who = getAccountLabel(a);
   if (sub) return `${bank}, ${sub}, ${who}`;
   return `${bank}, ${who}`;
 }
@@ -189,7 +189,7 @@ export function ConfirmPlaidUpdateAccountsDialog({
                         ) : null}
                       </p>
                       <p className="text-sm leading-snug wrap-break-word text-foreground/90">
-                        {accountNameAndMask(a)}
+                        {getAccountLabel(a)}
                       </p>
                     </div>
                     <fieldset className="mt-3 space-y-2" disabled={busy}>

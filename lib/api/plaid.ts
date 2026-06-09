@@ -29,8 +29,6 @@ export type {
   UnlinkInstitutionResponse,
 } from "@/interface/plaid";
 
-const JSON_HEADERS = { "Content-Type": "application/json" } as const;
-
 const BASE_URL = "/api/Plaid" as const;
 
 export async function createPlaidLinkToken(
@@ -38,7 +36,7 @@ export async function createPlaidLinkToken(
 ): Promise<CreatePlaidLinkTokenResponse> {
   const res = await apiFetch(`${BASE_URL}/link-token`, {
     method: "POST",
-    headers: JSON_HEADERS,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await parseApiErrorMessage(res));
@@ -50,14 +48,16 @@ export async function exchangePlaidPublicToken(
 ): Promise<ExchangePlaidPublicTokenResponse> {
   const res = await apiFetch(`${BASE_URL}/exchange`, {
     method: "POST",
-    headers: JSON_HEADERS,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await parseApiErrorMessage(res));
   return (await res.json()) as ExchangePlaidPublicTokenResponse;
 }
 
-export async function syncPlaidTransactions(linkedBankId: string): Promise<void> {
+export async function syncPlaidTransactions(
+  linkedBankId: string,
+): Promise<void> {
   const res = await apiFetch(
     `${BASE_URL}/connections/${encodeURIComponent(linkedBankId)}/transactions/sync`,
     { method: "POST" },
@@ -87,7 +87,7 @@ export async function unlinkPlaidInstitution(
 ): Promise<UnlinkInstitutionResponse> {
   const res = await apiFetch(`${BASE_URL}/connections/unlink`, {
     method: "POST",
-    headers: JSON_HEADERS,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await parseApiErrorMessage(res));
@@ -102,7 +102,7 @@ export async function confirmPlaidUpdateAccounts(
     `${BASE_URL}/connections/${encodeURIComponent(linkedBankId)}/confirm-update-accounts`,
     {
       method: "POST",
-      headers: JSON_HEADERS,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     },
   );

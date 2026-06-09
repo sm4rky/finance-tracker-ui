@@ -6,7 +6,11 @@ import type { LinkedBankResponse } from "@/interface/plaid";
 import { listPlaidConnections } from "@/lib/api/plaid";
 
 export function useLinkedBanks() {
-  const { data: banks = [], isLoading } = useQuery<LinkedBankResponse[]>({
+  const {
+    data: banks = [],
+    isLoading,
+    isError,
+  } = useQuery<LinkedBankResponse[]>({
     queryKey: ["list-plaid-connections"],
     queryFn: listPlaidConnections,
   });
@@ -14,5 +18,6 @@ export function useLinkedBanks() {
   return {
     banks,
     isLoading,
+    isError,
   };
 }

@@ -15,7 +15,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TransactionResponse } from "@/interface/transaction";
 import { fetchRecentTransactions } from "@/lib/api/transaction";
-import { formatMoneyAbs, getTransactionCashFlow } from "@/lib/transaction-amount";
 import { cn } from "@/lib/utils";
 
 function formatTxDate(iso: string): string {
@@ -45,8 +44,17 @@ function TransactionRow({ row }: { row: TransactionResponse }) {
   const label = getMerchantLabel(row);
   const logoUrl = row.logoUrl?.trim() ?? "";
   const shouldShowImage = logoUrl !== "" && !imgFailed;
-  const flow = getTransactionCashFlow(row);
-  const formatted = formatMoneyAbs(Math.abs(row.amount), row.isoCurrencyCode);
+  const flow = row.amount === 0 ? "neutral" : row.amount < 0 ? "in" : "out";
+  const absAmount = Math.abs(row.amount);
+  const code = row.isoCurrencyCode?.toUpperCase() || "USD";
+  let formatted = absAmount.toFixed(2);
+
+  try {
+    formatted = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: code,
+    }).format(absAmount);
+  } catch {}
   const Icon = meta.Icon;
 
   return (

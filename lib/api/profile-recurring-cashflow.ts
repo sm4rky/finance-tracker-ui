@@ -102,7 +102,9 @@ export async function updateProfileRecurringCashflow(
   return (await res.json()) as ProfileRecurringCashflowResponse;
 }
 
-export async function deleteProfileRecurringCashflow(id: string): Promise<void> {
+export async function deleteProfileRecurringCashflow(
+  id: string,
+): Promise<void> {
   const res = await apiFetch(`${BASE_URL}/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });

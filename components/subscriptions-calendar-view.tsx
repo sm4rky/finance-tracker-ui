@@ -114,7 +114,7 @@ function recurringCashflowDescription(
   return d || "—";
 }
 
-function getRecurringCalendarCategoryMeta(
+function getCategoryMeta(
   categorySet: ProfileCustomCategorySetResponse | null,
   pfcPrimary: string | null | undefined,
 ): CustomCategoryMeta | PfcPrimaryMeta {
@@ -369,7 +369,7 @@ export function SubscriptionsCalendarView({
                             aria-hidden
                           >
                             {dayItems?.slice(0, 4).map((item, index) => {
-                              const meta = getRecurringCalendarCategoryMeta(
+                              const meta = getCategoryMeta(
                                 categorySet,
                                 item.pfcPrimary,
                               );
@@ -439,7 +439,7 @@ export function SubscriptionsCalendarView({
                 ) : (
                   <ul className="pb-2">
                     {rows.map((row, index) => {
-                      const meta = getRecurringCalendarCategoryMeta(
+                      const meta = getCategoryMeta(
                         categorySet,
                         row.pfcPrimary,
                       );

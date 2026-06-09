@@ -1,13 +1,6 @@
-export type RecurringCashflowDirection = "inflow" | "outflow";
+import type { RecurringCashflowFrequency } from "@/lib/recurring-cashflow-frequency";
 
-export type RecurringCashflowFrequency =
-  | "UNKNOWN"
-  | "WEEKLY"
-  | "BIWEEKLY"
-  | "SEMI_MONTHLY"
-  | "MONTHLY"
-  | "ANNUALLY"
-  | "ONE_TIME";
+export type RecurringCashflowDirection = "inflow" | "outflow";
 
 export interface RecurringCashflowLinkedBankAccountResponse {
   id: string;

@@ -16,15 +16,13 @@ export function useSelectedCategorySet() {
   );
 
   const {
-    data,
+    data = [],
     isLoading,
     isSuccess,
   } = useQuery<ProfileCustomCategorySetResponse[]>({
     queryKey: ["profile-custom-category-sets"],
     queryFn: listProfileCustomCategorySets,
   });
-
-  const categorySets = data ?? [];
 
   const selectedCategorySet = useMemo(() => {
     if (!storedSelectedCategorySet) {
@@ -36,14 +34,14 @@ export function useSelectedCategorySet() {
     }
 
     return (
-      categorySets.find(
+      data.find(
         (categorySet) => categorySet.id === storedSelectedCategorySet.id,
       ) ?? null
     );
-  }, [categorySets, isSuccess, storedSelectedCategorySet]);
+  }, [data, isSuccess, storedSelectedCategorySet]);
 
   return {
-    categorySets,
+    categorySets: data,
     isLoading,
     selectedCategorySet,
     setSelectedCategorySet,

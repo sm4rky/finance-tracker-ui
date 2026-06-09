@@ -45,9 +45,15 @@ export function useAppliedTransactionsFilter() {
       return;
     }
 
-    const appliedFilter = storedAppliedFilter ?? getDefaultTransactionsFilter(banks, selectedCategorySet);
+    const appliedFilter =
+      storedAppliedFilter ??
+      getDefaultTransactionsFilter(banks, selectedCategorySet);
 
-    const sanitized = sanitizeTransactionsFilter(appliedFilter, banks, selectedCategorySet);
+    const sanitized = sanitizeTransactionsFilter(
+      appliedFilter,
+      banks,
+      selectedCategorySet,
+    );
 
     if (
       storedAppliedFilter &&
@@ -55,7 +61,6 @@ export function useAppliedTransactionsFilter() {
     ) {
       setStoredAppliedFilter(sanitized);
     }
-
   }, [
     banks,
     isFilterStoreHydrated,
@@ -71,27 +76,21 @@ export function useAppliedTransactionsFilter() {
 
     return sanitizeTransactionsFilter(
       storedAppliedFilter ??
-      getDefaultTransactionsFilter(banks, selectedCategorySet),
+        getDefaultTransactionsFilter(banks, selectedCategorySet),
       banks,
       selectedCategorySet,
     );
-  }, [
-    banks,
-    isFilterStoreHydrated,
-    selectedCategorySet,
-    storedAppliedFilter,
-  ]);
+  }, [banks, isFilterStoreHydrated, selectedCategorySet, storedAppliedFilter]);
 
-  const filterKey = useMemo(() => JSON.stringify(appliedFilter), [appliedFilter]);
+  const filterKey = useMemo(
+    () => JSON.stringify(appliedFilter),
+    [appliedFilter],
+  );
 
   const setAppliedFilter = useCallback(
     (filterState: TransactionsFilterState) => {
       setStoredAppliedFilter(
-        sanitizeTransactionsFilter(
-          filterState,
-          banks,
-          selectedCategorySet,
-        ),
+        sanitizeTransactionsFilter(filterState, banks, selectedCategorySet),
       );
     },
     [banks, selectedCategorySet, setStoredAppliedFilter],

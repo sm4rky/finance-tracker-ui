@@ -193,8 +193,10 @@ export const PFC_PRIMARY_META_FALLBACK: PfcPrimaryMeta = {
   Icon: Tag,
 };
 
+export const PFC_PRIMARY_WITHOUT_UNCATEGORIZED = Object.keys(PFC_PRIMARY_METAS);
+
 export const PFC_PRIMARY = [
-  ...Object.keys(PFC_PRIMARY_METAS),
+  ...PFC_PRIMARY_WITHOUT_UNCATEGORIZED,
   UNCATEGORIZED_PFC_PRIMARY,
 ];
 
@@ -207,4 +209,4 @@ export function getPfcPrmaryMeta(
   }
 
   return PFC_PRIMARY_METAS[normalized] ?? PFC_PRIMARY_META_FALLBACK;
-};
+}

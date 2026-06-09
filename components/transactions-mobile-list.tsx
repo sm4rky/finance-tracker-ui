@@ -7,11 +7,7 @@ import Image from "next/image";
 
 import {
   AmountCell,
-  formatDetailCategory,
-  formatTxDate,
   getMerchantLabel,
-  getTransactionCategoryMeta,
-  getTransactionAccountLabel,
   TransactionRowActions,
 } from "@/components/transactions-columns";
 import {
@@ -25,8 +21,39 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TransactionResponse } from "@/interface/transaction";
+import { getCustomCategoryMeta } from "@/lib/custom-category";
 import { getPaymentChannelMeta } from "@/lib/payment-channel";
+import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
 import { cn } from "@/lib/utils";
+
+function getAccountLabel(row: TransactionResponse): string {
+  const account = row.linkedBankAccount;
+  if (account == null) return "—";
+  const base =
+    account.officialName?.trim() || account.accountName?.trim() || "Account";
+  return account.mask ? `${base} ••••${account.mask}` : base;
+}
+
+function getCategoryMeta(transaction: TransactionResponse) {
+  return transaction.customCategory
+    ? getCustomCategoryMeta(transaction.customCategory)
+    : getPfcPrmaryMeta(transaction.pfcPrimary);
+}
+
+function formatDetailCategory(raw: string | null | undefined): string {
+  return raw?.trim() || "—";
+}
+
+function formatTxDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
 
 function MobileMerchantSummary({
   row,
@@ -37,7 +64,7 @@ function MobileMerchantSummary({
 }) {
   const [imgFailed, setImgFailed] = useState(false);
 
-  const meta = getTransactionCategoryMeta(row);
+  const meta = getCategoryMeta(row);
   const label = getMerchantLabel(row);
   const logoUrl = row.logoUrl?.trim() ?? "";
   const shouldShowImage = logoUrl !== "" && !imgFailed;
@@ -141,10 +168,12 @@ export function TransactionsMobileList({
           const selected = row?.getIsSelected() ?? false;
 
           const merchantLabel = getMerchantLabel(transaction);
-          const accountLabel = getTransactionAccountLabel(transaction);
+          const accountLabel = getAccountLabel(transaction);
 
-          const categoryMeta = getTransactionCategoryMeta(transaction);
-          const detailCategoryMeta = formatDetailCategory(transaction.pfcDetailed);
+          const categoryMeta = getCategoryMeta(transaction);
+          const detailCategoryMeta = formatDetailCategory(
+            transaction.pfcDetailed,
+          );
           const channelMeta = getPaymentChannelMeta(transaction.paymentChannel);
 
           return (
@@ -207,12 +236,12 @@ export function TransactionsMobileList({
                   </div>
                   <div className="space-y-0.5">
                     <dt className="text-muted-foreground text-xs">Account</dt>
-                    <dd className="min-w-0 wrap-break-word text-sm">{accountLabel}</dd>
+                    <dd className="min-w-0 wrap-break-word text-sm">
+                      {accountLabel}
+                    </dd>
                   </div>
                   <div className="space-y-0.5">
-                    <dt className="text-muted-foreground text-xs">
-                      Category
-                    </dt>
+                    <dt className="text-muted-foreground text-xs">Category</dt>
                     <dd className="text-sm">
                       <Badge
                         variant="outline"
@@ -237,9 +266,7 @@ export function TransactionsMobileList({
                     <dt className="text-muted-foreground text-xs">Channel</dt>
                     <dd className="text-sm">
                       {channelMeta.displayName === "—" ? (
-                        <span className="text-muted-foreground text-xs">
-                          —
-                        </span>
+                        <span className="text-muted-foreground text-xs">—</span>
                       ) : (
                         <Badge
                           variant="outline"

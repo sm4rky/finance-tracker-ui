@@ -59,9 +59,7 @@ export function SaveRecurringCashflowSheet({
         queryKey: ["profile-recurring-calendar-cashflows"],
       });
       toast.success(
-        mode === "create"
-          ? "Subscription added."
-          : "Subscription updated.",
+        mode === "create" ? "Subscription added." : "Subscription updated.",
       );
       onOpenChange(false);
     },

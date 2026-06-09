@@ -26,10 +26,8 @@ import {
   exchangePlaidPublicToken,
 } from "@/lib/api/plaid";
 
-const PLAID_TERMS_HREF =
-  "https://plaid.com/legal/#end-user-terms-of-service";
-const PLAID_PRIVACY_HREF =
-  "https://plaid.com/legal/#end-user-privacy-policy";
+const PLAID_TERMS_HREF = "https://plaid.com/legal/#end-user-terms-of-service";
+const PLAID_PRIVACY_HREF = "https://plaid.com/legal/#end-user-privacy-policy";
 
 type PlaidSession = {
   linkToken: string;
@@ -79,9 +77,7 @@ export function LinkBankDialog({
       });
     },
     onError: (e) => {
-      toast.error(
-        e instanceof Error ? e.message : "Could not start linking.",
-      );
+      toast.error(e instanceof Error ? e.message : "Could not start linking.");
       setAwaitingPlaidOpen(false);
     },
   });
@@ -100,9 +96,7 @@ export function LinkBankDialog({
       onLinked?.();
     },
     onError: (e) => {
-      toast.error(
-        e instanceof Error ? e.message : "Could not finish linking.",
-      );
+      toast.error(e instanceof Error ? e.message : "Could not finish linking.");
       resetPlaidState();
       linkTokenMutation.reset();
     },
@@ -127,10 +121,7 @@ export function LinkBankDialog({
     linkTokenMutation.reset();
   };
 
-  const handlePublicToken = (
-    publicToken: string,
-    linkSessionId: string,
-  ) => {
+  const handlePublicToken = (publicToken: string, linkSessionId: string) => {
     setPlaidSession(null);
     setAwaitingPlaidOpen(false);
     exchangeMutation.mutate({ publicToken, linkSessionId });
@@ -146,9 +137,7 @@ export function LinkBankDialog({
     exchangeMutation.isPending ||
     awaitingPlaidOpen;
 
-  const statusLine = exchangeMutation.isPending
-    ? "Finishing bank link…"
-    : null;
+  const statusLine = exchangeMutation.isPending ? "Finishing bank link…" : null;
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>

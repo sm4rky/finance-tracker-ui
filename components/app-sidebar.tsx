@@ -3,7 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeftRight, Book, LayoutDashboard, Repeat } from "lucide-react";
+import {
+  ArrowLeftRight,
+  Book,
+  LayoutDashboard,
+  PiggyBank,
+  Repeat,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -22,6 +28,7 @@ const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/subscriptions", label: "Subscriptions", icon: Repeat },
+  { href: "/budgets", label: "Budgets", icon: PiggyBank },
   { href: "/categories", label: "Categories", icon: Book },
 ] as const;
 

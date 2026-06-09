@@ -52,7 +52,8 @@ export async function fetchNetWorthTrend(
   request?: NetWorthTrendQueryRequest,
 ): Promise<NetWorthTrendResponse> {
   const params = new URLSearchParams();
-  if (request?.dateFrom?.trim()) params.set("dateFrom", request.dateFrom.trim());
+  if (request?.dateFrom?.trim())
+    params.set("dateFrom", request.dateFrom.trim());
   if (request?.dateTo?.trim()) params.set("dateTo", request.dateTo.trim());
   const qs = params.toString();
   const res = await apiFetch(

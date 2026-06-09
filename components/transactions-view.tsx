@@ -67,12 +67,8 @@ function applyTableUpdater<T>(updater: Updater<T>, previous: T): T {
 
 export function TransactionsView() {
   const isMobile = useIsMobile();
-  const {
-    banks,
-    appliedFilter,
-    filterKey,
-    isFilterStoreHydrated,
-  } = useAppliedTransactionsFilter();
+  const { banks, appliedFilter, filterKey, isFilterStoreHydrated } =
+    useAppliedTransactionsFilter();
 
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -184,7 +180,13 @@ export function TransactionsView() {
 
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6 p-6 md:p-8">
-      <div className="flex w-full flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold">Transactions</h1>
+          <p className="text-sm text-muted-foreground">
+            Review, filter, and manage your transaction history.
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <TransactionsDateFilter
             onFilterChange={resetPaginationAndSelection}
@@ -207,11 +209,11 @@ export function TransactionsView() {
             Add transaction
           </Button>
         </div>
-        <TransactionsFilterPanels
-          open={filtersOpen}
-          onOpenChange={setFiltersOpen}
-        />
       </div>
+      <TransactionsFilterPanels
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+      />
 
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">

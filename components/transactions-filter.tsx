@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  startTransition,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { Check, ChevronDown, FilterX, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -50,10 +45,7 @@ export function TransactionsFilterTrigger({
       Filters
       {!isMobile ? (
         <ChevronDown
-          className={cn(
-            "size-4 transition-transform",
-            open && "rotate-180",
-          )}
+          className={cn("size-4 transition-transform", open && "rotate-180")}
           aria-hidden
         />
       ) : null}
@@ -189,10 +181,7 @@ type FilterActionsProps = {
   onApplyFilter: () => void;
 };
 
-function FilterActions({
-  onClearFilter,
-  onApplyFilter,
-}: FilterActionsProps) {
+function FilterActions({ onClearFilter, onApplyFilter }: FilterActionsProps) {
   return (
     <div className="flex flex-wrap justify-end gap-2">
       {onClearFilter ? (

@@ -55,10 +55,7 @@ function isSyncedWithin30Minutes(iso: string | null | undefined): boolean {
   return ageMs >= 0 && ageMs < SYNC_COOLDOWN_MS;
 }
 
-function formatMoney(
-  amount: number | null,
-  currency?: string | null,
-): string {
+function formatMoney(amount: number | null, currency?: string | null): string {
   if (amount == null || Number.isNaN(amount)) return "—";
 
   const code = currency?.toUpperCase() || "USD";
@@ -150,19 +147,22 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
   const [relinkOpen, setRelinkOpen] = useState(false);
   const [unlinkOpen, setUnlinkOpen] = useState(false);
   const [updateAccountsOpen, setUpdateAccountsOpen] = useState(false);
-  const [accountOptOut, setAccountOptOut] = useState<AccountOptOutPayload | null>(
-    null,
-  );
+  const [accountOptOut, setAccountOptOut] =
+    useState<AccountOptOutPayload | null>(null);
 
   const syncMutation = useMutation({
     mutationFn: syncPlaidTransactions,
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["list-plaid-connections"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["list-plaid-connections"],
+      });
     },
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["query-transaction-list"] }),
-        queryClient.invalidateQueries({ queryKey: ["get-recent-transactions"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["get-recent-transactions"],
+        }),
         queryClient.invalidateQueries({ queryKey: ["analytics-cashflow"] }),
         queryClient.invalidateQueries({
           queryKey: ["analytics-category-expense-distribution"],
@@ -174,7 +174,9 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
           queryKey: ["analytics-grouped-expense-by-account"],
         }),
         queryClient.invalidateQueries({ queryKey: ["analytics-net-worth"] }),
-        queryClient.invalidateQueries({ queryKey: ["analytics-net-worth-trend"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["analytics-net-worth-trend"],
+        }),
       ]);
       toast.success("Transactions synced");
     },
@@ -183,12 +185,10 @@ export function LinkedBankRow({ bank }: LinkedBankRowProps) {
     },
   });
 
-  const syncing =
-    syncMutation.isPending && syncMutation.variables === bank.id;
+  const syncing = syncMutation.isPending && syncMutation.variables === bank.id;
   const syncOnCooldown = isSyncedWithin30Minutes(bank.lastSyncedAt);
   const needsRelink = bank.status === "relink_required";
-  const canManageAccounts =
-    bank.status === "active" && !needsRelink;
+  const canManageAccounts = bank.status === "active" && !needsRelink;
 
   const statusConfig = LINKED_BANK_STATUS_BADGE[bank.status];
   const StatusIcon = statusConfig.Icon;

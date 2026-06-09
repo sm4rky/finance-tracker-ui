@@ -28,8 +28,7 @@ const AVATAR_OUTPUT_MIME =
   process.env.NEXT_PUBLIC_AVATAR_OUTPUT_MIME?.trim().toLowerCase() ||
   "image/webp";
 
-const AVATAR_OUTPUT_SUBTYPE =
-  AVATAR_OUTPUT_MIME.split("/")[1] || "webp";
+const AVATAR_OUTPUT_SUBTYPE = AVATAR_OUTPUT_MIME.split("/")[1] || "webp";
 
 const AVATAR_OUTPUT_SIZE_PX = 512;
 const AVATAR_EXPORT_QUALITY = 0.85;
@@ -41,12 +40,7 @@ const ACCEPT_FILE_MIME_TYPES = [
   "image/webp",
 ] as const;
 
-const ACCEPT_FILE_EXTENSIONS = [
-  ".jpg",
-  ".jpeg",
-  ".png",
-  ".webp",
-] as const;
+const ACCEPT_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"] as const;
 
 const fileInputAccept = [
   ...ACCEPT_FILE_MIME_TYPES,
@@ -159,9 +153,7 @@ export function AvatarUploadDialog({
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
-    null,
-  );
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -188,12 +180,9 @@ export function AvatarUploadDialog({
     }
   }, [open, resetState]);
 
-  const onCropComplete = useCallback(
-    (_area: Area, areaPixels: Area) => {
-      setCroppedAreaPixels(areaPixels);
-    },
-    [],
-  );
+  const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
+    setCroppedAreaPixels(areaPixels);
+  }, []);
 
   const onPickFile = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,13 +227,7 @@ export function AvatarUploadDialog({
     } finally {
       setSaving(false);
     }
-  }, [
-    croppedAreaPixels,
-    imageSrc,
-    onUploaded,
-    user?.id,
-    onOpenChange,
-  ]);
+  }, [croppedAreaPixels, imageSrc, onUploaded, user?.id, onOpenChange]);
 
   return (
     <>
@@ -332,9 +315,7 @@ export function AvatarUploadDialog({
                   className="self-start text-muted-foreground"
                   onClick={() => {
                     resetState();
-                    requestAnimationFrame(() =>
-                      fileInputRef.current?.click(),
-                    );
+                    requestAnimationFrame(() => fileInputRef.current?.click());
                   }}
                 >
                   Choose different image
@@ -350,8 +331,8 @@ export function AvatarUploadDialog({
                   type="button"
                   variant="ghost"
                   className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                disabled={!user || saving || isDeleting}
-                onClick={() => setDeleteConfirmOpen(true)}
+                  disabled={!user || saving || isDeleting}
+                  onClick={() => setDeleteConfirmOpen(true)}
                 >
                   <Trash2 className="size-4 shrink-0" aria-hidden />
                   Remove photo
@@ -371,8 +352,8 @@ export function AvatarUploadDialog({
                 type="button"
                 className="gap-2"
                 disabled={
-                saving ||
-                isDeleting ||
+                  saving ||
+                  isDeleting ||
                   !imageSrc ||
                   !croppedAreaPixels ||
                   !user?.id
@@ -381,7 +362,10 @@ export function AvatarUploadDialog({
               >
                 {saving ? (
                   <>
-                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                    <Loader2
+                      className="size-4 shrink-0 animate-spin"
+                      aria-hidden
+                    />
                     Saving…
                   </>
                 ) : (
