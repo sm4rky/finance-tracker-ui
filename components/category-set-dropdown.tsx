@@ -50,11 +50,16 @@ export function CategorySetDropdown({
         )}
       >
         {isLoading && categorySets.length === 0 ? (
-          <Loader2 className="size-4 shrink-0 animate-spin opacity-70" aria-hidden />
+          <Loader2
+            className="size-4 shrink-0 animate-spin opacity-70"
+            aria-hidden
+          />
         ) : (
           <Tags className="size-4 shrink-0 opacity-70" aria-hidden />
         )}
-        <span className="min-w-0 flex-1 truncate">{selectedCategorySet?.name ?? DEFAULT_CATEGORY_SET_LABEL}</span>
+        <span className="min-w-0 flex-1 truncate">
+          {selectedCategorySet?.name ?? DEFAULT_CATEGORY_SET_LABEL}
+        </span>
         {!isMobile ? (
           <ChevronDown
             className={cn(
@@ -66,11 +71,7 @@ export function CategorySetDropdown({
         ) : null}
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent
-        align="start"
-        className="w-72 p-1"
-        sideOffset={6}
-      >
+      <DropdownMenuContent align="start" className="w-72 p-1" sideOffset={6}>
         <DropdownMenuGroup>
           <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide">
             Category set
@@ -113,7 +114,10 @@ export function CategorySetDropdown({
               return (
                 <DropdownMenuItem
                   key={categorySet.id}
-                  className={cn("cursor-pointer gap-2", selected && "bg-accent")}
+                  className={cn(
+                    "cursor-pointer gap-2",
+                    selected && "bg-accent",
+                  )}
                   onClick={() => {
                     setSelectedCategorySet(categorySet);
                     onCategorySetChange?.();

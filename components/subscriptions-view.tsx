@@ -23,7 +23,9 @@ import type { ProfileRecurringCashflowResponse } from "@/interface/profile-recur
 export function SubscriptionsView() {
   const [viewMode, setViewMode] = useState<SubscriptionsViewMode>("list");
   const [saveSheetOpen, setSaveSheetOpen] = useState(false);
-  const [saveSheetMode, setSaveSheetMode] = useState<"create" | "edit">("create");
+  const [saveSheetMode, setSaveSheetMode] = useState<"create" | "edit">(
+    "create",
+  );
   const [editingRecurringCashflow, setEditingRecurringCashflow] =
     useState<ProfileRecurringCashflowResponse | null>(null);
 
@@ -39,11 +41,14 @@ export function SubscriptionsView() {
     setSaveSheetOpen(true);
   }, []);
 
-  const openEditRecurringCashflowSheet = useCallback((row: ProfileRecurringCashflowResponse) => {
-    setSaveSheetMode("edit");
-    setEditingRecurringCashflow(row);
-    setSaveSheetOpen(true);
-  }, []);
+  const openEditRecurringCashflowSheet = useCallback(
+    (row: ProfileRecurringCashflowResponse) => {
+      setSaveSheetMode("edit");
+      setEditingRecurringCashflow(row);
+      setSaveSheetOpen(true);
+    },
+    [],
+  );
 
   const openDeleteRecurringCashflowDialog = useCallback((id: string) => {
     setDeleteId(id);
@@ -52,7 +57,13 @@ export function SubscriptionsView() {
 
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6 p-6 md:p-8">
-      <div className="flex w-full flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold">Subscriptions</h1>
+          <p className="text-sm text-muted-foreground">
+            Track upcoming bills and future payments.
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <CategorySetDropdown />
           <RecurringCashflowsFilterTrigger
@@ -73,11 +84,11 @@ export function SubscriptionsView() {
             onModeChange={setViewMode}
           />
         </div>
-        <RecurringCashflowsFilterPanels
-          open={filtersOpen}
-          onOpenChange={setFiltersOpen}
-        />
       </div>
+      <RecurringCashflowsFilterPanels
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+      />
 
       <DeleteRecurringCashflowDialog
         open={deleteDialogOpen}
@@ -112,6 +123,7 @@ export function SubscriptionsView() {
           appliedFilter={appliedFilter}
           banks={banks}
           categorySet={selectedCategorySet}
+          onAdd={openCreateRecurringCashflowSheet}
           onEdit={openEditRecurringCashflowSheet}
           onDelete={openDeleteRecurringCashflowDialog}
         />

@@ -11,7 +11,10 @@ let refreshSessionSingleFlightPromise: Promise<Session | null> | null = null;
 /** Chuỗi biến môi trường: cắt trắng thừa, bỏ bao ngoặc dư nếu có. */
 function trimEnv(v: string | undefined): string | undefined {
   if (v == null) return undefined;
-  const t = v.trim().replace(/^["']|["']$/g, "").trim();
+  const t = v
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .trim();
   return t === "" ? undefined : t;
 }
 
@@ -108,7 +111,9 @@ export async function apiFetch(
 /**
  * Trích thông điệp lỗi từ body (JSON) của `Response`, phục vụ `throw new Error` hoặc hiển thị toast.
  */
-export async function parseApiErrorMessage(response: Response): Promise<string> {
+export async function parseApiErrorMessage(
+  response: Response,
+): Promise<string> {
   const text = await response.text().catch(() => "");
   if (!text.trim()) {
     return `Request failed (${response.status})`;

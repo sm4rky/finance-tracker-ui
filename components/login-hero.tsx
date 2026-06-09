@@ -37,8 +37,8 @@ export function LoginHero() {
           Your personal finance companion.
         </p>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-          Track spending, plan goals, and see the full picture—built for clarity,
-          not clutter.
+          Track spending, plan goals, and see the full picture—built for
+          clarity, not clutter.
         </p>
       </div>
       <p className="relative z-10 text-xs text-muted-foreground">

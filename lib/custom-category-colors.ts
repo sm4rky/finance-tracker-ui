@@ -163,9 +163,7 @@ export const CUSTOM_CATEGORY_COLOR_METAS: Record<
 export const DEFAULT_CUSTOM_CATEGORY_COLOR_META =
   CUSTOM_CATEGORY_COLOR_METAS[DEFAULT_CUSTOM_CATEGORY_COLOR];
 
-export const CUSTOM_CATEGORY_COLORS = Object.keys(
-  CUSTOM_CATEGORY_COLOR_METAS,
-);
+export const CUSTOM_CATEGORY_COLORS = Object.keys(CUSTOM_CATEGORY_COLOR_METAS);
 
 export function getCustomCategoryColorSet(
   colorSet: string | null | undefined,

@@ -15,7 +15,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TransactionResponse } from "@/interface/transaction";
 import { fetchRecentTransactions } from "@/lib/api/transaction";
-import { formatMoneyAbs, getTransactionCashFlow } from "@/lib/transaction-amount";
 import { cn } from "@/lib/utils";
 
 function formatTxDate(iso: string): string {
@@ -45,8 +44,17 @@ function TransactionRow({ row }: { row: TransactionResponse }) {
   const label = getMerchantLabel(row);
   const logoUrl = row.logoUrl?.trim() ?? "";
   const shouldShowImage = logoUrl !== "" && !imgFailed;
-  const flow = getTransactionCashFlow(row);
-  const formatted = formatMoneyAbs(Math.abs(row.amount), row.isoCurrencyCode);
+  const flow = row.amount === 0 ? "neutral" : row.amount < 0 ? "in" : "out";
+  const absAmount = Math.abs(row.amount);
+  const code = row.isoCurrencyCode?.toUpperCase() || "USD";
+  let formatted = absAmount.toFixed(2);
+
+  try {
+    formatted = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: code,
+    }).format(absAmount);
+  } catch {}
   const Icon = meta.Icon;
 
   return (
@@ -137,7 +145,7 @@ export function RecentTransactionsSection() {
         </Link>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col px-2 pb-2 sm:px-3 sm:pb-3">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto no-scrollbar px-2 pb-2 sm:px-3 sm:pb-3">
         {isPending ? (
           <ul className="space-y-0" aria-hidden>
             {Array.from({ length: RECENT_LIMIT }, (_, i) => (

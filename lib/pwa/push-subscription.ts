@@ -34,7 +34,7 @@ export function isPushNotificationSupported(): boolean {
 
 async function getExistingServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (!isPushNotificationSupported()) return null;
-  return await navigator.serviceWorker.getRegistration("/") || null;
+  return (await navigator.serviceWorker.getRegistration("/")) || null;
 }
 
 async function ensureServiceWorkerRegistration(): Promise<ServiceWorkerRegistration> {

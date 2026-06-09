@@ -36,10 +36,7 @@ function formatUsd(amount: number): string {
   }
 }
 
-function formatMoney(
-  amount: number | null,
-  currency?: string | null,
-): string {
+function formatMoney(amount: number | null, currency?: string | null): string {
   if (amount == null || Number.isNaN(amount)) return "—";
   const code = currency?.toUpperCase() || "USD";
   try {
@@ -52,12 +49,10 @@ function formatMoney(
   }
 }
 
-function accountLabel(account: LinkedBankAccountResponse): string {
-  const official = account.officialName?.trim();
-  const name = account.accountName.trim();
-  const base = official || name || "Account";
-  const mask = account.mask?.trim();
-  return mask ? `${base} · ${mask}` : base;
+function getAccountLabel(account: LinkedBankAccountResponse): string {
+  const base =
+    account.officialName?.trim() || account.accountName?.trim() || "Account";
+  return account.mask ? `${base} ••••${account.mask}` : base;
 }
 
 function sumBankBalance(bank: LinkedBankResponse): number {
@@ -87,7 +82,7 @@ function bankAccountsList(bank: LinkedBankResponse): ReactNode {
           >
             <div className="min-w-0 flex-1 space-y-0.5">
               <p className="text-xs font-medium leading-snug">
-                {accountLabel(account)}
+                {getAccountLabel(account)}
               </p>
               <p className="text-[11px] leading-snug text-muted-foreground">
                 {[account.type, account.subtype].filter(Boolean).join(" · ") ||
@@ -256,8 +251,7 @@ export function MyAccountSection() {
                       const title =
                         bank.institutionName?.trim() || "Linked institution";
                       const institutionIcon = getPlaidInstitutionIcon(title);
-                      const needsAttention =
-                        bank.status === "relink_required";
+                      const needsAttention = bank.status === "relink_required";
                       return (
                         <div
                           key={bank.id}

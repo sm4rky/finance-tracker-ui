@@ -21,17 +21,21 @@ function isYmdNotAfterTodayUtc(ymd: string): boolean {
   return inputDayUtc <= todayUtc;
 }
 
-const nullableUuid = z.union([z.string().uuid(), z.null()]);
-
 export const saveTransactionFormSchema = z
   .object({
-    linkedBankAccountId: nullableUuid,
+    linkedBankAccountId: z.union([z.string().uuid(), z.null()]),
     amount: z.coerce
-      .number({ invalid_type_error: "Enter a valid amount" })
+      .number({
+        invalid_type_error: "Enter a valid amount",
+        required_error: "Amount is required",
+      })
+      .finite("Enter a valid amount")
       .min(0, "Amount must be at least 0"),
     amountFlow: z.enum(["expense", "income"]),
     date: z
       .string()
+      .trim()
+      .min(1, "Date is required")
       .regex(YMD_REGEX, "Use YYYY-MM-DD"),
     merchantName: z.string(),
     pending: z.boolean(),
@@ -47,13 +51,6 @@ export const saveTransactionFormSchema = z
         code: z.ZodIssueCode.custom,
         message: "Date cannot be in the future",
         path: ["date"],
-      });
-    }
-    if (Number.isNaN(data.amount)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Enter a valid amount",
-        path: ["amount"],
       });
     }
   });

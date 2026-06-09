@@ -25,7 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { LinkedBankResponse } from "@/interface/plaid";
+import type {
+  LinkedBankAccountResponse,
+  LinkedBankResponse,
+} from "@/interface/plaid";
 import type {
   SaveTransactionRequest,
   TransactionResponse,
@@ -51,6 +54,12 @@ import {
 } from "@/schema/save-transaction.schema";
 
 const ACCOUNT_NONE_VALUE = "__none__";
+
+function getAccountLabel(account: LinkedBankAccountResponse): string {
+  const base =
+    account.officialName?.trim() || account.accountName?.trim() || "Account";
+  return account.mask ? `${base} ••••${account.mask}` : base;
+}
 
 function getTodayUtcYmd(): string {
   return new Date().toISOString().slice(0, 10);
@@ -126,10 +135,7 @@ export function formValuesToSaveTransactionRequest(
   const paymentChannel = values.paymentChannel;
 
   let pfcPrimary: string | null = values.pfcPrimary.trim();
-  if (
-    pfcPrimary === "" ||
-    pfcPrimary === UNCATEGORIZED_PFC_PRIMARY
-  ) {
+  if (pfcPrimary === "" || pfcPrimary === UNCATEGORIZED_PFC_PRIMARY) {
     pfcPrimary = null;
   }
 
@@ -138,8 +144,8 @@ export function formValuesToSaveTransactionRequest(
 
   const status: "active" | "account_opted_out" =
     values.linkedBankAccountId != null &&
-      options.optedOutLinkedAccountId != null &&
-      values.linkedBankAccountId === options.optedOutLinkedAccountId
+    options.optedOutLinkedAccountId != null &&
+    values.linkedBankAccountId === options.optedOutLinkedAccountId
       ? "account_opted_out"
       : "active";
 
@@ -207,14 +213,7 @@ export function SaveTransactionForm({
       const institutionIcon = getPlaidInstitutionIcon(institutionName);
       const accounts: { id: string; label: string }[] = [];
       for (const account of bank.accounts) {
-        const base =
-          account.officialName?.trim() ||
-          account.accountName.trim() ||
-          "Account";
-        const label = account.mask
-          ? `${base} ·•••${account.mask}`
-          : base;
-        accounts.push({ id: account.id, label });
+        accounts.push({ id: account.id, label: getAccountLabel(account) });
         seen.add(account.id);
       }
       if (accounts.length > 0) {
@@ -245,11 +244,10 @@ export function SaveTransactionForm({
     );
   }, [pfcPrimarySearch]);
 
-  const { control, handleSubmit, reset } =
-    useForm<SaveTransactionFormValues>({
-      resolver: zodResolver(saveTransactionFormSchema),
-      defaultValues: getDefaultSaveTransactionFormValues(),
-    });
+  const { control, handleSubmit, reset } = useForm<SaveTransactionFormValues>({
+    resolver: zodResolver(saveTransactionFormSchema),
+    defaultValues: getDefaultSaveTransactionFormValues(),
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -313,7 +311,18 @@ export function SaveTransactionForm({
                       "h-10 min-h-10 w-full py-2 text-sm",
                     )}
                   >
-                    <SelectValue placeholder="No account" />
+                    <span className="min-w-0 flex-1 truncate text-left">
+                      {field.value
+                        ? (accountOptionGroups.orphanOptions.find(
+                            (account) => account.id === field.value,
+                          )?.label ??
+                          accountOptionGroups.groups
+                            .flatMap((group) => group.accounts)
+                            .find((account) => account.id === field.value)
+                            ?.label ??
+                          "Opted out account")
+                        : "No account"}
+                    </span>
                   </SelectTrigger>
                   <SelectContent
                     align="start"
@@ -543,7 +552,10 @@ export function SaveTransactionForm({
                       {PAYMENT_CHANNELS.map((paymentChannel) => {
                         const meta = getPaymentChannelMeta(paymentChannel);
                         return (
-                          <SelectItem key={paymentChannel} value={paymentChannel}>
+                          <SelectItem
+                            key={paymentChannel}
+                            value={paymentChannel}
+                          >
                             <Badge
                               variant="outline"
                               className={cn(
@@ -636,9 +648,7 @@ export function SaveTransactionForm({
           control={control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid ? true : undefined}>
-              <FieldLabel htmlFor="tx-website">
-                Website (optional)
-              </FieldLabel>
+              <FieldLabel htmlFor="tx-website">Website (optional)</FieldLabel>
               <FieldContent>
                 <Input
                   id="tx-website"

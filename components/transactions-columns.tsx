@@ -15,16 +15,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { TransactionResponse } from "@/interface/transaction";
-import {
-  getCustomCategoryMeta,
-  type CustomCategoryMeta,
-} from "@/lib/custom-category";
+import { getCustomCategoryMeta } from "@/lib/custom-category";
 import { getPaymentChannelMeta } from "@/lib/payment-channel";
-import { getPfcPrmaryMeta, type PfcPrimaryMeta } from "@/lib/pfc-primary";
-import {
-  formatMoneyAbs,
-  getTransactionCashFlow,
-} from "@/lib/transaction-amount";
+import { getPfcPrmaryMeta } from "@/lib/pfc-primary";
 import { cn } from "@/lib/utils";
 
 function SelectAllCheckbox<TData>({ table }: { table: TanStackTable<TData> }) {
@@ -45,32 +38,39 @@ export function getMerchantLabel(row: TransactionResponse): string {
   return row.merchantName?.trim() || row.name?.trim() || "—";
 }
 
-export function getTransactionAccountLabel(row: TransactionResponse): string {
+function getAccountLabel(row: TransactionResponse): string {
   const account = row.linkedBankAccount;
   if (account == null) return "—";
-
-  const baseLabel =
-    account.officialName?.trim() ||
-    account.accountName?.trim() ||
-    "Account";
-
-  return account.mask ? `${baseLabel} ·•••${account.mask}` : baseLabel;
+  const base =
+    account.officialName?.trim() || account.accountName?.trim() || "Account";
+  return account.mask ? `${base} ••••${account.mask}` : base;
 }
 
-export function getTransactionCategoryMeta(
-  row: TransactionResponse,
-): CustomCategoryMeta | PfcPrimaryMeta {
-  if (row.customCategory) {
-    return getCustomCategoryMeta(row.customCategory);
-  }
+function getCategoryMeta(transaction: TransactionResponse) {
+  return transaction.customCategory
+    ? getCustomCategoryMeta(transaction.customCategory)
+    : getPfcPrmaryMeta(transaction.pfcPrimary);
+}
 
-  return getPfcPrmaryMeta(row.pfcPrimary);
+function formatDetailCategory(raw: string | null | undefined): string {
+  return raw?.trim() || "—";
+}
+
+function formatTxDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export function MerchantCell({ row }: { row: TransactionResponse }) {
   const [imgFailed, setImgFailed] = useState(false);
 
-  const meta = getTransactionCategoryMeta(row);
+  const meta = getCategoryMeta(row);
   const label = getMerchantLabel(row);
   const logoUrl = row.logoUrl?.trim() ?? "";
   const shouldShowImage = logoUrl !== "" && !imgFailed;
@@ -106,25 +106,18 @@ export function MerchantCell({ row }: { row: TransactionResponse }) {
   );
 }
 
-export function formatDetailCategory(raw: string | null | undefined): string {
-  const trimmed = raw?.trim();
-  return trimmed ? trimmed.replace(/_/g, " ") : "—";
-}
-
-export function formatTxDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
 export function AmountCell({ row }: { row: TransactionResponse }) {
-  const flow = getTransactionCashFlow(row);
-  const formatted = formatMoneyAbs(Math.abs(row.amount), row.isoCurrencyCode);
+  const flow = row.amount === 0 ? "neutral" : row.amount < 0 ? "in" : "out";
+  const absAmount = Math.abs(row.amount);
+  const code = row.isoCurrencyCode?.toUpperCase() || "USD";
+  let formatted = absAmount.toFixed(2);
+
+  try {
+    formatted = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: code,
+    }).format(absAmount);
+  } catch {}
 
   if (flow === "neutral") {
     return (
@@ -221,7 +214,7 @@ export function createTransactionColumns(
         <DataTableColumnHeader column={column} title="Account" />
       ),
       cell: ({ row }) => {
-        const label = getTransactionAccountLabel(row.original);
+        const label = getAccountLabel(row.original);
 
         return (
           <span className="max-w-40 truncate text-muted-foreground">
@@ -237,7 +230,7 @@ export function createTransactionColumns(
         <DataTableColumnHeader column={column} title="Category" />
       ),
       cell: ({ row }) => {
-        const meta = getTransactionCategoryMeta(row.original);
+        const meta = getCategoryMeta(row.original);
 
         return (
           <Badge

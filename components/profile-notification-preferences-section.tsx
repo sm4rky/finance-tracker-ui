@@ -16,10 +16,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { useNotificationPreferences } from "@/hooks/use-notification-preferences";
 import type { ProfileNotificationPreferenceResponse } from "@/interface/notification-preferences";
 import type { PushSubscriptionResponse } from "@/interface/push-subscription";
 import {
-  getMyNotificationPreferences,
   patchBudgetAlertEnabled,
   patchBudgetAlertThreshold,
   patchDueReminderEnabled,
@@ -38,18 +38,11 @@ import {
   subscribeCurrentDeviceToPushNotifications,
   unsubscribeCurrentPushSubscription,
 } from "@/lib/pwa/push-subscription";
-import { useNotificationPreferenceStore } from "@/stores/notification-preference";
 
 const REMINDER_DAY_OPTIONS = [1, 2, 3, 5, 7] as const;
 
 export function ProfileNotificationPreferencesSection() {
   const queryClient = useQueryClient();
-  const setNotificationPreferences = useNotificationPreferenceStore(
-    (s) => s.setPreferences,
-  );
-  const updateNotificationPreferences = useNotificationPreferenceStore(
-    (s) => s.updatePreferences,
-  );
   const [thresholdDraft, setThresholdDraft] = useState<string | null>(null);
   const [currentPushEndpoint, setCurrentPushEndpoint] = useState<string | null>(
     null,
@@ -59,32 +52,13 @@ export function ProfileNotificationPreferencesSection() {
   const [isUpdatingPushSubscription, setIsUpdatingPushSubscription] =
     useState(false);
 
-  const {
-    data: preferences,
-    isPending,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: ["notification-preferences", "me"],
-    queryFn: getMyNotificationPreferences,
-  });
+  const { preferences, isPending, isError, error, updatePreferences } =
+    useNotificationPreferences();
 
   const { data: pushDevices, isPending: arePushDevicesPending } = useQuery({
     queryKey: ["push-subscriptions", "me"],
     queryFn: listMyPushSubscriptions,
   });
-
-  useEffect(() => {
-    if (preferences) {
-      setNotificationPreferences(preferences);
-    }
-  }, [preferences, setNotificationPreferences]);
-
-  useEffect(() => {
-    if (isError) {
-      setNotificationPreferences(null);
-    }
-  }, [isError, setNotificationPreferences]);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,14 +108,14 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           optimisticPreferences,
         );
-        updateNotificationPreferences(optimisticPreferences);
+        updatePreferences(optimisticPreferences);
       }
 
       return { previous };
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["notification-preferences", "me"], updated);
-      updateNotificationPreferences(updated);
+      updatePreferences(updated);
     },
     onError: (e, _enabled, context) => {
       if (context?.previous) {
@@ -149,7 +123,7 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           context.previous,
         );
-        updateNotificationPreferences(context.previous);
+        updatePreferences(context.previous);
       }
       toast.error(e.message || "Could not update notification preference.");
     },
@@ -176,14 +150,14 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           optimisticPreferences,
         );
-        updateNotificationPreferences(optimisticPreferences);
+        updatePreferences(optimisticPreferences);
       }
 
       return { previous };
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["notification-preferences", "me"], updated);
-      updateNotificationPreferences(updated);
+      updatePreferences(updated);
     },
     onError: (e, _enabled, context) => {
       if (context?.previous) {
@@ -191,7 +165,7 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           context.previous,
         );
-        updateNotificationPreferences(context.previous);
+        updatePreferences(context.previous);
       }
       toast.error(e.message || "Could not update notification preference.");
     },
@@ -218,14 +192,14 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           optimisticPreferences,
         );
-        updateNotificationPreferences(optimisticPreferences);
+        updatePreferences(optimisticPreferences);
       }
 
       return { previous };
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["notification-preferences", "me"], updated);
-      updateNotificationPreferences(updated);
+      updatePreferences(updated);
     },
     onError: (e, _days, context) => {
       if (context?.previous) {
@@ -233,7 +207,7 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           context.previous,
         );
-        updateNotificationPreferences(context.previous);
+        updatePreferences(context.previous);
       }
       toast.error(e.message || "Could not update notification preference.");
     },
@@ -260,14 +234,14 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           optimisticPreferences,
         );
-        updateNotificationPreferences(optimisticPreferences);
+        updatePreferences(optimisticPreferences);
       }
 
       return { previous };
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["notification-preferences", "me"], updated);
-      updateNotificationPreferences(updated);
+      updatePreferences(updated);
     },
     onError: (e, _enabled, context) => {
       if (context?.previous) {
@@ -275,7 +249,7 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           context.previous,
         );
-        updateNotificationPreferences(context.previous);
+        updatePreferences(context.previous);
       }
       toast.error(e.message || "Could not update notification preference.");
     },
@@ -302,14 +276,14 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           optimisticPreferences,
         );
-        updateNotificationPreferences(optimisticPreferences);
+        updatePreferences(optimisticPreferences);
       }
 
       return { previous };
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["notification-preferences", "me"], updated);
-      updateNotificationPreferences(updated);
+      updatePreferences(updated);
     },
     onError: (e, _threshold, context) => {
       if (context?.previous) {
@@ -317,7 +291,7 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           context.previous,
         );
-        updateNotificationPreferences(context.previous);
+        updatePreferences(context.previous);
       }
       toast.error(e.message || "Could not update notification preference.");
     },
@@ -344,14 +318,14 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           optimisticPreferences,
         );
-        updateNotificationPreferences(optimisticPreferences);
+        updatePreferences(optimisticPreferences);
       }
 
       return { previous };
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["notification-preferences", "me"], updated);
-      updateNotificationPreferences(updated);
+      updatePreferences(updated);
     },
     onError: (e, _enabled, context) => {
       if (context?.previous) {
@@ -359,7 +333,7 @@ export function ProfileNotificationPreferencesSection() {
           ["notification-preferences", "me"],
           context.previous,
         );
-        updateNotificationPreferences(context.previous);
+        updatePreferences(context.previous);
       }
       toast.error(e.message || "Could not update notification preference.");
     },

@@ -1,12 +1,7 @@
 "use client";
 
-import {
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { CreditCard, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,9 +19,8 @@ import {
   type PfcPrimaryMeta,
   UNCATEGORIZED_PFC_PRIMARY,
 } from "@/lib/pfc-primary";
-import { getRecurringCashflowStatusMeta } from "@/lib/recurring-cashflow-status";
+import { RECURRING_CASHFLOW_FREQUENCY_LABEL } from "@/lib/recurring-cashflow-frequency";
 import { cn } from "@/lib/utils";
-import { RECURRING_FREQUENCY_LABEL } from "@/schema/save-recurring-cashflow.schema";
 
 function formatCurrencyUsd(amount: number): string {
   try {
@@ -104,7 +98,7 @@ function recurringCashflowTitle(row: ProfileRecurringCashflowResponse): string {
   return "—";
 }
 
-function getRecurringCashflowCategoryMeta(
+function getCategoryMeta(
   categorySet: ProfileCustomCategorySetResponse | null,
   pfcPrimary: string | null | undefined,
 ): CustomCategoryMeta | PfcPrimaryMeta {
@@ -136,15 +130,12 @@ export function RecurringCashflowRow({
   onDelete,
 }: RecurringCashflowRowProps) {
   const title = recurringCashflowTitle(row);
-  const statusConfig = getRecurringCashflowStatusMeta(row.status);
-  const StatusIcon = statusConfig.Icon;
-
-  const meta = getRecurringCashflowCategoryMeta(categorySet, row.pfcPrimary);
+  const meta = getCategoryMeta(categorySet, row.pfcPrimary);
   const CategoryIcon = meta.Icon;
 
   const { dateLine, relative } = formatNextDueDisplay(row.predictedNextDate);
   const freqLabel =
-    RECURRING_FREQUENCY_LABEL[row.frequency] ?? row.frequency;
+    RECURRING_CASHFLOW_FREQUENCY_LABEL[row.frequency] ?? row.frequency;
   const freqUpper = freqLabel.toUpperCase();
 
   const amountStr = `${row.direction === "inflow" ? "+" : "-"}${formatCurrencyUsd(row.expectedAmount)}`;
@@ -176,31 +167,12 @@ export function RecurringCashflowRow({
             <p className="min-w-0 truncate font-semibold leading-snug text-foreground">
               {title}
             </p>
-            <Badge
-              variant="outline"
-              className={cn(
-                "hidden max-w-36 shrink-0 truncate border font-normal text-xs sm:inline-flex",
-                meta.badgeClassName,
-              )}
-            >
-              {meta.displayName}
-            </Badge>
           </div>
-          <p className="mt-0.5 truncate text-xs leading-snug text-muted-foreground">
-            {accountLine}
+          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs leading-snug text-muted-foreground">
+            <CreditCard className="size-3.5 shrink-0" aria-hidden />
+            <span className="min-w-0 truncate">{accountLine}</span>
           </p>
         </div>
-
-        <Badge
-          variant={statusConfig.variant}
-          className={cn(
-            "hidden shrink-0 gap-1 font-normal text-xs sm:inline-flex",
-            statusConfig.className,
-          )}
-        >
-          <StatusIcon className="size-3.5 shrink-0" aria-hidden />
-          {statusConfig.label}
-        </Badge>
 
         <div
           className={cn(
@@ -225,10 +197,7 @@ export function RecurringCashflowRow({
               {freqUpper}
             </p>
             <p
-              className={cn(
-                "text-sm font-semibold tabular-nums",
-                amountClass,
-              )}
+              className={cn("text-sm font-semibold tabular-nums", amountClass)}
             >
               {amountStr}
             </p>

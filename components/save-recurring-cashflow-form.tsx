@@ -24,7 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { LinkedBankResponse } from "@/interface/plaid";
+import type {
+  LinkedBankAccountResponse,
+  LinkedBankResponse,
+} from "@/interface/plaid";
 import type {
   ProfileRecurringCashflowResponse,
   SaveProfileRecurringCashflowRequest,
@@ -38,15 +41,23 @@ import {
   getPlaidInstitutionIcon,
   type PlaidInstitutionIcon,
 } from "@/lib/plaid-institution-icons";
+import {
+  RECURRING_CASHFLOW_FREQUENCY_LABEL,
+  RECURRING_FREQUENCY_SELECT_ORDER,
+} from "@/lib/recurring-cashflow-frequency";
 import { cn } from "@/lib/utils";
 import {
-  RECURRING_FREQUENCY_LABEL,
-  RECURRING_FREQUENCY_SELECT_ORDER,
   saveRecurringCashflowFormSchema,
   type SaveRecurringCashflowFormValues,
 } from "@/schema/save-recurring-cashflow.schema";
 
 const ACCOUNT_NONE_VALUE = "__none__";
+
+function getAccountLabel(account: LinkedBankAccountResponse): string {
+  const base =
+    account.officialName?.trim() || account.accountName?.trim() || "Account";
+  return account.mask ? `${base} ••••${account.mask}` : base;
+}
 
 function getDefaultSaveRecurringCashflowFormValues(): SaveRecurringCashflowFormValues {
   return {
@@ -105,10 +116,7 @@ export function formValuesToSaveRecurringCashflowRequest(
   values: SaveRecurringCashflowFormValues,
 ): SaveProfileRecurringCashflowRequest {
   let pfcPrimary: string | null = values.pfcPrimary.trim();
-  if (
-    pfcPrimary === "" ||
-    pfcPrimary === UNCATEGORIZED_PFC_PRIMARY
-  ) {
+  if (pfcPrimary === "" || pfcPrimary === UNCATEGORIZED_PFC_PRIMARY) {
     pfcPrimary = null;
   }
 
@@ -174,14 +182,7 @@ export function SaveRecurringCashflowForm({
       const institutionIcon = getPlaidInstitutionIcon(institutionName);
       const accounts: { id: string; label: string }[] = [];
       for (const account of bank.accounts) {
-        const base =
-          account.officialName?.trim() ||
-          account.accountName.trim() ||
-          "Account";
-        const label = account.mask
-          ? `${base} ·•••${account.mask}`
-          : base;
-        accounts.push({ id: account.id, label });
+        accounts.push({ id: account.id, label: getAccountLabel(account) });
         seen.add(account.id);
       }
       if (accounts.length > 0) {
@@ -194,7 +195,7 @@ export function SaveRecurringCashflowForm({
       }
     }
     const orphanId = recurring
-      ? recurring.linkedBankAccount?.id ?? null
+      ? (recurring.linkedBankAccount?.id ?? null)
       : null;
     if (orphanId && recurring && !seen.has(orphanId)) {
       orphanOptions.push({
@@ -343,7 +344,18 @@ export function SaveRecurringCashflowForm({
                       "h-10 min-h-10 w-full py-2 text-sm",
                     )}
                   >
-                    <SelectValue placeholder="No account" />
+                    <span className="min-w-0 flex-1 truncate text-left">
+                      {field.value
+                        ? (accountOptionGroups.orphanOptions.find(
+                            (account) => account.id === field.value,
+                          )?.label ??
+                          accountOptionGroups.groups
+                            .flatMap((group) => group.accounts)
+                            .find((account) => account.id === field.value)
+                            ?.label ??
+                          "Opted out account")
+                        : "No account"}
+                    </span>
                   </SelectTrigger>
                   <SelectContent
                     align="start"
@@ -533,7 +545,7 @@ export function SaveRecurringCashflowForm({
                   <SelectContent align="start" className="max-h-72">
                     {RECURRING_FREQUENCY_SELECT_ORDER.map((freq) => (
                       <SelectItem key={freq} value={freq}>
-                        {RECURRING_FREQUENCY_LABEL[freq]}
+                        {RECURRING_CASHFLOW_FREQUENCY_LABEL[freq]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -576,9 +588,7 @@ export function SaveRecurringCashflowForm({
           control={control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid ? true : undefined}>
-              <FieldLabel htmlFor="sub-last">
-                Last amount (optional)
-              </FieldLabel>
+              <FieldLabel htmlFor="sub-last">Last amount (optional)</FieldLabel>
               <FieldContent>
                 <Input
                   id="sub-last"
@@ -608,9 +618,7 @@ export function SaveRecurringCashflowForm({
           control={control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid ? true : undefined}>
-              <FieldLabel htmlFor="sub-first">
-                First date (optional)
-              </FieldLabel>
+              <FieldLabel htmlFor="sub-first">First date (optional)</FieldLabel>
               <FieldContent>
                 <Input
                   id="sub-first"

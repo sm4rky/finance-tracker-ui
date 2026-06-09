@@ -27,9 +27,13 @@ export const PAYMENT_CHANNEL_META_FALLBACK: PaymentChannelMeta = {
     "border-muted-foreground/20 bg-muted/80 text-muted-foreground",
 };
 
-export type PaymentChannel = 'online' | 'instore' | 'other';
+export type PaymentChannel = "online" | "instore" | "other";
 
-export const PAYMENT_CHANNELS: PaymentChannel[] = ["online", "instore", "other"];
+export const PAYMENT_CHANNELS: PaymentChannel[] = [
+  "online",
+  "instore",
+  "other",
+];
 
 export function getPaymentChannelMeta(
   paymentChannel: string | null | undefined,

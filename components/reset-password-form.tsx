@@ -74,7 +74,11 @@ export function ResetPasswordForm() {
             </p>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4" noValidate onSubmit={handleSubmit(onSubmit)}>
+            <form
+              className="space-y-4"
+              noValidate
+              onSubmit={handleSubmit(onSubmit)}
+            >
               <FieldGroup className="gap-4">
                 <Controller
                   name="newPassword"

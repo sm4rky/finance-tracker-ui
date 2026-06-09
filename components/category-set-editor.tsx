@@ -45,7 +45,7 @@ import type {
   UpsertProfileCustomCategorySetRequest,
 } from "@/interface/profile-custom-category";
 import { upsertProfileCustomCategorySet } from "@/lib/api/profile-custom-category";
-import { PFC_PRIMARY_METAS } from "@/lib/pfc-primary";
+import { PFC_PRIMARY_WITHOUT_UNCATEGORIZED } from "@/lib/pfc-primary";
 import { DEFAULT_CUSTOM_CATEGORY_COLOR } from "@/lib/custom-category-colors";
 import { DEFAULT_CUSTOM_CATEGORY_ICON } from "@/lib/custom-category-icons";
 
@@ -108,7 +108,7 @@ function createCustomCategoryPfcPrimaryEdge(
 }
 
 function createPfcPrimaryNodes(): PfcPrimaryNode[] {
-  return Object.keys(PFC_PRIMARY_METAS).map((code, index) => ({
+  return PFC_PRIMARY_WITHOUT_UNCATEGORIZED.map((code, index) => ({
     id: createPfcPrimaryNodeId(code),
     type: "pfcPrimary",
     position: { x: PFC_X, y: index * PFC_Y_GAP },
@@ -213,7 +213,8 @@ export function CategorySetEditor({
   );
 
   const selectedCustomCategoryNode = useMemo(
-    () => customCategoryNodes.find((node) => node.id === selectedNodeId) ?? null,
+    () =>
+      customCategoryNodes.find((node) => node.id === selectedNodeId) ?? null,
     [customCategoryNodes, selectedNodeId],
   );
 
@@ -236,64 +237,67 @@ export function CategorySetEditor({
     }, {});
   }, [edges]);
 
-  const flowNodes = useMemo(
-    () => {
-      const selectedCustomCategoryId = customCategoryNodes.some(
-        (node) => node.id === selectedNodeId,
-      )
-        ? selectedNodeId
-        : null;
+  const flowNodes = useMemo(() => {
+    const selectedCustomCategoryId = customCategoryNodes.some(
+      (node) => node.id === selectedNodeId,
+    )
+      ? selectedNodeId
+      : null;
 
-      const pfcPrimaryIdsConnectedToSelected = new Set(
-        selectedCustomCategoryId
-          ? edges
+    const pfcPrimaryIdsConnectedToSelected = new Set(
+      selectedCustomCategoryId
+        ? edges
             .filter((edge) => edge.source === selectedCustomCategoryId)
             .map((edge) => edge.target)
-          : [],
-      );
+        : [],
+    );
 
-      const pfcPrimaryIdsConnectedToOtherCategories = new Set(
-        selectedCustomCategoryId
-          ? edges
+    const pfcPrimaryIdsConnectedToOtherCategories = new Set(
+      selectedCustomCategoryId
+        ? edges
             .filter((edge) => edge.source !== selectedCustomCategoryId)
             .map((edge) => edge.target)
-          : [],
-      );
+        : [],
+    );
 
-      return nodes.map((node) => {
-        if (node.type === "customCategory") {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              selected: node.id === selectedNodeId,
-              mappedCount: mappedCountByCustomCategory[node.id] ?? 0,
-              onDeleteCustomCategory: () =>
-                setDeleteCustomCategoryDialogOpen(true),
-            },
-          };
-        }
+    return nodes.map((node) => {
+      if (node.type === "customCategory") {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            selected: node.id === selectedNodeId,
+            mappedCount: mappedCountByCustomCategory[node.id] ?? 0,
+            onDeleteCustomCategory: () =>
+              setDeleteCustomCategoryDialogOpen(true),
+          },
+        };
+      }
 
-        if (node.type === "pfcPrimary") {
-          const selected = pfcPrimaryIdsConnectedToSelected.has(node.id);
-          const dimmed =
-            !selected && pfcPrimaryIdsConnectedToOtherCategories.has(node.id);
+      if (node.type === "pfcPrimary") {
+        const selected = pfcPrimaryIdsConnectedToSelected.has(node.id);
+        const dimmed =
+          !selected && pfcPrimaryIdsConnectedToOtherCategories.has(node.id);
 
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              selected,
-              dimmed,
-            },
-          };
-        }
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            selected,
+            dimmed,
+          },
+        };
+      }
 
-        return node;
-      });
-    },
-    [customCategoryNodes, edges, mappedCountByCustomCategory, nodes, selectedNodeId],
-  );
+      return node;
+    });
+  }, [
+    customCategoryNodes,
+    edges,
+    mappedCountByCustomCategory,
+    nodes,
+    selectedNodeId,
+  ]);
 
   const flowEdges = useMemo(
     () =>
@@ -307,7 +311,11 @@ export function CategorySetEditor({
           animated: connectedToSelected && !isSelected,
           style: {
             ...edge.style,
-            stroke: isSelected ? "var(--destructive)" : connectedToSelected ? "var(--primary)" : undefined,
+            stroke: isSelected
+              ? "var(--destructive)"
+              : connectedToSelected
+                ? "var(--primary)"
+                : undefined,
             filter: isSelected
               ? `drop-shadow(0 0 5px var(--destructive))`
               : undefined,
@@ -316,9 +324,9 @@ export function CategorySetEditor({
           markerEnd:
             isSelected || connectedToSelected
               ? {
-                type: MarkerType.ArrowClosed,
-                color: isSelected ? "var(--destructive)" : "var(--primary)",
-              }
+                  type: MarkerType.ArrowClosed,
+                  color: isSelected ? "var(--destructive)" : "var(--primary)",
+                }
               : edge.markerEnd,
         };
       }),
@@ -492,12 +500,12 @@ export function CategorySetEditor({
         prev.map((node) =>
           node.id === selectedNodeId && node.type === "customCategory"
             ? {
-              ...node,
-              data: {
-                ...node.data,
-                category: { ...node.data.category, ...patch },
-              },
-            }
+                ...node,
+                data: {
+                  ...node.data,
+                  category: { ...node.data.category, ...patch },
+                },
+              }
             : node,
         ),
       );

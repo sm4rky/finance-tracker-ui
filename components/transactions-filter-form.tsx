@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { LinkedBankResponse } from "@/interface/plaid";
+import type {
+  LinkedBankAccountResponse,
+  LinkedBankResponse,
+} from "@/interface/plaid";
 import type { ProfileCustomCategorySetResponse } from "@/interface/profile-custom-category";
 import {
   getCustomCategoryMeta,
@@ -39,21 +42,23 @@ import { getAllAccountIds } from "@/lib/linked-bank-accounts";
 import { getPlaidInstitutionIcon } from "@/lib/plaid-institution-icons";
 import { cn } from "@/lib/utils";
 
-function getFilterCategoryMeta(
+function getAccountLabel(account: LinkedBankAccountResponse): string {
+  const base =
+    account.officialName?.trim() || account.accountName.trim() || "Account";
+  return account.mask ? `${base} ••••${account.mask}` : base;
+}
+
+function getCategoryMeta(
   categorySet: ProfileCustomCategorySetResponse | null,
   categoryId: string,
 ): CustomCategoryMeta | PfcPrimaryMeta {
-  if (categorySet) {
-    const category = categorySet.categories.find(
-      (item) => item.id === categoryId,
-    );
+  const category = categorySet?.categories.find(
+    (item) => item.id === categoryId,
+  );
 
-    if (category) {
-      return getCustomCategoryMeta(category);
-    }
-  }
-
-  return getPfcPrmaryMeta(categoryId);
+  return category
+    ? getCustomCategoryMeta(category)
+    : getPfcPrmaryMeta(categoryId);
 }
 
 function parseOptionalAmount(raw: string): number | undefined {
@@ -106,7 +111,9 @@ export function TransactionsFilterForm({
 
   const allAccountIds = useMemo(() => getAllAccountIds(banks), [banks]);
   const selectedAccountIds =
-    filterState.accountIds === undefined ? allAccountIds : filterState.accountIds;
+    filterState.accountIds === undefined
+      ? allAccountIds
+      : filterState.accountIds;
   const selectedCategoryIds = isCustomCategorySet
     ? (filterState.customCategoryIds ?? [])
     : (filterState.pfcPrimaryList ?? []);
@@ -117,9 +124,9 @@ export function TransactionsFilterForm({
     if (!keyword) return categoryIds;
 
     return categoryIds.filter((categoryId) =>
-      getFilterCategoryMeta(categorySet, categoryId)
+      getCategoryMeta(categorySet, categoryId)
         .displayName.toLowerCase()
-        .includes(keyword)
+        .includes(keyword),
     );
   }, [categoryIds, categorySearch, categorySet]);
 
@@ -129,9 +136,7 @@ export function TransactionsFilterForm({
 
   const allCategoriesSelected =
     categoryIds.length > 0 &&
-    categoryIds.every((categoryId) =>
-      selectedCategoryIds.includes(categoryId),
-    );
+    categoryIds.every((categoryId) => selectedCategoryIds.includes(categoryId));
 
   const allChannelsSelected =
     PAYMENT_CHANNELS.length > 0 &&
@@ -264,7 +269,8 @@ export function TransactionsFilterForm({
                 <DropdownMenuSeparator />
 
                 {banks.map((bank, bankIndex) => {
-                  const institutionName = bank.institutionName?.trim() || "Bank";
+                  const institutionName =
+                    bank.institutionName?.trim() || "Bank";
                   const institutionIcon =
                     getPlaidInstitutionIcon(institutionName);
 
@@ -289,11 +295,10 @@ export function TransactionsFilterForm({
                         </DropdownMenuLabel>
 
                         {bank.accounts.map((account) => {
-                          const checked = selectedAccountIds.includes(account.id);
-                          const label = `${account.officialName?.trim() ||
-                            account.accountName.trim() ||
-                            "Account"
-                            }${account.mask ? ` ·•••${account.mask}` : ""}`;
+                          const checked = selectedAccountIds.includes(
+                            account.id,
+                          );
+                          const label = getAccountLabel(account);
 
                           return (
                             <DropdownMenuItem
@@ -422,14 +427,16 @@ export function TransactionsFilterForm({
               </p>
             ) : (
               filteredCategoryIds.map((categoryId) => {
-                const meta = getFilterCategoryMeta(categorySet, categoryId);
+                const meta = getCategoryMeta(categorySet, categoryId);
                 const checked = selectedCategoryIds.includes(categoryId);
 
                 return (
                   <DropdownMenuItem
                     key={categoryId}
                     closeOnClick={false}
-                    onClick={() => updateCategorySelection(categoryId, !checked)}
+                    onClick={() =>
+                      updateCategorySelection(categoryId, !checked)
+                    }
                     className="cursor-pointer gap-2 py-1.5 pr-2 pl-1.5"
                   >
                     <span
@@ -601,7 +608,11 @@ export function TransactionsFilterForm({
                     step="0.01"
                     inputMode="decimal"
                     placeholder="0"
-                    value={filterState.amountMin != null ? String(filterState.amountMin) : ""}
+                    value={
+                      filterState.amountMin != null
+                        ? String(filterState.amountMin)
+                        : ""
+                    }
                     onChange={(e) =>
                       onChange({
                         ...filterState,
@@ -622,7 +633,11 @@ export function TransactionsFilterForm({
                     step="0.01"
                     inputMode="decimal"
                     placeholder="0"
-                    value={filterState.amountMax != null ? String(filterState.amountMax) : ""}
+                    value={
+                      filterState.amountMax != null
+                        ? String(filterState.amountMax)
+                        : ""
+                    }
                     onChange={(e) =>
                       onChange({
                         ...filterState,

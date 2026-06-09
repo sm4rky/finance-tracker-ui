@@ -134,11 +134,7 @@ export function TransactionsDateFilter({
         ) : null}
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent
-        align="start"
-        className="w-72 p-1"
-        sideOffset={6}
-      >
+      <DropdownMenuContent align="start" className="w-72 p-1" sideOffset={6}>
         <DropdownMenuGroup>
           <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide">
             Date range

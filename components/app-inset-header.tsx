@@ -30,6 +30,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/transactions": "Transactions",
   "/subscriptions": "Subscriptions",
+  "/budgets": "Budgets",
   "/categories": "Categories",
   "/profile": "Profile",
 };
@@ -84,9 +85,7 @@ export function AppInsetHeader() {
           await deleteMyPushSubscription(device.id);
         }
       }
-    } catch {
-
-    }
+    } catch {}
     await supabase.auth.signOut();
     useAuthStore.getState().clear();
     router.push("/login");
