@@ -37,7 +37,7 @@ export function DashboardView() {
       <div className="grid w-full min-w-0 grid-cols-1 gap-3 2xl:min-h-0 2xl:flex-1 2xl:grid-cols-[25rem_minmax(0,1fr)] 2xl:items-stretch 2xl:gap-5 *:min-w-0">
         <MyAccountSection />
 
-        <div className="grid min-w-0 grid-cols-1 gap-3 2xl:min-h-0 2xl:grid-rows-[minmax(0,1fr)_minmax(0,0.85fr)] 2xl:gap-5">
+        <div className="grid min-w-0 grid-cols-1 gap-3 2xl:min-h-0 2xl:grid-rows-[minmax(0,0.85fr)_minmax(0,1fr)] 2xl:gap-5">
           <div className="grid min-w-0 grid-cols-1 gap-3 2xl:min-h-0 2xl:gap-5 xl:grid-cols-3">
             <RecentTransactionsSection />
             <SubscriptionSection />
