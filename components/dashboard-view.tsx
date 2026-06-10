@@ -1,8 +1,10 @@
 "use client";
 
+import { BudgetSection } from "@/components/budget-section";
 import { MyAccountSection } from "@/components/my-account-section";
 import { NetWorthTrendChart } from "@/components/net-worth-trend-chart";
 import { RecentTransactionsSection } from "@/components/recent-transactions-section";
+import { SubscriptionSection } from "@/components/subscription-section";
 import { useAuthStore } from "@/stores/auth-session";
 
 export function DashboardView() {
@@ -29,11 +31,13 @@ export function DashboardView() {
         <MyAccountSection />
 
         <div className="grid min-w-0 grid-cols-1 gap-3 2xl:min-h-0 2xl:grid-rows-[minmax(0,1fr)_minmax(0,0.85fr)] 2xl:gap-5">
-          <NetWorthTrendChart />
-
-          <div className="grid min-w-0 grid-cols-1 gap-3 2xl:min-h-0 2xl:gap-5">
+          <div className="grid min-w-0 grid-cols-1 gap-3 2xl:min-h-0 2xl:gap-5 xl:grid-cols-3">
             <RecentTransactionsSection />
+            <SubscriptionSection />
+            <BudgetSection />
           </div>
+
+          <NetWorthTrendChart />
         </div>
       </div>
     </div>

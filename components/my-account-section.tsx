@@ -1,299 +1,299 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Building2, ChevronDown, Wallet } from "lucide-react";
-import Image from "next/image";
+import {
+  ArrowUpRight,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import Link from "next/link";
 
+import { BankAccountCard } from "@/components/bank-account-card";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionHeader,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { buttonVariants } from "@/components/ui/button";
+  type CarouselApi,
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLinkedBanks } from "@/hooks/use-linked-banks";
 import { fetchNetWorth } from "@/lib/api/analytics";
-import type {
-  LinkedBankAccountResponse,
-  LinkedBankResponse,
-} from "@/interface/plaid";
-import { getPlaidInstitutionIcon } from "@/lib/plaid-institution-icons";
-import { useAuthStore } from "@/stores/auth-session";
 import { cn } from "@/lib/utils";
 
 function formatUsd(amount: number): string {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  } catch {
-    return amount.toFixed(2);
-  }
-}
-
-function formatMoney(amount: number | null, currency?: string | null): string {
-  if (amount == null || Number.isNaN(amount)) return "—";
-  const code = currency?.toUpperCase() || "USD";
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency: code,
-    }).format(amount);
-  } catch {
-    return amount.toFixed(2);
-  }
-}
-
-function getAccountLabel(account: LinkedBankAccountResponse): string {
-  const base =
-    account.officialName?.trim() || account.accountName?.trim() || "Account";
-  return account.mask ? `${base} ••••${account.mask}` : base;
-}
-
-function sumBankBalance(bank: LinkedBankResponse): number {
-  return bank.accounts
-    .filter((a) => a.isActive)
-    .reduce((sum, a) => sum + (a.currentBalance ?? 0), 0);
-}
-
-function sumAllBanksBalance(banks: LinkedBankResponse[]): number {
-  return banks.reduce((sum, b) => sum + sumBankBalance(b), 0);
-}
-
-function bankAccountsList(bank: LinkedBankResponse): ReactNode {
-  const active = bank.accounts.filter((a) => a.isActive);
-  if (active.length === 0) {
-    return (
-      <p className="pl-4 text-xs text-muted-foreground">No active accounts.</p>
-    );
-  }
-  return (
-    <div className="pl-4">
-      <div className="divide-y divide-border/60">
-        {active.map((account) => (
-          <div
-            key={account.id}
-            className="flex gap-3 py-2.5 first:pt-0 last:pb-0"
-          >
-            <div className="min-w-0 flex-1 space-y-0.5">
-              <p className="text-xs font-medium leading-snug">
-                {getAccountLabel(account)}
-              </p>
-              <p className="text-[11px] leading-snug text-muted-foreground">
-                {[account.type, account.subtype].filter(Boolean).join(" · ") ||
-                  "—"}
-              </p>
-            </div>
-            <p className="shrink-0 text-right text-xs font-medium tabular-nums">
-              {formatMoney(account.currentBalance, account.isoCurrencyCode)}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+  }).format(amount);
 }
 
 export function MyAccountSection() {
-  const accessToken = useAuthStore((s) => s.accessToken);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const { data: netWorth, isPending: isNetWorthPending } = useQuery({
+  const { data, isPending } = useQuery({
     queryKey: ["analytics-net-worth"],
     queryFn: fetchNetWorth,
-    enabled: Boolean(accessToken),
   });
 
-  const { banks, isLoading: isConnectionsPending } = useLinkedBanks();
+  const { banks, isLoading: isBanksLoading } = useLinkedBanks();
 
-  const netWorthDisplay = netWorth?.netWorth ?? 0;
-  const assetsDisplay = netWorth?.totalAssets ?? 0;
-  const liabilitiesDisplay = netWorth?.totalLiabilities ?? 0;
+  const accountCards = banks.flatMap((bank) =>
+    bank.accounts
+      .filter((account) => account.isActive)
+      .map((account) => ({
+        account,
+        institutionName: bank.institutionName?.trim() || "Linked institution",
+      })),
+  );
 
-  const aggregate = sumAllBanksBalance(banks);
-  const banksCurrency =
-    banks.find((b) => b.accounts[0]?.isoCurrencyCode)?.accounts[0]
-      ?.isoCurrencyCode ?? "USD";
+  const selectedAccount = accountCards[selectedIndex] ?? null;
+
+  function getSelectedCardIndex() {
+    return Math.min(
+      Math.max(selectedIndex, 0),
+      Math.max(accountCards.length - 1, 0),
+    );
+  }
+
+  function handlePreviousCard() {
+    const previousIndex = Math.max(getSelectedCardIndex() - 1, 0);
+    setSelectedIndex(previousIndex);
+    carouselApi?.scrollTo(previousIndex);
+  }
+
+  function handleNextCard() {
+    const nextIndex = Math.min(
+      getSelectedCardIndex() + 1,
+      accountCards.length - 1,
+    );
+    setSelectedIndex(nextIndex);
+    carouselApi?.scrollTo(nextIndex);
+  }
+
+  useEffect(() => {
+    if (!carouselApi) return;
+
+    const syncSelectedCard = () => {
+      setSelectedIndex(carouselApi.selectedScrollSnap());
+    };
+
+    syncSelectedCard();
+    carouselApi.on("select", syncSelectedCard);
+    carouselApi.on("reInit", syncSelectedCard);
+
+    return () => {
+      carouselApi.off("select", syncSelectedCard);
+      carouselApi.off("reInit", syncSelectedCard);
+    };
+  }, [carouselApi]);
 
   return (
-    <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-      <header className="flex shrink-0 items-center justify-between gap-3 bg-card px-3 py-2 sm:px-4 sm:py-2.5">
-        <h2 className="font-heading text-base font-light tracking-tight sm:text-lg">
-          My accounts
-        </h2>
-        <Link
-          href="/profile#accounts"
-          className={cn(
-            buttonVariants({ variant: "outline", size: "sm" }),
-            "shrink-0",
+    <section className="flex h-full min-h-0 w-full min-w-0 flex-col gap-8 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+      <div className="min-w-0 space-y-4">
+        <div className="min-w-0 space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            NETWORTH
+          </p>
+          {isPending ? (
+            <Skeleton className="h-10 w-48" />
+          ) : (
+            <p className="truncate text-4xl font-semibold tracking-tight tabular-nums">
+              {formatUsd(data?.netWorth ?? 0)}
+            </p>
           )}
-        >
-          <ArrowUpRight className="opacity-90" strokeWidth={1.75} aria-hidden />
-          Manage banks
-        </Link>
-      </header>
+        </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 sm:px-3 sm:pb-3">
-        <Accordion type="multiple" className="w-full">
-          <AccordionItem
-            value="net-worth"
-            className="border-b border-border last:border-b-0"
-          >
-            <AccordionHeader className="flex w-full">
-              <AccordionTrigger className="w-full gap-3 py-3 hover:no-underline">
-                <span className="flex min-w-0 flex-1 items-center gap-2.5">
-                  <Wallet
-                    className="size-5 shrink-0 text-foreground"
-                    strokeWidth={1.75}
-                    aria-hidden
-                  />
-                  <span className="text-sm font-medium">Net worth</span>
-                </span>
-                <span className="shrink-0 tabular-nums text-sm font-semibold">
-                  {isNetWorthPending ? (
-                    <Skeleton className="inline-block h-5 w-24 rounded" />
-                  ) : (
-                    formatUsd(netWorthDisplay)
-                  )}
-                </span>
-                <ChevronDown
-                  className="chevron-accordion size-4 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-              </AccordionTrigger>
-            </AccordionHeader>
-            <AccordionContent className="pb-4">
-              <div className="space-y-3 border-t border-border/80 pt-3 pl-7">
-                {isNetWorthPending ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-full max-w-xs" />
-                    <Skeleton className="h-4 w-full max-w-xs" />
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between gap-4 text-sm">
-                      <span className="text-sm font-semibold leading-tight">
-                        Assets
-                      </span>
-                      <span className="tabular-nums text-sm font-medium text-muted-foreground">
-                        {formatUsd(assetsDisplay)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4 text-sm">
-                      <span className="text-sm font-semibold leading-tight">
-                        Liabilities
-                      </span>
-                      <span className="tabular-nums text-sm font-medium text-muted-foreground">
-                        {formatUsd(liabilitiesDisplay)}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="flex min-w-0 items-center justify-between gap-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              ASSETS
+            </p>
+            {isPending ? (
+              <Skeleton className="h-5 w-28" />
+            ) : (
+              <p className="min-w-0 truncate text-right text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                {formatUsd(data?.totalAssets ?? 0)}
+              </p>
+            )}
+          </div>
 
-          <AccordionItem
-            value="banks"
-            className="border-b border-border last:border-b-0"
-          >
-            <AccordionHeader className="flex w-full">
-              <AccordionTrigger className="w-full gap-3 py-3 hover:no-underline">
-                <span className="flex min-w-0 flex-1 items-center gap-2.5">
-                  <Building2
-                    className="size-5 shrink-0 text-foreground"
-                    strokeWidth={1.75}
-                    aria-hidden
-                  />
-                  <span className="text-sm font-medium">Banks</span>
-                </span>
-                <span className="shrink-0 tabular-nums text-sm font-semibold">
-                  {isConnectionsPending ? (
-                    <Skeleton className="inline-block h-5 w-24 rounded" />
-                  ) : banks.length === 0 ? (
-                    "—"
-                  ) : (
-                    formatMoney(aggregate, banksCurrency)
-                  )}
-                </span>
-                <ChevronDown
-                  className="chevron-accordion size-4 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-              </AccordionTrigger>
-            </AccordionHeader>
-            <AccordionContent className="pb-4">
-              <div className="space-y-8 border-t border-border/80 pt-4 pl-7">
-                {isConnectionsPending ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-4 w-40 rounded" />
-                    <Skeleton className="h-16 w-full rounded-lg" />
-                    <Skeleton className="h-16 w-full rounded-lg" />
-                  </div>
-                ) : banks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No linked banks yet.{" "}
-                    <Link
-                      href="/profile#accounts"
-                      className="font-medium text-foreground underline-offset-4 hover:underline"
-                    >
-                      Connect an institution
-                    </Link>
-                    .
-                  </p>
-                ) : (
-                  <div className="flex flex-col divide-y divide-border/80">
-                    {banks.map((bank) => {
-                      const title =
-                        bank.institutionName?.trim() || "Linked institution";
-                      const institutionIcon = getPlaidInstitutionIcon(title);
-                      const needsAttention = bank.status === "relink_required";
-                      return (
-                        <div
-                          key={bank.id}
-                          className="space-y-2 py-4 first:pt-0"
-                        >
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <div className="flex min-w-0 items-center gap-2">
-                              {institutionIcon ? (
-                                <Image
-                                  src={institutionIcon.src}
-                                  alt={institutionIcon.alt}
-                                  width={20}
-                                  height={20}
-                                  className="size-5 shrink-0 object-contain"
-                                />
-                              ) : null}
-                              <h3 className="min-w-0 truncate text-sm font-semibold leading-tight">
-                                {title}
-                              </h3>
-                            </div>
-                            <span className="shrink-0 text-sm font-medium tabular-nums text-muted-foreground">
-                              {formatMoney(
-                                sumBankBalance(bank),
-                                bank.accounts[0]?.isoCurrencyCode ?? "USD",
-                              )}
-                            </span>
-                          </div>
-                          {needsAttention ? (
-                            <p className="text-xs text-amber-600 dark:text-amber-500">
-                              Action required — reconnect in Manage banks
-                            </p>
-                          ) : null}
-                          {bankAccountsList(bank)}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+          <div className="flex min-w-0 items-center justify-between gap-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              LIABILITIES
+            </p>
+            {isPending ? (
+              <Skeleton className="h-5 w-28" />
+            ) : (
+              <p className="min-w-0 truncate text-right text-sm font-semibold tabular-nums text-destructive">
+                {formatUsd(data?.totalLiabilities ?? 0)}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="min-w-0 space-y-2">
+        <div className="flex min-w-0 items-center justify-between">
+          <h1 className="font-heading text-base font-semibold tracking-tight">
+            Cards
+          </h1>
+          <div className="flex items-center gap-2">
+            {accountCards.length > 1 ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  disabled={getSelectedCardIndex() === 0}
+                  onClick={handlePreviousCard}
+                  aria-label="Previous card"
+                >
+                  <ChevronLeft className="size-4 shrink-0" aria-hidden />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  disabled={getSelectedCardIndex() >= accountCards.length - 1}
+                  onClick={handleNextCard}
+                  aria-label="Next card"
+                >
+                  <ChevronRight className="size-4 shrink-0" aria-hidden />
+                </Button>
               </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+            ) : null}
+            <Link
+              href="/profile#accounts"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "shrink-0",
+              )}
+            >
+              <ArrowUpRight
+                className="opacity-90"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              Manage banks
+            </Link>
+          </div>
+        </div>
+
+        {isBanksLoading ? (
+          <Skeleton className="aspect-[1.6/1] min-w-0 max-w-full rounded-xl" />
+        ) : accountCards.length === 0 ? (
+          <div className="w-full p-4 flex flex-col items-center justify-center gap-3 text-center">
+            <Building2 className="size-10 text-muted-foreground" aria-hidden />
+            <div>
+              <div className="font-medium">No active bank accounts.</div>
+              <p className="text-sm text-muted-foreground">
+                Connect a bank to start syncing accounts and balances.
+              </p>
+            </div>
+            <Link
+              href="/profile#accounts"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "shrink-0",
+              )}
+            >
+              <ArrowUpRight
+                className="opacity-90"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              Manage banks
+            </Link>
+          </div>
+        ) : (
+          <Carousel setApi={setCarouselApi}>
+            <CarouselContent className="-ml-3 py-2">
+              {accountCards.map(({ account, institutionName }, index) => (
+                <CarouselItem key={account.id} className="pl-3 basis-[20rem]">
+                  <BankAccountCard
+                    account={account}
+                    institutionName={institutionName}
+                    className={
+                      getSelectedCardIndex() === index
+                        ? "opacity-100"
+                        : "opacity-35"
+                    }
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        )}
+
+        {accountCards.length > 0 && selectedAccount != null ? (
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex min-w-0 justify-between items-center gap-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                BANK
+              </p>
+              <p
+                className="min-w-0 truncate text-right text-sm font-semibold tabular-nums"
+                title={selectedAccount.institutionName}
+              >
+                {selectedAccount.institutionName}
+              </p>
+            </div>
+            <div className="flex min-w-0 justify-between items-center gap-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                ACCOUNT
+              </p>
+              <p
+                className="min-w-0 truncate text-right text-sm font-semibold tabular-nums"
+                title={
+                  selectedAccount.account.officialName?.trim() ||
+                  selectedAccount.account.accountName?.trim() ||
+                  "Account"
+                }
+              >
+                {selectedAccount.account.officialName?.trim() ||
+                  selectedAccount.account.accountName?.trim() ||
+                  "Account"}
+              </p>
+            </div>
+            <div className="flex min-w-0 justify-between items-center gap-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                MASK
+              </p>
+              <p
+                className="min-w-0 truncate text-right text-sm font-semibold tabular-nums"
+                title={selectedAccount.account.mask ?? "—"}
+              >
+                {selectedAccount.account.mask || "—"}
+              </p>
+            </div>
+            <div className="flex min-w-0 justify-between items-center gap-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                TYPE
+              </p>
+              <p
+                className="min-w-0 truncate text-right text-sm font-semibold tabular-nums"
+                title={selectedAccount.account.type ?? "—"}
+              >
+                {selectedAccount.account.type ?? "—"}
+              </p>
+            </div>
+            <div className="flex min-w-0 justify-between items-center gap-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                SUBTYPE
+              </p>
+              <p
+                className="min-w-0 truncate text-right text-sm font-semibold tabular-nums"
+                title={selectedAccount.account.subtype ?? "—"}
+              >
+                {selectedAccount.account.subtype ?? "—"}
+              </p>
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );

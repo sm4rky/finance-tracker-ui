@@ -4,14 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useState } from "react";
 
 import {
   UNCATEGORIZED_PFC_PRIMARY,
   getPfcPrmaryMeta,
 } from "@/lib/pfc-primary";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TransactionResponse } from "@/interface/transaction";
 import { fetchRecentTransactions } from "@/lib/api/transaction";
@@ -115,15 +114,10 @@ function TransactionRow({ row }: { row: TransactionResponse }) {
 }
 
 export function RecentTransactionsSection() {
-  const { data, isPending, isError, error, refetch } = useQuery({
+  const { data, isPending, isError, error } = useQuery({
     queryKey: ["get-recent-transactions", RECENT_LIMIT] as const,
     queryFn: () => fetchRecentTransactions(RECENT_LIMIT),
   });
-
-  useEffect(() => {
-    if (!isError || !(error instanceof Error)) return;
-    toast.error(error.message, { id: "get-recent-transactions-error" });
-  }, [isError, error]);
 
   const items = data ?? [];
 
@@ -167,16 +161,6 @@ export function RecentTransactionsSection() {
             {error instanceof Error
               ? error.message
               : "Could not load recent transactions."}
-            <span className="mt-2 block">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => void refetch()}
-              >
-                Retry
-              </Button>
-            </span>
           </p>
         ) : !isPending && items.length === 0 ? (
           <p className="px-1 py-8 text-center text-sm text-muted-foreground">

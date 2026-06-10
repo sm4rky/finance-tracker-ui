@@ -50,6 +50,28 @@ export async function listProfileBudgetPeriods(
   return Array.isArray(json) ? (json as ProfileBudgetPeriodResponse[]) : [];
 }
 
+export async function listOngoingProfileBudgetPeriods(
+  limit?: number,
+): Promise<ProfileBudgetPeriodResponse[]> {
+  const params = new URLSearchParams();
+  if (limit != null) {
+    params.set("limit", String(limit));
+  }
+
+  const query = params.toString();
+  const res = await apiFetch(
+    `${BASE_URL}/ongoing-periods${query ? `?${query}` : ""}`,
+    { method: "GET" },
+  );
+
+  if (!res.ok) {
+    throw new Error(await parseApiErrorMessage(res));
+  }
+
+  const json: unknown = await res.json();
+  return Array.isArray(json) ? (json as ProfileBudgetPeriodResponse[]) : [];
+}
+
 export async function createProfileBudget(
   body: CreateProfileBudgetRequest,
 ): Promise<ProfileBudgetResponse> {
