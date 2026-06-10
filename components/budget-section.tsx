@@ -19,12 +19,17 @@ function formatUsd(amount: number): string {
   }).format(amount);
 }
 
-function formatPeriodEndDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
+function formatDateOnly(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return value;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
 
   return date.toLocaleDateString(undefined, {
-    month: "short",
+    month: "long",
     day: "numeric",
     year: "numeric",
   });
@@ -116,7 +121,7 @@ export function BudgetSection() {
                         {period.periodName}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Ends {formatPeriodEndDate(period.periodEndDate)}
+                        Ends {formatDateOnly(period.periodEndDate)}
                       </p>
                     </div>
                     <p
