@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { EChartsOption } from "echarts";
 import ReactECharts from "echarts-for-react";
+import { BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -296,9 +297,10 @@ export function AccountExpenseBarChart() {
             {error instanceof Error ? error.message : "Could not load chart."}
           </p>
         ) : showEmpty ? (
-          <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-64 md:min-h-72">
-            No expense data for this period.
-          </p>
+          <div className="flex min-h-60 flex-1 flex-col items-center justify-center gap-3 px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-64 md:min-h-72">
+            <BarChart3 className="size-9" aria-hidden />
+            <p>No expense data for this period.</p>
+          </div>
         ) : chartOption ? (
           <div className="relative mx-auto flex min-h-60 w-full flex-1 flex-col sm:min-h-64 md:min-h-72">
             <ReactECharts
@@ -310,9 +312,10 @@ export function AccountExpenseBarChart() {
             />
           </div>
         ) : (
-          <p className="flex min-h-60 flex-1 items-center justify-center px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-64 md:min-h-72">
-            No expense data for this period.
-          </p>
+          <div className="flex min-h-60 flex-1 flex-col items-center justify-center gap-3 px-2 py-5 text-center text-sm text-muted-foreground sm:min-h-64 md:min-h-72">
+            <BarChart3 className="size-9" aria-hidden />
+            <p>No expense data for this period.</p>
+          </div>
         )}
       </div>
     </section>

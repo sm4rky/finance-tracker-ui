@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -163,9 +163,10 @@ export function RecentTransactionsSection() {
               : "Could not load recent transactions."}
           </p>
         ) : !isPending && items.length === 0 ? (
-          <p className="px-1 py-8 text-center text-sm text-muted-foreground">
-            No transactions yet.
-          </p>
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-1 py-8 text-center text-sm text-muted-foreground">
+            <ArrowLeftRight className="size-9" aria-hidden />
+            <p>No transactions yet.</p>
+          </div>
         ) : !isError && !isPending ? (
           <div className="min-w-0">
             {items.map((row) => (

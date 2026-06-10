@@ -5,11 +5,16 @@ import { MyAccountSection } from "@/components/my-account-section";
 import { NetWorthTrendChart } from "@/components/net-worth-trend-chart";
 import { RecentTransactionsSection } from "@/components/recent-transactions-section";
 import { SubscriptionSection } from "@/components/subscription-section";
+import { useLinkedBanks } from "@/hooks/use-linked-banks";
 import { useAuthStore } from "@/stores/auth-session";
 
 export function DashboardView() {
   const profile = useAuthStore((state) => state.userProfile);
+  const { banks, isLoading: isBanksLoading } = useLinkedBanks();
   const displayLine = profile?.fullName?.trim() || "";
+  const hasActiveBankAccounts = banks.some((bank) =>
+    bank.accounts.some((account) => account.isActive),
+  );
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-3 p-4 sm:gap-5 sm:p-6 md:p-8 lg:min-h-full">
@@ -22,7 +27,9 @@ export function DashboardView() {
             </span>
           </h1>
           <p className="text-sm text-muted-foreground">
-            Review your financial overview.
+            {!isBanksLoading && !hasActiveBankAccounts
+              ? "Connect a bank account to start syncing transactions, balances, and insights."
+              : "Review your financial overview."}
           </p>
         </div>
       </div>
